@@ -133,10 +133,10 @@
       });
     });
     var fuss = B.el("div", "kueche-fuss", menue);
-    var neu = B.el("button", "knopf klein", fuss, "↺ Zurück zum Gartentor");
+    var neu = B.knopf(B.el("button", "knopf klein", fuss), "nochmal", "Zurück zum Gartentor");
     B.tippen(neu, function () { APP.zeige("start"); });
     if (window.location.protocol === "https:" && navigator.serviceWorker) {
-      var offline = B.el("button", "knopf klein", fuss, "⬇ Alles fürs Offline-Lesen speichern");
+      var offline = B.knopf(B.el("button", "knopf klein", fuss), "laden", "Alles fürs Offline-Lesen speichern");
       B.tippen(offline, function () { allesVorladen(offline); });
     }
   }
@@ -225,7 +225,7 @@
     var A = window.EXTRAS.akte;
     var seite = B.el("div", "akte-bildschirm", wurzel);
     PAPIER.hinterlegen(seite, "tiefblau", { kachel: 300 });
-    var zurueck = B.el("button", "knopf akte-zurueck", seite, "⌂ Zur Küche");
+    var zurueck = B.knopf(B.el("button", "knopf akte-zurueck", seite), "haus", "Zur Küche");
     B.tippen(zurueck, function () { APP.zeige("kueche"); });
     var dossier = B.el("div", "akte-dossier", seite);
     dossier.style.backgroundImage = "url(\"bilder/extras/geheimakte-omsi.jpg\")";
@@ -279,9 +279,9 @@
     var R = window.EXTRAS.rezept;
     var seite = B.el("div", "rezept-bildschirm", wurzel);
     PAPIER.hinterlegen(seite, "gruen", { kachel: 300, seed: 5 });
-    var zurueck = B.el("button", "knopf akte-zurueck", seite, "⌂ Zur Küche");
+    var zurueck = B.knopf(B.el("button", "knopf akte-zurueck", seite), "haus", "Zur Küche");
     B.tippen(zurueck, function () { APP.zeige("kueche"); });
-    var drucken = B.el("button", "knopf rezept-drucken", seite, "🖨 Drucken");
+    var drucken = B.knopf(B.el("button", "knopf rezept-drucken", seite), "drucker", "Drucken");
     B.tippen(drucken, function () { window.print(); });
     var karte = B.el("div", "rezeptkarte mit-rahmen", seite);
     PAPIER.hinterlegen(karte, "creme", { kachel: 260, seed: 9 });
@@ -381,9 +381,9 @@
       x.onloadend = function () {
         fertig++;
         if (x.status !== 200 && x.status !== 206) fehler++;
-        if (knopf) knopf.textContent = "⬇ " + Math.round(100 * fertig / liste.length) + " %";
+        if (knopf) B.knopf(knopf, "laden", Math.round(100 * fertig / liste.length) + " %");
         if (fertig === liste.length) {
-          if (knopf) knopf.textContent = "✓ Alles gespeichert – geht jetzt auch ohne Internet";
+          if (knopf) B.knopf(knopf, "haken", "Alles gespeichert – geht jetzt auch ohne Internet");
           if (fertigMeldung) fertigMeldung(fehler);
         } else eine();
       };
@@ -419,6 +419,8 @@
       var nrS = /^\d+$/.test(seiteParam[1]) ? parseInt(seiteParam[1], 10) : seiteParam[1];   // auch "kuh-l"
       window.ORIGINAL.doppelseiten.forEach(function (ds, i) { if (ds.indexOf(nrS) >= 0) B.merken("seite.original", i); });
     }
+    // Teil 2 ("Ein Pfannkuchen für Omsi") in der neuen Küche anschließen (dort noch als "vorbereitet" eingetragen)
+    if (window.MENUE_KUECHE && MENUE_KUECHE.verbinden) MENUE_KUECHE.verbinden("fortsetzung", function () { APP.zeige("fortsetzung"); });
     APP.zeige(ziel ? ziel[1] : "start");
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", los, false); else los();

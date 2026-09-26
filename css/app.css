@@ -22,7 +22,21 @@ button { font: inherit; }
 .knopf.gross { font-size: 22px; padding: .7em 1.4em; }
 .knopf.vorlesen.an { background: #d8371c; color: #fff; }
 .knopf.geraeusche { padding: .55em .85em; font-size: 19px; line-height: 1; }
-.knopf.geraeusche.aus { opacity: .55; text-decoration: line-through; }
+.knopf.geraeusche.aus { opacity: .55; }
+/* eigene Symbole (js/basis.js → B.ikon) statt Emoji-Zeichen */
+.ikon { display: inline-block; width: 1.18em; height: 1.18em; vertical-align: -.24em; fill: none; stroke: currentColor; stroke-width: 2.3;
+  stroke-linecap: round; stroke-linejoin: round; overflow: visible; pointer-events: none; }
+.ikon .f { fill: currentColor; }
+/* Papier-gefüllte Überschriften (background-clip:text): Safari malt nur innerhalb des Elements –
+   etwas Luft oben/unten, damit Ü-Punkte und Oberlängen nicht abgeschnitten werden (Rand gleicht aus) */
+.start-fuer, .kueche-titel, .finale-titel, .spiel-titel, .spiel-ende-titel, .titelfeld-de > div, .titelfeld-innen > div {
+  padding-top: .14em; margin-top: -.14em; padding-bottom: .06em; margin-bottom: -.06em; }
+.finale-gruss { padding-top: .14em; }
+/* Pfeil-Zeichen in CSS-Inhalten nie als Emoji (Text-Variante erzwingen) */
+body .mo-image-btn:after { content: "\2197\FE0E"; }
+body .rk-zutat[aria-pressed=true]:after { content: "\2713\FE0E"; }
+.ikon + .ikon-text { margin-left: .4em; }
+.knopf.geraeusche .ikon { width: 1.3em; height: 1.3em; vertical-align: -.28em; }
 
 .meldung { position: fixed; left: 50%; bottom: 28px; -webkit-transform: translateX(-50%); transform: translateX(-50%); z-index: 100;
   background: #2a2622; color: #fff; padding: .8em 1.3em; border-radius: 14px; font-family: var(--rund); font-size: 16px; max-width: 86vw; text-align: center;
@@ -151,10 +165,10 @@ button { font: inherit; }
 .abdeckung { position: absolute; z-index: 1; border-radius: 2px; }
 .satz { position: absolute; z-index: 5; overflow: hidden; padding: .35em .3em 1.1em; font-family: var(--buchschrift); font-size: .9em; line-height: 1.34; color: #26211c;
   -webkit-hyphens: auto; hyphens: auto; text-rendering: optimizeLegibility; -webkit-font-feature-settings: "kern", "liga", "onum"; font-feature-settings: "kern", "liga", "onum";
-  hanging-punctuation: first; text-wrap: pretty; }
+  text-wrap: pretty; }
 .satz p { margin: 0 0 .32em; white-space: pre-line; }
 .satz p:last-child { margin-bottom: 0; }
-.initiale { float: left; font-family: var(--rund); font-weight: 900; font-size: 3.05em; line-height: .8; margin: .06em .09em -.05em 0; }
+.initiale { float: left; font-family: var(--rund); font-weight: 900; font-size: 3.05em; line-height: .8; margin: -.1em .09em -.05em 0; padding-top: .16em; }
 .fehlt { font-family: var(--rund); font-size: .62em; color: #b0453a; border: 1px dashed #d98a80; background: rgba(255,244,236,.85); padding: .35em .5em; border-radius: 4px; }
 .titelfeld-de { position: absolute; z-index: 5; overflow: hidden; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
   -webkit-justify-content: center; justify-content: center; font-family: var(--buchschrift); font-weight: 700; line-height: 1.0; padding: 0 .08em; letter-spacing: -.01em; }
@@ -163,7 +177,7 @@ button { font: inherit; }
 /* ─────────────── Satz: Fortsetzung ─────────────── */
 .text-kasten { position: absolute; top: 7%; bottom: 7%; z-index: 5; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
   -webkit-justify-content: center; justify-content: center; font-family: var(--buchschrift); line-height: 1.42; color: #26211c; overflow: hidden;
-  -webkit-hyphens: auto; hyphens: auto; text-wrap: pretty; hanging-punctuation: first; }
+  -webkit-hyphens: manual; hyphens: manual; text-wrap: pretty; overflow-wrap: break-word; }
 .text-rechts { left: 30%; right: 8%; }
 .text-links { left: 8%; right: 22%; }
 .ist-titel, .ist-widmung { text-align: center; -webkit-align-items: center; align-items: center; }
@@ -176,18 +190,24 @@ button { font: inherit; }
 .dunkel .text-kasten { color: #f7efdc; }
 .rueckblende .text-kasten { font-style: italic; }
 .absatz { margin: 0 0 .5em; }
-.laut { font-family: var(--rund); font-weight: 900; font-size: 2.5em; line-height: 1.02; margin: .05em 0 .2em; letter-spacing: .01em;
+/* Geräuschwort: immer eine Zeile (js: lautSetzen). Innenabstand oben, damit die Ö-Punkte beim
+   Papier-Füllen (background-clip:text) nicht abgeschnitten werden – der negative Rand gleicht ihn aus */
+.laut { font-family: var(--rund); font-weight: 900; font-size: 2.5em; line-height: 1.02; margin: -.13em 0 .14em; padding: .18em 0 .06em; letter-spacing: .01em; white-space: nowrap;
   -webkit-transform-origin: 20% 60%; transform-origin: 20% 60%; }
 /* beim Vorlesen: das Geräuschwort springt in Kevins Pause auf */
 .laut-knall { -webkit-animation: kf-laut-knall .9s cubic-bezier(.2,1.6,.4,1) 1; animation: kf-laut-knall .9s cubic-bezier(.2,1.6,.4,1) 1; }
 @-webkit-keyframes kf-laut-knall { 0% { -webkit-transform: scale(1) rotate(0); } 18% { -webkit-transform: scale(1.45) rotate(-5deg); } 40% { -webkit-transform: scale(.92) rotate(3deg); } 62% { -webkit-transform: scale(1.1) rotate(-1.5deg); } 100% { -webkit-transform: scale(1) rotate(0); } }
+.laut-breit.laut-knall { -webkit-animation-name: kf-laut-knall-sanft; animation-name: kf-laut-knall-sanft; }   /* breite Wörter nicht über den Rand wachsen lassen */
+@-webkit-keyframes kf-laut-knall-sanft { 0% { -webkit-transform: scale(1) rotate(0); } 20% { -webkit-transform: scale(1.08) rotate(-2.5deg); } 45% { -webkit-transform: scale(.96) rotate(1.5deg); } 100% { -webkit-transform: scale(1) rotate(0); } }
+@keyframes kf-laut-knall-sanft { 0% { transform: scale(1) rotate(0); } 20% { transform: scale(1.08) rotate(-2.5deg); } 45% { transform: scale(.96) rotate(1.5deg); } 100% { transform: scale(1) rotate(0); } }
 @keyframes kf-laut-knall { 0% { transform: scale(1) rotate(0); } 18% { transform: scale(1.45) rotate(-5deg); } 40% { transform: scale(.92) rotate(3deg); } 62% { transform: scale(1.1) rotate(-1.5deg); } 100% { transform: scale(1) rotate(0); } }
-.buchtitel { font-family: var(--rund); font-weight: 900; font-size: 2.6em; line-height: 1.0; margin: 0 0 .35em; }
+.buchtitel { font-family: var(--rund); font-weight: 900; font-size: 2.6em; line-height: 1.0; margin: -.16em 0 .29em; padding: .16em 0 .06em; }
 .klein { font-size: .8em; font-style: italic; opacity: .82; margin: .2em 0 .5em; }
 .handschrift { font-family: var(--handschrift); font-size: 1.55em; color: #1b3a8a; text-align: center; margin: .3em 0 .2em; }
 .dunkel .handschrift { color: #bcd3ff; }
 .vers { font-style: italic; margin: .2em 0 .7em; }
-.vers-zeile { line-height: 1.34; }
+.vers-zeile { line-height: 1.34; padding-left: 1em; text-indent: -1em; }     /* zu lange Verszeilen: Fortsetzung eingerückt */
+.vers-fort { display: block; text-indent: 0; }
 .vers-luecke { height: .55em; }
 .schild { position: relative; -webkit-align-self: center; align-self: center; margin: .4em 0 .8em; padding: .55em .9em .5em; background: #fffdf8;
   font-family: var(--filzstift); font-size: 1.12em; line-height: 1.2; text-align: center; color: #1f47a8; -webkit-transform: rotate(-2.2deg); transform: rotate(-2.2deg);
@@ -246,7 +266,6 @@ button { font: inherit; }
 .schatten-zeile { opacity: 0; -webkit-transition: opacity .9s; transition: opacity .9s; }
 .schatten-zu { position: absolute; top: 14px; right: 14px; }
 .schatten-hinweis { position: absolute; top: 18px; left: 18px; color: rgba(247,236,208,.7); font-family: var(--rund); font-size: 15px; -webkit-transition: opacity 1s; transition: opacity 1s; }
-
 .schatten-bedienung { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; pointer-events: none; }
 .schatten-bedienung button { pointer-events: auto; min-height: 44px; padding: 8px 16px; font-size: 16px; color: #f7ecd0; background: #25304b; border: 1px solid #8c826b; box-shadow: none; }
 .schatten-bedienung button + button { margin-left: 8px; }
@@ -254,7 +273,6 @@ button { font: inherit; }
 .schatten-text { bottom: 64px; }
 .schatten-hinweis { top: 65px; font-size: 13px; }
 @media (max-height: 500px) { .schatten-bedienung { bottom: 4px; } .schatten-bedienung button { font-size: 13px; padding: 4px 10px; } .schatten-text { font-size: 3.1vh; line-height: 1.2; bottom: 50px; } }
-
 
 /* ─────────────── Finale ─────────────── */
 .finale-bildschirm { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; }
@@ -269,7 +287,7 @@ button { font: inherit; }
   -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; background: rgba(247,241,227,.0); pointer-events: none; }
 .finale-ende.sichtbar { display: -webkit-flex; display: flex; -webkit-animation: kf-einblenden 1.2s 1.6s both; animation: kf-einblenden 1.2s 1.6s both; pointer-events: auto; background: rgba(247,241,227,.82); }
 .finale-bild { width: 46vh; height: 32vh; background: center / cover no-repeat; border: 10px solid #fff; box-shadow: 0 12px 34px rgba(0,0,0,.28); -webkit-transform: rotate(-2deg); transform: rotate(-2deg); }
-.finale-gruss { font-family: var(--rund); font-weight: 900; font-size: 6vh; text-align: center; margin: 3vh 4vw .5vh; line-height: 1.05; }
+.finale-gruss { font-family: var(--rund); font-weight: 900; font-size: 6vh; text-align: center; margin: 3vh 4vw .5vh; margin-top: -webkit-calc(3vh - .14em); margin-top: calc(3vh - .14em); line-height: 1.05; }
 .finale-absender { font-family: var(--handschrift); font-size: 3.6vh; color: #1b3a8a; margin-bottom: 2vh; }
 @-webkit-keyframes kf-einblenden { from { opacity: 0; } to { opacity: 1; } }
 @keyframes kf-einblenden { from { opacity: 0; } to { opacity: 1; } }

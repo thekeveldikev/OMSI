@@ -43,7 +43,7 @@
   // ───────────────────── Text-Bausteine ─────────────────────
   function baueText(ziel, bausteine, seite) {
     bausteine.forEach(function (t, nr) {
-      if (typeof t === "string") { B.el("p", "absatz", ziel, B.ersetzen(t)); return; }
+      if (typeof t === "string") { B.el("p", "absatz", ziel, feinsatz(B.ersetzen(t), true)); return; }
       if (t.titel) { var h = B.el("h1", "buchtitel", ziel, B.ersetzen(t.titel)); PAPIER.schriftFuellen(h, seite && seite.dunkel ? "gelb" : "blau", { akzent: "tiefblau" }); return; }
       if (t.klein) { B.el("p", "klein", ziel, B.ersetzen(t.klein)); return; }
       if (t.laut) {
@@ -54,7 +54,11 @@
       if (t.handschrift) { B.el("div", "handschrift", ziel, B.ersetzen(t.handschrift)); return; }
       if (t.vers) {
         var v = B.el("div", "vers", ziel);
-        t.vers.forEach(function (z) { if (z === "") B.el("div", "vers-luecke", v); else B.el("div", "vers-zeile", v, B.ersetzen(z)); });
+        t.vers.forEach(function (z) {
+          if (z === "") { B.el("div", "vers-luecke", v); return; }
+          var zeile = B.el("div", "vers-zeile", v, feinsatz(B.ersetzen(z)));
+          zeile.__text = zeile.textContent;
+        });
         return;
       }
       if (t.schild) {
@@ -89,11 +93,68 @@
   // Schriftgröße so weit verkleinern, bis alles in den Kasten passt
   function einpassen(kasten, start, minimum) {
     var s = start || 1;
-    kasten.style.fontSize = s + "em";
+    function setzen() { kasten.style.fontSize = s + "em"; lautSetzen(kasten); versSetzen(kasten); }
+    setzen();
     var n = 0;
     while ((kasten.scrollHeight > kasten.clientHeight + 1 || kasten.scrollWidth > kasten.clientWidth + 1) && s > (minimum || 0.3) && n < 60) {
-      s -= 0.04; kasten.style.fontSize = s + "em"; n++;
+      s -= 0.04; setzen(); n++;
     }
+  }
+
+  // ── Feinsatz: keine Einzelwörter in der letzten Zeile, kein Gedankenstrich am Zeilenanfang,
+  //    "79. Geburtstag" und "K-Zimmer" bleiben zusammen ──
+  function feinsatz(t, absatz) {
+    t = t.replace(/ ([\u2013\u2014]) /g, "\u00a0$1 ")            // "dämmrig – und" → Strich bleibt oben
+         .replace(/(\d+\.) (?=\S)/g, "$1\u00a0")                 // "79. Geburtstag"
+         .replace(/(^|[\s„(])([A-ZÄÖÜ0-9]{1,3})-(?=\S)/g, "$1$2-\u2060"); // "K-Zimmer" nicht nach "K-" trennen
+    if (absatz) t = t.replace(/ (\S{1,12})$/, "\u00a0$1");       // letztes Wort nie allein
+    return t;
+  }
+
+  // ── Geräuschwörter (DÖÖÖÖM!) immer in EINER Zeile: zu breit → nur dieses Wort kleiner ──
+  function lautSetzen(kasten) {
+    [].forEach.call(kasten.querySelectorAll(".laut"), function (l) {
+      l.style.fontSize = ""; l.className = l.className.replace(/\s*laut-breit/g, "");
+      var w = l.scrollWidth, c = l.clientWidth;
+      if (c && w > c) { l.style.fontSize = (2.5 * c / w * 0.96).toFixed(3) + "em"; l.className += " laut-breit"; }
+    });
+  }
+
+  // ── Verse: jede Verszeile möglichst in einer Zeile. Passt sie nicht, wird sie an der
+  //    schönsten Stelle (Satzzeichen, sonst Mitte) gebrochen und eingerückt fortgesetzt ──
+  var messLeinwand = null;
+  function versSetzen(kasten) {
+    var zeilen = [].slice.call(kasten.querySelectorAll(".vers-zeile"));
+    if (!zeilen.length) return;
+    var verse = [].slice.call(kasten.querySelectorAll(".vers"));
+    verse.forEach(function (v) { v.style.fontSize = ""; });
+    zeilen.forEach(function (z) { if (z.__text == null) z.__text = z.textContent; z.textContent = z.__text; z.style.whiteSpace = "nowrap"; });
+    var platz = zeilen[0].clientWidth;
+    if (!platz) return;
+    function breite(z) { return z.scrollWidth; }
+    var breitest = 0;
+    zeilen.forEach(function (z) { if (z.offsetParent !== null) breitest = Math.max(breitest, breite(z)); });
+    if (breitest <= platz) return;
+    var f = platz / breitest;
+    if (f >= 0.86) { verse.forEach(function (v) { v.style.fontSize = (f - 0.01).toFixed(3) + "em"; }); return; }
+    // zu lang: an der besten Stelle brechen (gemessen mit der echten Schrift)
+    if (!messLeinwand) messLeinwand = document.createElement("canvas").getContext("2d");
+    zeilen.forEach(function (z) {
+      if (breite(z) <= platz) return;
+      var cs = window.getComputedStyle(z), px = parseFloat(cs.fontSize) || 16;
+      messLeinwand.font = cs.fontStyle + " " + cs.fontWeight + " " + cs.fontSize + " " + cs.fontFamily;
+      var worte = z.__text.split(" "), einzug = px, beste = null;
+      for (var i = 1; i < worte.length; i++) {
+        var a = worte.slice(0, i).join(" "), b = worte.slice(i).join(" ");
+        var wa = messLeinwand.measureText(a).width, wb = messLeinwand.measureText(b).width + einzug;
+        if (wa > platz * 0.98 || wb > platz * 0.98) continue;
+        var note = Math.abs(wa - wb) - (/[,;:!?.–—)]$/.test(a) ? platz * 0.3 : 0) + (worte[i - 1].length <= 3 ? platz * 0.08 : 0);
+        if (!beste || note < beste.note) beste = { note: note, a: a, b: b };
+      }
+      if (!beste) { z.style.whiteSpace = ""; return; }         // selbst zweizeilig zu lang: normaler Umbruch (mit Einzug)
+      z.textContent = beste.a;
+      B.el("span", "vers-fort", z, beste.b);
+    });
   }
 
   // ── Abschnitte: Passt der Text nicht in groß, erscheint er in Teilen ──
@@ -751,7 +812,7 @@
     if (audio) { try { audio.pause(); } catch (e) {} audio.onended = audio.onerror = null; }
     KLANG.stumm();
     if (S && S.weiterTimer) { clearTimeout(S.weiterTimer); S.weiterTimer = null; }
-    if (!nurAudio && S) { KULISSE.leiser(false); S.vorlesen = false; S.dom.vorlesen.className = "knopf vorlesen"; S.dom.vorlesen.textContent = "▶ Vorlesen"; }
+    if (!nurAudio && S) { KULISSE.leiser(false); S.vorlesen = false; S.dom.vorlesen.className = "knopf vorlesen"; B.knopf(S.dom.vorlesen, "abspielen", "Vorlesen"); }
   }
   function vorlesenStarten() {
     var ds = S.doppelseiten[S.index], stueck = [];
@@ -839,11 +900,12 @@
     B.leeren(ziel);
     var wurzel = B.el("div", "buch-bildschirm " + typ, ziel);
     var leiste = B.el("div", "leiste", wurzel);
-    var kueche = B.el("button", "knopf", leiste, "⌂ Zur Küche");
+    var kueche = B.knopf(B.el("button", "knopf", leiste), "haus", "Zur Küche");
     B.el("div", "leiste-titel", leiste, B.ersetzen(daten.titel));
-    var geraeusche = B.el("button", "knopf geraeusche", leiste, "♪");
-    var vorlesen = B.el("button", "knopf vorlesen", leiste, "▶ Vorlesen");
-    function geraeuscheZeigen() { geraeusche.className = "knopf geraeusche" + (KULISSE.istAn() ? "" : " aus"); }
+    var geraeusche = B.knopf(B.el("button", "knopf geraeusche", leiste), "lautsprecher");
+    geraeusche.setAttribute("aria-label", "Geräusche an/aus");
+    var vorlesen = B.knopf(B.el("button", "knopf vorlesen", leiste), "abspielen", "Vorlesen");
+    function geraeuscheZeigen() { var an = KULISSE.istAn(); geraeusche.className = "knopf geraeusche" + (an ? "" : " aus"); B.knopf(geraeusche, an ? "lautsprecher" : "stumm"); }
     geraeuscheZeigen();
     var buehne = B.el("div", "buehne", wurzel);
     var buch = B.el("div", "buch", buehne);
@@ -883,7 +945,7 @@
     B.tippen(vorlesen, function (ev) {
       ev.stopPropagation();
       if (S.vorlesen) { vorlesenStoppen(); return; }
-      S.vorlesen = true; vorlesen.className = "knopf vorlesen an"; vorlesen.textContent = "■ Vorlesen stoppen";
+      S.vorlesen = true; vorlesen.className = "knopf vorlesen an"; B.knopf(vorlesen, "stopp", "Vorlesen stoppen");
       KLANG.entsperren(); KULISSE.leiser(true);
       vorlesenStarten();
     });
@@ -927,7 +989,15 @@
 
     // Bilder der Fortsetzung vorab prüfen (fehlende → Platzhalter)
     var offen = 0;
-    function losgehen() { groesseAnpassen(); zeigeDoppelseite(); }
+    function losgehen() {
+      groesseAnpassen(); zeigeDoppelseite();
+      // Buchschrift beim ersten Öffnen noch nicht geladen? Dann wurde mit der Ersatzschrift eingepasst –
+      // sobald die echte Schrift da ist, einmal neu setzen (sonst falsche Umbrüche/Überlauf)
+      var diesesBuch = S;
+      if (document.fonts && document.fonts.status === "loading" && document.fonts.ready) document.fonts.ready.then(function () {
+        if (S === diesesBuch && S.groesse && !S.beschaeftigt) S.groesse();
+      });
+    }
     if (typ === "fortsetzung") {
       daten.seiten.forEach(function (s) { offen++; vorladen(bildQuelleFortsetzung(s), function () { offen--; if (offen === 0) losgehen(); }); });
     } else {

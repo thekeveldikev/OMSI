@@ -101,7 +101,7 @@
     PAPIER.schriftFuellen(titel, "rot", { akzent: "orange" });
     var hinweis = B.el("div", "spiel-hinweis", kopf, "");
     var zaehler = B.el("div", "spiel-zaehler", seite, "");
-    var zurueckKnopf = B.el("button", "knopf spiel-zurueck", seite, "⌂ Zur Küche");
+    var zurueckKnopf = B.knopf(B.el("button", "knopf spiel-zurueck", seite), "haus", "Zur Küche");
 
     // unten: Bräunungs-Leiste (der Kreis zeigt, wie die Unterseite gerade aussieht) + großer Knopf
     var fuss = B.el("div", "spiel-fuss", seite);
@@ -111,7 +111,8 @@
     var leiste = B.el("div", "spiel-leiste", bahn);
     var grenzen = [0, ZEIT.gold, ZEIT.braun, ZEIT.knusprig, ZEIT.ende], felder = [];
     STUFEN.forEach(function (st, i) {
-      var f = B.el("div", "spiel-stufe stufe-" + i + (i >= 2 ? " dunkel" : ""), leiste, i === 1 ? "★ " + st.name : st.name);
+      var f = B.el("div", "spiel-stufe stufe-" + i + (i >= 2 ? " dunkel" : ""), leiste);
+      if (i === 1) B.knopf(f, "stern", st.name); else f.textContent = st.name;
       f.style.width = (100 * (grenzen[i + 1] - grenzen[i]) / ZEIT.ende) + "%";
       PAPIER.hinterlegen(f, ["creme", "gold", "braun", "#5c3616"][i], { kachel: 160, seed: 11 + i });
       felder.push(f);
@@ -409,8 +410,8 @@
       PAPIER.schriftFuellen(t, "rot", { akzent: "orange" });
       B.el("div", "spiel-ende-unter", oben, zusammenfassung());
       var knoepfe = B.el("div", "spiel-ende-knoepfe", ende);
-      var nochmal = B.el("button", "knopf gross", knoepfe, "↺ Nochmal");
-      var kueche = B.el("button", "knopf gross", knoepfe, "⌂ Zur Küche");
+      var nochmal = B.knopf(B.el("button", "knopf gross", knoepfe), "nochmal", "Nochmal");
+      var kueche = B.knopf(B.el("button", "knopf gross", knoepfe), "haus", "Zur Küche");
       B.tippen(nochmal, function (ev) { ev.stopPropagation(); KLANG.entsperren(); KLANG.plopp(); vonVorn(); });
       B.tippen(kueche, function (ev) { ev.stopPropagation(); SP.stoppen(); zurueck(); });
       ende.className = "spiel-ende sichtbar";

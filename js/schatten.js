@@ -59,11 +59,11 @@
     wurzel.setAttribute("role", "dialog"); wurzel.setAttribute("aria-modal", "true"); wurzel.setAttribute("aria-label", "Das Schattentheater");
     var cv = B.el("canvas", "schatten-canvas", wurzel);
     var text = B.el("div", "schatten-text", wurzel);
-    var zu = B.el("button", "knopf schatten-zu", wurzel, "✕ Schließen");
+    var zu = B.knopf(B.el("button", "knopf schatten-zu", wurzel), "kreuz", "Schließen");
     var hinweis = B.el("div", "schatten-hinweis", wurzel, "Tippen = nächste Strophe");
     var bedienung = B.el("div", "schatten-bedienung", wurzel);
-    var pause = B.el("button", "knopf schatten-pause", bedienung, "Ⅱ Pause");
-    var nochmal = B.el("button", "knopf schatten-nochmal", bedienung, "↻ Noch einmal");
+    var pause = B.knopf(B.el("button", "knopf schatten-pause", bedienung), "pause", "Pause");
+    var nochmal = B.knopf(B.el("button", "knopf schatten-nochmal", bedienung), "wieder", "Noch einmal");
     pause.setAttribute("aria-pressed", "false");
     zu.focus();
     var W, H, ctx, skala = QUALI || Math.min(window.devicePixelRatio || 1, 2);
@@ -161,7 +161,7 @@
         if (stimme) { var p = stimme.play(); if (p && p["catch"]) p["catch"](function () {}); }
         lauf.id = B.frame(schritt);
       }
-      pause.textContent = lauf.pause ? "▶ Weiter" : "Ⅱ Pause";
+      if (lauf.pause) B.knopf(pause, "abspielen", "Weiter"); else B.knopf(pause, "pause", "Pause");
       pause.setAttribute("aria-pressed", lauf.pause ? "true" : "false");
     }
     function weiter() {
@@ -188,7 +188,7 @@
       ev.stopPropagation(); if (!lauf) return;
       stimmeStopp(); B.frameStopp(lauf.id); lauf.k = -1; lauf.t0 = lauf.start = B.jetzt();
       lauf.ereignisse = {}; lauf.test = false; lauf.pause = false; lauf.laenge = AUFTAKT;
-      lauf.zeilen = []; B.leeren(text); pause.textContent = "Ⅱ Pause"; pause.setAttribute("aria-pressed", "false");
+      lauf.zeilen = []; B.leeren(text); B.knopf(pause, "pause", "Pause"); pause.setAttribute("aria-pressed", "false");
       lauf.id = B.frame(schritt);
     });
     B.tippen(zu, function (ev) { ev.stopPropagation(); ende(); });

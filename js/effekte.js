@@ -228,7 +228,7 @@
       var q = px(r, e.x, e.y), rad = (e.r || 0.2) * r.b;
       return function (ctx, t) {
         var puls = 0.5 + 0.5 * Math.sin(t * 1.3);
-        ctx.save(); ctx.globalCompositeOperation = "lighter";
+        ctx.save();
         var g = ctx.createRadialGradient(q.x, q.y, rad * 0.2, q.x, q.y, rad * (1.2 + puls * 0.15));
         g.addColorStop(0, "rgba(255,220,120," + (0.16 + puls * 0.08) + ")"); g.addColorStop(1, "rgba(255,220,120,0)");
         ctx.fillStyle = g; ctx.fillRect(q.x - rad * 1.5, q.y - rad * 1.5, rad * 3, rad * 3);
@@ -281,7 +281,9 @@
       var q = px(r, e.x, e.y), h = r.h * (e.hoehe || 0.045);
       return function (ctx, t) {
         var f = 0.85 + 0.15 * Math.sin(t * 13) + 0.06 * Math.sin(t * 31);
-        ctx.save(); ctx.globalCompositeOperation = "lighter";
+        // Licht normal überblenden (nicht "lighter"): über dem bewegten Flammen-Ausschnitt (wellen) würde
+        // Addieren das Papier zu reinem Weiß machen → auf dem iPad ein sichtbarer weißer Kasten
+        ctx.save();
         var g = ctx.createRadialGradient(q.x, q.y - h * 0.5, 1, q.x, q.y - h * 0.5, h * 2.2 * (0.95 + 0.05 * f));
         g.addColorStop(0, "rgba(255,200,90," + (0.3 + 0.06 * f).toFixed(3) + ")"); g.addColorStop(1, "rgba(255,200,90,0)");
         ctx.fillStyle = g; ctx.fillRect(q.x - h * 2.5, q.y - h * 3, h * 5, h * 5); ctx.restore();
@@ -295,7 +297,7 @@
       var q = px(r, e.x, e.y), rad = r.h * 0.3;
       return function (ctx, t) {
         var flacker = Math.random() < 0.03 ? 0.3 : 1, puls = (0.8 + 0.2 * Math.sin(t * 3)) * flacker;
-        ctx.save(); ctx.globalCompositeOperation = "lighter";
+        ctx.save();
         var g = ctx.createRadialGradient(q.x, q.y, 2, q.x, q.y, rad);
         g.addColorStop(0, "rgba(255,230,150," + 0.3 * puls + ")"); g.addColorStop(1, "rgba(255,230,150,0)");
         ctx.fillStyle = g; ctx.fillRect(q.x - rad, q.y - rad, rad * 2, rad * 2); ctx.restore();
@@ -305,7 +307,7 @@
     kuehlschranklicht: function (e, r) {
       var q = px(r, e.x, e.y), rad = r.h * 0.35;
       return function (ctx, t) {
-        ctx.save(); ctx.globalCompositeOperation = "lighter";
+        ctx.save();
         var g = ctx.createRadialGradient(q.x, q.y, 4, q.x, q.y, rad);
         g.addColorStop(0, "rgba(255,240,170," + (0.18 + 0.05 * Math.sin(t * 2)) + ")"); g.addColorStop(1, "rgba(255,240,170,0)");
         ctx.fillStyle = g; ctx.fillRect(q.x - rad, q.y - rad, rad * 2, rad * 2); ctx.restore();
@@ -429,7 +431,7 @@
       var teile = [];
       for (var i = 0; i < 26; i++) teile.push({ x: Z(-0.5, 0.5), y: Z(-0.5, 0.5), ph: Z(0, 6), g: Z(1, 2.6) });
       return function (ctx, t) {
-        ctx.save(); ctx.globalCompositeOperation = "lighter";
+        ctx.save();
         teile.forEach(function (p) {
           var x = q.x + (p.x + Math.sin(t * 0.3 + p.ph) * 0.08) * weite, y = q.y + (p.y + Math.cos(t * 0.23 + p.ph) * 0.08 - ((t * 0.02 + p.ph) % 1) * 0.1) * weite;
           ctx.globalAlpha = 0.35 + 0.35 * Math.sin(t * 1.5 + p.ph); ctx.fillStyle = "#ffe9a8";

@@ -24,9 +24,9 @@
     PAPIER.schriftFuellen(titel, "rot", { akzent: "orange" });
     B.el("div", "finale-unter", kopf, "Im Buch passten sie nicht drauf. Hier schon.");
     var leiste = B.el("div", "finale-leiste", wurzel);
-    var mikro = B.el("button", "knopf gross", leiste, "🎤 Kerzen auspusten");
+    var mikro = B.knopf(B.el("button", "knopf gross", leiste), "mikro", "Kerzen auspusten");
     B.el("div", "finale-oder", leiste, "… oder die Kerzen antippen");
-    var zurueckKnopf = B.el("button", "knopf finale-zurueck", wurzel, "⌂ Zur Küche");
+    var zurueckKnopf = B.knopf(B.el("button", "knopf finale-zurueck", wurzel), "haus", "Zur Küche");
     var ende = B.el("div", "finale-ende", wurzel);
 
     var W, H, ctx, kerzen = [], rauch = [], konfetti = [], fertigSeit = 0;
@@ -184,7 +184,7 @@
       var gruss = B.el("div", "finale-gruss", ende, B.ersetzen("Alles Liebe zum {ALTER}. Geburtstag, {OMA}!"));
       PAPIER.schriftFuellen(gruss, "blau", { akzent: "tiefblau" });
       B.el("div", "finale-absender", ende, B.ersetzen("{ABSENDER}"));
-      var nochmal = B.el("button", "knopf", ende, "🕯 Nochmal anzünden");
+      var nochmal = B.knopf(B.el("button", "knopf", ende), "kerze", "Nochmal anzünden");
       B.tippen(nochmal, function (ev) { ev.stopPropagation(); kerzen.forEach(function (k) { k.an = true; }); fertigSeit = 0; konfetti = []; ende.className = "finale-ende"; });
     }
 
@@ -217,14 +217,14 @@
           return Math.sqrt(summe / puffer.length) * 3;
         };
         z.mikroCtx = actx;
-        mikro.textContent = "🌬 Jetzt kräftig pusten!";
+        B.knopf(mikro, "wind", "Jetzt kräftig pusten!");
       })["catch"](function () { APP.meldung("Kein Mikrofon erlaubt – einfach die Kerzen antippen!"); });
     }
     function mikroAus() {
       if (strom) { strom.getTracks().forEach(function (tr) { tr.stop(); }); strom = null; }
       if (z && z.mikroCtx && z.mikroCtx.close) z.mikroCtx.close();
       if (z) { delete z.mikroPegel; z.mikroCtx = null; }
-      mikro.textContent = "🎤 Kerzen auspusten";
+      B.knopf(mikro, "mikro", "Kerzen auspusten");
     }
 
     B.tippen(mikro, function (ev) { ev.stopPropagation(); KLANG.entsperren(); mikroAn(); });
