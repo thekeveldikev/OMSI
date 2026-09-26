@@ -195,6 +195,13 @@
     abspielen(planFuer(seitenPlan.typ, seitenPlan.schluessel));
   };
 
+  // Ein Einzelgeräusch genau jetzt (z. B. der Hahn kräht, wenn er den Kopf zurücklegt)
+  KU.spiele = function (name, laut) {
+    if (!buchOffen || !eingeschaltet() || !bereit()) return false;
+    einzel(name, laut == null ? 0.8 : laut);
+    return true;
+  };
+
   // Zum Nachsehen beim Basteln: was läuft gerade?
   KU.zustand = function () {
     var h = [];

@@ -42,11 +42,15 @@
 
   // ───────────────────── Text-Bausteine ─────────────────────
   function baueText(ziel, bausteine, seite) {
-    bausteine.forEach(function (t) {
+    bausteine.forEach(function (t, nr) {
       if (typeof t === "string") { B.el("p", "absatz", ziel, B.ersetzen(t)); return; }
       if (t.titel) { var h = B.el("h1", "buchtitel", ziel, B.ersetzen(t.titel)); PAPIER.schriftFuellen(h, seite && seite.dunkel ? "gelb" : "blau", { akzent: "tiefblau" }); return; }
       if (t.klein) { B.el("p", "klein", ziel, B.ersetzen(t.klein)); return; }
-      if (t.laut) { var l = B.el("div", "laut", ziel, B.ersetzen(t.laut)); PAPIER.schriftFuellen(l, seite && seite.dunkel ? "gelb" : "rot", { akzent: "orange" }); return; }
+      if (t.laut) {
+        var l = B.el("div", "laut", ziel, B.ersetzen(t.laut)); PAPIER.schriftFuellen(l, seite && seite.dunkel ? "gelb" : "rot", { akzent: "orange" });
+        l.setAttribute("data-block", nr);                  // für den Knall beim Vorlesen (daten/vorlese_zeiten.js)
+        return;
+      }
       if (t.handschrift) { B.el("div", "handschrift", ziel, B.ersetzen(t.handschrift)); return; }
       if (t.vers) {
         var v = B.el("div", "vers", ziel);
@@ -309,7 +313,12 @@
       }
     }
     if (haelfte === textSeite) {
-      var kasten = B.el("div", "text-kasten text-" + textSeite + (s.art === "titel" ? " ist-titel" : "") + (s.art === "widmung" ? " ist-widmung" : ""), el);
+      var kasten = B.el("div", "text-kasten text-" + textSeite + (s.textPos === "unten" ? " text-unten" : "") +
+                              (s.art === "titel" ? " ist-titel" : "") + (s.art === "widmung" ? " ist-widmung" : ""), el);
+      // eigene Ränder für diese Seite (in % der Buchseite), z. B. wenn ein Bildteil in die Textspalte ragt
+      if (s.textRand) ["links", "rechts", "oben", "unten"].forEach(function (k) {
+        if (s.textRand[k] != null) kasten.style[{ links: "left", rechts: "right", oben: "top", unten: "bottom" }[k]] = s.textRand[k] + "%";
+      });
       baueText(kasten, s.text, s);
       S.einpassListe.push(kasten);
     }
@@ -379,6 +388,7 @@
   function zeigeEbenen() {
     var schicht = S.dom.ebenen;
     B.leeren(schicht); schicht.style.opacity = "0";
+    S.taktTeile = {};
     var ds = S.doppelseiten[S.index], irgendwas = false;
     if (S.typ === "fortsetzung") {
       var eb = window.EBENEN && window.EBENEN[ds.seite.id];
@@ -386,6 +396,13 @@
         if (eb.hintergrund) { var bg = B.el("img", "ebene-hintergrund", schicht); bg.src = eb.hintergrund; }
         (eb.teile || []).forEach(function (t) { ebeneSetzen(schicht, t, 0, 1); });
         irgendwas = true;
+      }
+      // Blinzeln auch in der Fortsetzung (Augen relativ zur ganzen Doppelseite, nur wenn das Bild da ist)
+      if (bildStatus(bildQuelleFortsetzung(ds.seite)) === true) {
+        ((window.ORIGINAL_AUGEN || {})[ds.seite.id] || []).forEach(function (auge) {
+          lidSetzen(schicht, auge, null, 0, 1, ds.seite.id);
+          irgendwas = true;
+        });
       }
     } else {
       // Originalseiten: frei liegende Bildteile + Papier-"Loch" darunter
@@ -405,12 +422,22 @@
         var cfg = S.daten.seiten[nr] && S.daten.seiten[nr].teile;
         // frei liegende Teile (original_teile.js) + ausgeschnittene Figuren (original_figuren.js)
         var alle = ((window.ORIGINAL_TEILE || {})[nr] || []).concat((window.ORIGINAL_FIGUREN || {})[nr] || []);
-        if (!cfg || !alle.length) return;
-        cfg.forEach(function (c) {
+        var halterJe = {};
+        (cfg && alle.length ? cfg : []).forEach(function (c) {
           var t = alle.filter(function (a) { return a.nr === c.nr; })[0];
           if (!t) return;
-          var eintrag = { bild: t.bild, loch: t.loch, x: t.x, y: t.y, b: t.b, h: t.h, anim: c.anim, dauer: c.dauer, verzoegerung: c.verzoegerung, drehpunkt: c.drehpunkt || t.drehpunkt, z: 2 };
-          ebeneSetzen(schicht, eintrag, p[1], 0.5);
+          var eintrag = { bild: t.bild, loch: t.loch, x: t.x, y: t.y, b: t.b, h: t.h, anim: c.anim, dauer: c.dauer, verzoegerung: c.verzoegerung,
+                          drehpunkt: c.drehpunkt || t.drehpunkt, takt: c.takt, z: 2 };
+          var halter = ebeneSetzen(schicht, eintrag, p[1], 0.5);
+          halterJe[c.nr] = { halter: halter, teil: t };
+          if (c.takt) S.taktTeile[c.nr] = halter;          // bewegt sich nur, wenn der Takt es auslöst
+          irgendwas = true;
+        });
+        // Blinzeln (daten/original_augen.js): Lider sitzen im bewegten Teil, wenn der Kopf sich bewegt
+        ((window.ORIGINAL_AUGEN || {})[nr] || []).forEach(function (auge) {
+          var tr = auge.traeger && halterJe[auge.traeger];
+          if (auge.traeger && !tr) return;                  // Kopf gerade nicht als Teil da → dann auch kein Lid
+          lidSetzen(tr ? tr.halter : schicht, auge, tr ? tr.teil : null, p[1], 0.5, nr);
           irgendwas = true;
         });
       });
@@ -418,11 +445,39 @@
     if (irgendwas) setTimeout(function () { schicht.style.opacity = "1"; }, 30);
   }
 
+  // Ein Augenlid: Hautfarbe aus dem Bild, schließt sich von oben – jede Figur in ihrem eigenen Rhythmus
+  function zufallAus(text) {                            // gleicher Name → gleicher Takt (beide Augen zusammen)
+    var h = 7;
+    for (var i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % 100003;
+    return (h % 1000) / 1000;
+  }
+  function lidSetzen(ziel, auge, teil, versatz, faktor, nr) {
+    var x = auge.x - auge.b / 2, y = auge.y - auge.h / 2, links, oben, breite, hoehe;
+    if (teil) {
+      links = (x - teil.x) / teil.b; oben = (y - teil.y) / teil.h; breite = auge.b / teil.b; hoehe = auge.h / teil.h;
+    } else {
+      links = versatz + x * faktor; oben = y; breite = auge.b * faktor; hoehe = auge.h;
+    }
+    var h = B.el("div", "augen-halter", ziel);
+    h.style.left = links * 100 + "%"; h.style.top = oben * 100 + "%";
+    h.style.width = breite * 100 + "%"; h.style.height = hoehe * 100 + "%";
+    B.transform(h, "rotate(" + (auge.winkel || 0) + "deg)");
+    var lid = B.el("div", "augenlid", h);
+    lid.style.backgroundColor = auge.farbe;
+    lid.style.borderBottomColor = auge.rand;
+    var z = zufallAus(nr + auge.gruppe), name, dauer;
+    if (auge.art === "zwinker") { name = "kf-lid-zwinker"; dauer = 9; }
+    else if (auge.art === "zwinker-mit") { name = "kf-lid-mit"; dauer = 9; }
+    else { name = z > 0.7 ? "kf-lid-doppelt" : "kf-lid"; dauer = 3.8 + z * 2.8; }
+    var wert = name + " " + dauer.toFixed(2) + "s linear " + (-(z * dauer)).toFixed(2) + "s infinite";
+    lid.style.webkitAnimation = wert; lid.style.animation = wert;
+  }
+
   var SATZ_GROESSE = 0.9;      // Grundgröße des deutschen Satzes im Original (relativ zur Buchgröße)
 
   var ANIM_DAUER = { wackeln: 2.4, schweben: 3.2, atmen: 3.5, huepfen: 1.4, drehen: 30, zittern: 0.6, hereinkleben: 0.9, puff: 1.2, pendeln: 2.8,
                      sanftdrehen: 7, steigen: 4.5, paddeln: 3.2, flackern: 0.9, wenden: 4.2, nicken: 3.6,
-                     kraehen: 7, picken: 4, drohen: 3.6, gabel: 4.5 };
+                     kraehen: 7, picken: 4, drohen: 3.6, gabel: 4.5, kraehen1: 2.6, ohrzucken: 5.5, loeffel: 3.4, winken: 3.4 };
   var ANIM_DREHPUNKT = { nicken: [0.55, 1], flackern: [0.5, 1], wackeln: [0.5, 0.9], paddeln: [0.5, 0.85], wenden: [0.5, 0.5], sanftdrehen: [0.5, 0.5], steigen: [0.5, 0.8] };
 
   // Ein Teil auf die Ebenen-Schicht setzen (x/y/b/h relativ; versatz/faktor für Seitenhälften)
@@ -445,7 +500,46 @@
     var dauer = t.dauer || ANIM_DAUER[anim] || 3;
     var einmal = (anim === "hereinkleben" || anim === "puff");
     var wert = "kf-" + anim + " " + dauer + "s " + (anim === "drehen" ? "linear" : "ease-in-out") + " " + (t.verzoegerung || 0) + "s " + (einmal ? "1 both" : "infinite");
-    halter.style.webkitAnimation = wert; halter.style.animation = wert;
+    if (!t.takt) { halter.style.webkitAnimation = wert; halter.style.animation = wert; }
+    return halter;
+  }
+
+  // ───────────────────── Takt: Bewegung + Ton + Effekt im selben Augenblick ─────────────────────
+  // z. B. der Hahn legt den Kopf zurück, kräht – und nur dann kommen die Schallwellen.
+  // Seite: takt: [{ teil, anim, dauer, ton, laut, effekt, erstes (s), alle: [von, bis] (s) }]
+  // Umschlag vorn/hinten: das geschlossene Buch liegt mittig (CSS schiebt es um eine halbe Seite)
+  function buchKlasse(ds) {
+    return "buch" + (ds.links === null ? " nur-rechts" : "") + (ds.rechts === null ? " nur-links" : "");
+  }
+
+  function taktStoppen() {
+    if (!S) return;
+    (S.taktTimer || []).forEach(clearTimeout);
+    S.taktTimer = [];
+  }
+  function taktStarten(ds) {
+    taktStoppen();
+    if (S.typ !== "original") return;
+    var indexBeiStart = S.index;
+    [ds.links, ds.rechts].forEach(function (nr) {
+      var seite = nr && S.daten.seiten[nr];
+      ((seite && seite.takt) || []).forEach(function (tk) {
+        function feuern() {
+          if (!S || S.index !== indexBeiStart || S.beschaeftigt) return;
+          var el = S.taktTeile[tk.teil];
+          if (el) {
+            var wert = "kf-" + tk.anim + " " + (tk.dauer || 2.5) + "s ease-in-out 0s 1 both";
+            el.style.webkitAnimation = el.style.animation = "none";
+            void el.offsetWidth;                                  // Animation von vorn beginnen
+            el.style.webkitAnimation = wert; el.style.animation = wert;
+          }
+          if (tk.ton) KULISSE.spiele(tk.ton, tk.laut);
+          if (tk.effekt) EFFEKTE.ausloesen(tk.effekt);
+          S.taktTimer.push(setTimeout(feuern, B.zufall(tk.alle[0], tk.alle[1]) * 1000));
+        }
+        S.taktTimer.push(setTimeout(feuern, (tk.erstes || 1) * 1000));
+      });
+    });
   }
 
   // ───────────────────── Größe ─────────────────────
@@ -477,9 +571,10 @@
     S.dom.zahl.textContent = (S.index + 1) + " / " + S.doppelseiten.length;
     S.dom.pfeilL.style.visibility = S.index > 0 ? "visible" : "hidden";
     S.dom.pfeilR.style.visibility = S.index < S.doppelseiten.length - 1 ? "visible" : "hidden";
-    S.dom.buch.className = "buch" + (ds.links === null ? " nur-rechts" : "") + (ds.rechts === null ? " nur-links" : "");
+    S.dom.buch.className = buchKlasse(ds);
     zeigeEbenen();
     starteEffekte();
+    taktStarten(ds);
     // Geräusche: echte Klangkulisse (daten/klang.js) + eingebaute Computer-Töne
     var ohneTon = KULISSE.seite(S.typ, klangSchluessel(S.index), [klangSchluessel(S.index - 1), klangSchluessel(S.index + 1)]);
     var toene = [];
@@ -519,7 +614,12 @@
         });
       });
     } else {
-      (ds.seite.effekte || []).forEach(function (e) { auftraege.push({ eff: e, rechteck: { x: 0, y: 0, b: S.w, h: S.h } }); });
+      // Fortsetzung: ein Bild über die ganze Doppelseite – es wird mitgegeben, damit gemalte Flammen,
+      // Tücher usw. ("wellen") sich bewegen können
+      var fsrc = bildQuelleFortsetzung(ds.seite);
+      (ds.seite.effekte || []).forEach(function (e) {
+        auftraege.push({ eff: e, rechteck: { x: 0, y: 0, b: S.w, h: S.h }, bild: bildCache[fsrc] && bildCache[fsrc].ok && bildCache[fsrc].img });
+      });
     }
     EFFEKTE.starten(S.dom.effekte, auftraege);
   }
@@ -531,12 +631,14 @@
     if (neu < 0 || neu >= S.doppelseiten.length) return;
     S.beschaeftigt = true;
     vorlesenStoppen(true);
+    taktStoppen();
     FLUG.stoppen();
     EFFEKTE.stoppen();
     S.dom.ebenen.style.opacity = "0";
     if (!KULISSE.blaettern()) KLANG.blaettern();
 
     var alt = S.doppelseiten[S.index], nd = S.doppelseiten[neu];
+    S.dom.buch.className = buchKlasse(nd);              // gleitet beim Auf-/Zuklappen in die Mitte bzw. zur Seite
     var vorwaerts = richtung > 0;
     var blatt = B.el("div", "blatt " + (vorwaerts ? "blatt-rechts" : "blatt-links"), S.dom.buch);
     var vorn = B.el("div", "seite blatt-vorn", blatt), hinten = B.el("div", "seite blatt-hinten", blatt);
@@ -579,8 +681,9 @@
   BUCH.zurueck = function () { if (!abschnittSchritt(-1)) umblaettern(-1); };
 
   // ───────────────────── Vorlesen ─────────────────────
-  var audio = null;
+  var audio = null, vorleseLauf = 0;                     // jede Vorlese-Runde hat ihre eigene Nummer
   function vorlesenStoppen(nurAudio) {
+    vorleseLauf++;
     if (audio) { try { audio.pause(); } catch (e) {} audio.onended = audio.onerror = null; }
     KLANG.stumm();
     if (S && S.weiterTimer) { clearTimeout(S.weiterTimer); S.weiterTimer = null; }
@@ -595,7 +698,9 @@
         stueck.push({ audio: B.pfad(S.daten.audioPfad, nr), text: (seite.de || []).join(" "), seiteEl: nr === ds.links ? S.dom.links : S.dom.rechts });
       });
     } else {
-      stueck.push({ audio: S.daten.audioPfad + ds.seite.id, text: textAlsSprache(ds.seite.text), seiteEl: S.dom.buch });
+      var zeiten = window.VORLESE_ZEITEN && VORLESE_ZEITEN.fortsetzung && VORLESE_ZEITEN.fortsetzung[ds.seite.id];
+      stueck.push({ audio: S.daten.audioPfad + ds.seite.id, text: textAlsSprache(ds.seite.text), seiteEl: S.dom.buch,
+                    ereignisse: zeiten && zeiten.ereignisse ? zeiten.ereignisse.slice() : [] });
     }
     var i = 0, indexBeiStart = S.index;
     function naechstes() {
@@ -625,11 +730,43 @@
         if (p && p["catch"]) p["catch"](function (fehler) { if (fehler && fehler.name === "NotAllowedError") keineAufnahme(); });
       }
       audio.onended = function () { audio.ontimeupdate = null; if (!erledigt) { erledigt = true; naechstes(); } };
-      audio.ontimeupdate = function () { if (audio.duration) abschnitteNachZeit(st.seiteEl, audio.currentTime / audio.duration); };
+      // Geräuschwörter, die Kevin absichtlich nicht spricht (PUFF!, DÖÖÖM!, HOPP!): genau in seiner Pause
+      // springt das Wort auf und das Geräusch kommt. Geprüft im feinen 40-ms-Takt UND bei jedem timeupdate
+      // (das kommt nur alle ~¼ s, wird aber nie gedrosselt) – was zuerst kommt, gewinnt.
+      var offen = (st.ereignisse || []).slice(), meinLauf = vorleseLauf;
+      function laute() {
+        if (meinLauf !== vorleseLauf || !offen.length || audio.paused) return;
+        var t = audio.currentTime || 0;
+        offen = offen.filter(function (e) { if (t >= e.zeit - 0.08) { lautKnall(e); return false; } return true; });
+      }
+      audio.ontimeupdate = function () {
+        laute();
+        if (audio.duration) abschnitteNachZeit(st.seiteEl, audio.currentTime / audio.duration);
+      };
+      if (offen.length) (function wache() {
+        if (!S || meinLauf !== vorleseLauf || !S.vorlesen || !offen.length) return;
+        laute();
+        setTimeout(wache, 40);
+      })();
       audio.onerror = function () { probiere(); };
       probiere();
     }
     naechstes();
+  }
+
+  // Ein Geräuschwort knallt: Wort springt auf, passendes Geräusch dazu
+  function lautKnall(e) {
+    var el = S && S.dom.buch.querySelector('.laut[data-block="' + e.block + '"]');
+    if (el) {
+      el.className = el.className.replace(/\s*laut-knall\b/g, "");
+      void el.offsetWidth;
+      el.className += " laut-knall";
+    }
+    var w = (e.wort || "").toUpperCase();
+    if (/PUFF|PUFF/.test(w)) KLANG.puff();
+    else if (/D[ÖO]+M|BUMM|RUMMS/.test(w)) KLANG.orgel();
+    else if (/HOPP|HUI/.test(w)) { if (!KULISSE.spiele("ev_wenden", 0.9)) KLANG.hopp(); }
+    else KLANG.plopp();
   }
 
   // ───────────────────── Öffnen / Schließen ─────────────────────
@@ -655,7 +792,17 @@
     var pfeilR = B.el("button", "pfeil pfeil-rechts", wurzel, "›");
     var zahl = B.el("div", "seitenzahl", wurzel);
     var dreh = B.el("div", "dreh-hinweis", wurzel);
-    B.el("div", "dreh-ipad", dreh);
+    // Hochkant-Hinweis als Papier-Collage mit Stop-Motion (8 Bilder/s); der Satz bleibt echter Text
+    var collage = B.el("div", "dreh-collage", dreh);
+    var schwenk = B.el("div", "dreh-ipad-schwenk", collage);
+    function collageBild(eltern, cls) {
+      var i = B.el("img", cls, eltern);
+      i.setAttribute("alt", ""); i.setAttribute("aria-hidden", "true");
+      return i;
+    }
+    var hkIpad = collageBild(schwenk, "dreh-ipad-bild");
+    var hkPfannkuchen = collageBild(collage, "dreh-pfannkuchen");
+    var hkPfeil = collageBild(collage, "dreh-pfeil");
     B.el("div", "dreh-text", dreh, "Bitte das iPad quer halten");
 
     S = {
@@ -666,6 +813,7 @@
     };
     S.index = B.klemme(B.erinnern("seite." + typ, 0), 0, S.doppelseiten.length - 1);
     KULISSE.buchAuf(typ);
+    hochkantEinrichten(hkIpad, hkPfannkuchen, hkPfeil);
 
     B.tippen(kueche, function (ev) { ev.stopPropagation(); BUCH.schliessen(); zurKueche(); });
     B.tippen(vorlesen, function (ev) {
@@ -691,7 +839,7 @@
     B.tippen(buehne, function (ev) {
       if (gewischt) { gewischt = false; return; }
       KLANG.entsperren();
-      if (FLUG.laeuft()) { FLUG.fangen(); return; }
+      if (FLUG.laeuft()) { FLUG.fangen(ev); return; }
       if (ev.target && ev.target.className === "weiter-marke") { BUCH.weiter(); return; }
       var r = buch.getBoundingClientRect();
       var x = (ev.clientX - r.left) / r.width;
@@ -709,7 +857,7 @@
       else if (ev.keyCode === 27) { BUCH.schliessen(); zurKueche(); }
     };
     document.addEventListener("keydown", S.tasten, false);
-    S.groesse = function () { if (!S) return; groesseAnpassen(); zeigeDoppelseite(); };
+    S.groesse = function () { if (!S) return; groesseAnpassen(); zeigeDoppelseite(); hochkantPruefen(); };
     window.addEventListener("resize", S.groesse, false);
     window.addEventListener("orientationchange", S.groesse, false);
 
@@ -728,21 +876,93 @@
   BUCH.schliessen = function () {
     if (!S) return;
     vorlesenStoppen();
+    taktStoppen();
     KULISSE.buchZu();
     FLUG.stoppen();
     EFFEKTE.stoppen();
     document.removeEventListener("keydown", S.tasten, false);
     window.removeEventListener("resize", S.groesse, false);
     window.removeEventListener("orientationchange", S.groesse, false);
+    hochkantAus();
     S = null;
   };
 
   BUCH.zustand = function () { return S; };
 
+  // ───────────────────── Hochkant-Hinweis: Papier-Stop-Motion ─────────────────────
+  // Ein gemeinsamer Takt (125 ms) wechselt die Bilder; er läuft nur, solange ein Buch offen ist,
+  // das Fenster sichtbar ist und das iPad hochkant gehalten wird.
+  var HOCHKANT = {
+    ipad: ["bilder/extras/hochkant/ipad-01.png", "bilder/extras/hochkant/ipad-02.png", "bilder/extras/hochkant/ipad-03.png"],
+    pfannkuchen: ["bilder/extras/hochkant/pfannkuchen-01.png", "bilder/extras/hochkant/pfannkuchen-02.png"],
+    pfeil: ["bilder/extras/hochkant/drehpfeil-01.png", "bilder/extras/hochkant/drehpfeil-02.png"]
+  };
+  var hk = { timer: null, schritt: 0, bilder: null, sichtbar: null };
+  function ruhig() { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+  function hochkantEinrichten(ipad, pfannkuchen, pfeil) {
+    hochkantAus();
+    hk.bilder = { ipad: ipad, pfannkuchen: pfannkuchen, pfeil: pfeil };
+    ipad.src = HOCHKANT.ipad[0]; pfannkuchen.src = HOCHKANT.pfannkuchen[0]; pfeil.src = HOCHKANT.pfeil[0];
+    [HOCHKANT.ipad, HOCHKANT.pfannkuchen, HOCHKANT.pfeil].forEach(function (liste) {
+      liste.forEach(function (src) { var i = new Image(); i.src = src; });    // vorladen – keine leeren Bilder beim Wechsel
+    });
+    hk.sichtbar = function () { hochkantPruefen(); };
+    document.addEventListener("visibilitychange", hk.sichtbar, false);
+    hochkantPruefen();
+  }
+  function papierBildWechseln() {
+    if (!hk.bilder) return;
+    hk.schritt++;
+    hk.bilder.ipad.src = HOCHKANT.ipad[hk.schritt % HOCHKANT.ipad.length];
+    hk.bilder.pfannkuchen.src = HOCHKANT.pfannkuchen[hk.schritt % HOCHKANT.pfannkuchen.length];
+    hk.bilder.pfeil.src = HOCHKANT.pfeil[hk.schritt % HOCHKANT.pfeil.length];
+  }
+  function hochkantPruefen() {
+    var laufen = !!(S && hk.bilder && B.hoch() && !document.hidden && !ruhig());
+    if (laufen && !hk.timer) hk.timer = setInterval(papierBildWechseln, 125);
+    if (!laufen && hk.timer) { clearInterval(hk.timer); hk.timer = null; }
+  }
+  function hochkantAus() {
+    if (hk.timer) { clearInterval(hk.timer); hk.timer = null; }
+    if (hk.sichtbar) document.removeEventListener("visibilitychange", hk.sichtbar, false);
+    hk.sichtbar = null; hk.bilder = null;
+  }
+
   // ───────────────────── Der fliegende Pfannekuchen (Seite "flug") ─────────────────────
   var FLUG = window.FLUG = (function () {
-    var z = null;
+    var z = null, gelandetBild = null;
+    // Der gemalte Pfannekuchen (Illustrationen_2026-09-26/animation/pfannekuchen-flug.png,
+    // auf die sichtbare Scheibe zugeschnitten). Beim Wenden zeigt er eine etwas dunklere Unterseite.
+    var KUCHEN = { src: "bilder/extras/pfannekuchen-flug.png", img: null, unten: null };
+    // Die leere Pfanne auf s17 (relativ zur Doppelseite): Mitte der Mulde, halbe Breite des
+    // Pfannekuchens darin (in Buchhöhen), Neigung der Pfanne; flach = wie schräg er darin liegt.
+    var PFANNE = { x: 0.548, y: 0.38, r: 0.067, dreh: -0.5, flach: 1.0 };
+    B.ladeBild(KUCHEN.src, function (img) {
+      KUCHEN.img = img;
+      try {
+        var b = img.naturalWidth || img.width, h = img.naturalHeight || img.height, c = document.createElement("canvas");
+        c.width = b; c.height = h;
+        var x = c.getContext("2d");
+        x.drawImage(img, 0, 0, b, h);
+        x.globalCompositeOperation = "source-atop"; x.fillStyle = "rgba(110,55,10,0.3)"; x.fillRect(0, 0, b, h);
+        KUCHEN.unten = c;
+      } catch (e) {}
+    });
+
+    // Um den sichtbaren Mittelpunkt drehen: phase = Wenden (flach ↔ hochkant), dreh = Neigung.
+    // Gibt die sichtbare Scheibe zurück – sie ist die Trefferzone, nicht das Bildquadrat.
     function zeichne(ctx, x, y, r, phase, dreh) {
+      var c = Math.cos(phase), k = Math.max(0.14, Math.abs(c));
+      var bild = c < 0 && KUCHEN.unten ? KUCHEN.unten : KUCHEN.img;
+      if (!bild) { gemalt(ctx, x, y, r, phase, dreh); return { x: x, y: y, rx: r, ry: r * k, dreh: dreh }; }
+      var b = bild.naturalWidth || bild.width, h = bild.naturalHeight || bild.height, s = 2 * r / b;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(dreh); ctx.scale(s, s * k * (c < 0 ? -1 : 1));
+      ctx.drawImage(bild, -b / 2, -h / 2, b, h);
+      ctx.restore();
+      return { x: x, y: y, rx: r, ry: r * k * h / b, dreh: dreh };
+    }
+    // Ersatz, falls das Bild fehlt: der bisher gezeichnete Papier-Pfannekuchen
+    function gemalt(ctx, x, y, r, phase, dreh) {
       var c = Math.cos(phase), ry = r * Math.max(0.14, Math.abs(c));
       ctx.save(); ctx.translate(x, y); ctx.rotate(dreh);
       ctx.beginPath(); ctx.ellipse(0, 0, r, ry, 0, 0, Math.PI * 2);
@@ -755,39 +975,94 @@
       }
       ctx.restore();
     }
+
+    // Gelandet: als Bild in die Pfanne legen (bleibt liegen, auch während die Sterne funkeln)
+    function gelandetEntfernen() { if (gelandetBild && gelandetBild.parentNode) gelandetBild.parentNode.removeChild(gelandetBild); gelandetBild = null; }
+    function gelandetZeigen(W, H) {
+      gelandetEntfernen();
+      if (!KUCHEN.img || !S) return false;
+      var b = KUCHEN.img.naturalWidth || KUCHEN.img.width, h = KUCHEN.img.naturalHeight || KUCHEN.img.height;
+      var breite = 2 * PFANNE.r * H, hoehe = breite * h / b;
+      var el = B.el("img", "flug-kuchen", S.dom.buch);
+      el.alt = ""; el.src = KUCHEN.src;
+      el.style.left = ((PFANNE.x * W - breite / 2) / W * 100) + "%";
+      el.style.top = ((PFANNE.y * H - hoehe / 2) / H * 100) + "%";
+      el.style.width = (breite / W * 100) + "%";
+      B.transform(el, "rotate(" + PFANNE.dreh + "rad) scaleY(" + Math.cos(PFANNE.flach).toFixed(3) + ")");
+      gelandetBild = el;
+      return true;
+    }
+
     return {
       laeuft: function () { return !!(z && !z.gelandet); },
       starten: function () {
         if (!S || (z && !z.gelandet)) return;
         EFFEKTE.stoppen();
+        gelandetEntfernen();
         var cv = S.dom.effekte, ctx = cv.getContext("2d"), W = S.w, H = S.h;
-        z = { t0: B.jetzt(), gelandet: false, gefangen: false, id: 0 };
+        z = { t0: B.jetzt(), gelandet: false, gefangen: null, id: 0, W: W, H: H, jetzt: null };
         KLANG.hopp();
-        var start = { x: 0.3 * W, y: 0.78 * H }, gipfel = 0.12 * H, r = H * 0.1, dauerHoch = 1.5, dauerRunter = 1.9;
+        var start = { x: PFANNE.x * W, y: PFANNE.y * H }, gipfel = 0.07 * H, rP = PFANNE.r * H;
+        var dauerHoch = 1.5, dauerRunter = 1.9, dauer = dauerHoch + dauerRunter;
+        function landen(gefangen) {
+          z.gelandet = true;
+          ctx.clearRect(0, 0, W, H);
+          KLANG.plopp(); setTimeout(KLANG.tusch, 150);
+          var mitBild = gelandetZeigen(W, H);
+          if (!mitBild) zeichne(ctx, start.x, start.y, rP, PFANNE.flach, PFANNE.dreh);
+          var anzeige = B.el("div", "flug-meldung", S.dom.buch, gefangen ? "Gefangen! Genau in der Pfanne!" : "… genau in der Pfanne!");
+          anzeige.style.left = "22%"; anzeige.style.right = "36%"; anzeige.style.top = "7%";   // über der Pfanne, im freien Raum
+          setTimeout(function () { if (anzeige.parentNode) anzeige.parentNode.removeChild(anzeige); }, 2600);
+          if (mitBild) EFFEKTE.starten(S.dom.effekte, [{ eff: { typ: "sterne", x: PFANNE.x, y: PFANNE.y - 0.02 }, rechteck: { x: 0, y: 0, b: W, h: H } }]);
+        }
         function schritt() {
           if (!z) return;
-          var t = (B.jetzt() - z.t0) / 1000, y, x = start.x + Math.sin(t * 0.9) * W * 0.05;
-          if (z.fangZeit) t = Math.min(t, z.fangZeit + (t - z.fangZeit) * 0.001 + 0.0001);
-          if (t < dauerHoch) { var u = t / dauerHoch; y = start.y - (start.y - gipfel) * (1 - (1 - u) * (1 - u)); }
-          else { var d = Math.min(1, (t - dauerHoch) / dauerRunter); y = gipfel + (start.y - gipfel) * d * d; }
-          var landen = t >= dauerHoch + dauerRunter || z.gefangen;
+          var jetzt = B.jetzt(), t = (jetzt - z.t0) / 1000, g = z.gefangen;
           ctx.clearRect(0, 0, W, H);
-          if (landen) {
-            z.gelandet = true;
-            KLANG.plopp(); setTimeout(KLANG.tusch, 150);
-            zeichne(ctx, start.x, start.y, r, 0, 0);
-            var anzeige = B.el("div", "flug-meldung", S.dom.buch, z.gefangen ? "Gefangen! Genau in der Pfanne!" : "… genau in der Pfanne!");
-            setTimeout(function () { if (anzeige.parentNode) anzeige.parentNode.removeChild(anzeige); }, 2600);
-            EFFEKTE.starten(S.dom.effekte, [{ eff: { typ: "sterne", x: 0.3, y: 0.72 }, rechteck: { x: 0, y: 0, b: W, h: H } }]);
+          if (g) {
+            // gefangen: im kurzen Bogen zurück in die Pfanne gleiten
+            var u = Math.min(1, (jetzt - g.zeit) / 380), e = u * u * (3 - 2 * u);
+            if (u >= 1) { landen(true); return; }
+            zeichne(ctx, g.x + (start.x - g.x) * e, g.y + (start.y - g.y) * e - Math.sin(e * Math.PI) * H * 0.03,
+                    g.r + (rP - g.r) * e, g.phase + (g.phaseZiel - g.phase) * e, g.dreh + (PFANNE.dreh - g.dreh) * e);
+            z.id = B.frame(schritt);
             return;
           }
-          zeichne(ctx, x, y, r * (1 - 0.25 * Math.sin(Math.min(1, t / (dauerHoch + dauerRunter)) * Math.PI)), t * 7, Math.sin(t * 2) * 0.3);
+          if (t >= dauer) { landen(false); return; }
+          var p = t / dauer, bogen = Math.sin(p * Math.PI), y;
+          if (t < dauerHoch) { var v = t / dauerHoch; y = start.y - (start.y - gipfel) * (1 - (1 - v) * (1 - v)); }
+          else { var d = (t - dauerHoch) / dauerRunter; y = gipfel + (start.y - gipfel) * d * d; }
+          // im Bogen nach links oben (an der Lampe vorbei) und zurück; dreimal wenden, flach landen
+          var x = start.x - bogen * W * 0.12 + Math.sin(t * 2.2) * W * 0.012 * bogen;
+          var r = rP * (1 + 0.3 * bogen), phase = PFANNE.flach + p * Math.PI * 6;
+          var dreh = PFANNE.dreh * (1 - bogen) + Math.sin(t * 2) * 0.3 * bogen;
+          z.scheibe = zeichne(ctx, x, y, r, phase, dreh);
+          z.jetzt = { x: x, y: y, r: r, phase: phase, dreh: dreh };
           z.id = B.frame(schritt);
         }
         z.id = B.frame(schritt);
       },
-      fangen: function () { if (z && !z.gelandet) { z.gefangen = true; } },
-      stoppen: function () { if (z) { B.frameStopp(z.id); z = null; } }
+      // Fangen: zählt, wenn der Finger die sichtbare Scheibe trifft (großzügig). Ohne Tipp-Position
+      // (z. B. per Taste) wird immer gefangen.
+      fangen: function (ev) {
+        if (!z || z.gelandet || z.gefangen) return false;
+        var e = ev || window.event, sch = z.scheibe;
+        if (e && typeof e.clientX === "number" && sch && S) {
+          var rect = S.dom.effekte.getBoundingClientRect();
+          if (rect.width && rect.height) {
+            var px = (e.clientX - rect.left) * z.W / rect.width - sch.x, py = (e.clientY - rect.top) * z.H / rect.height - sch.y;
+            var c = Math.cos(-sch.dreh), si = Math.sin(-sch.dreh), qx = px * c - py * si, qy = px * si + py * c;
+            var ax = sch.rx * 1.35 + 24, ay = Math.max(sch.ry, sch.rx * 0.4) * 1.35 + 24;
+            if ((qx * qx) / (ax * ax) + (qy * qy) / (ay * ay) > 1) return false;
+          }
+        }
+        var j = z.jetzt || { x: PFANNE.x * z.W, y: PFANNE.y * z.H, r: PFANNE.r * z.H, phase: PFANNE.flach, dreh: PFANNE.dreh };
+        // auf die nächste flache Lage (gleiche Seite oben wie in der Pfanne) hin drehen
+        var ziel = PFANNE.flach + Math.round((j.phase - PFANNE.flach) / (2 * Math.PI)) * 2 * Math.PI;
+        z.gefangen = { zeit: B.jetzt(), x: j.x, y: j.y, r: j.r, phase: j.phase, phaseZiel: ziel, dreh: j.dreh };
+        return true;
+      },
+      stoppen: function () { gelandetEntfernen(); if (z) { B.frameStopp(z.id); z = null; } }
     };
   })();
 })();

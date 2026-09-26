@@ -4,7 +4,7 @@
    und reicht sie an die App weiter – als wäre nichts gewesen. Alles, was einmal
    geladen wurde, bleibt im Speicher (offline lesbar).
    Wird von Werkzeuge/veroeffentlichen.py als sw.js ins Veröffentlichungs-Verzeichnis kopiert. */
-var VERSION = "omsi-20260926-203445";
+var VERSION = "omsi-20260926-230354";
 var GESCHUETZT = /\/(daten|bilder|audio)\//;
 var OEFFENTLICH = /\/bilder\/extras\/icon-[^/]+\.png$/;
 var schluesselPromise = null;
@@ -73,10 +73,12 @@ function entschluesselt(anfrage) {
       }).then(function (klar) {
         var typ = TYPEN[endung] || "application/octet-stream", ganz = klar.byteLength;
         var bereich = anfrage.headers.get("range");
-        if (bereich) {   // Safari spielt Ton nur mit "Teilstücken" (206) zuverlässig ab
-          var m = /bytes=(\d*)-(\d*)/.exec(bereich) || [];
-          var von = m[1] ? parseInt(m[1], 10) : 0, bis = m[2] ? parseInt(m[2], 10) : ganz - 1;
-          bis = Math.min(bis, ganz - 1);
+        var m = /^bytes=(\d*)-(\d*)$/.exec(bereich || '');
+        if (m && (m[1] || m[2])) {   // Safari spielt Ton nur mit "Teilstücken" (206) zuverlässig ab
+          var von = m[1] ? parseInt(m[1], 10) : Math.max(0, ganz - parseInt(m[2], 10));
+          var bis = m[1] && m[2] ? Math.min(parseInt(m[2], 10), ganz - 1) : ganz - 1;
+          if (von > bis || von >= ganz) return new Response(null, { status: 416, headers: {
+            "Content-Range": "bytes */" + ganz, "Content-Length": "0", "Accept-Ranges": "bytes" } });
           return new Response(klar.slice(von, bis + 1), { status: 206, headers: {
             "Content-Type": typ, "Content-Range": "bytes " + von + "-" + bis + "/" + ganz,
             "Content-Length": String(bis - von + 1), "Accept-Ranges": "bytes" } });

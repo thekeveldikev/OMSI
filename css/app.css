@@ -78,13 +78,20 @@ button { font: inherit; }
 .leiste-titel { -webkit-flex: 1; flex: 1; text-align: center; color: #f6ead2; font-style: italic; font-size: 20px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .buehne { position: absolute; top: 64px; left: 60px; right: 60px; bottom: 34px; display: -webkit-flex; display: flex;
   -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; cursor: pointer; }
-.buch { position: relative; -webkit-perspective: 2400px; perspective: 2400px; }
+.buch { position: relative; -webkit-perspective: 2400px; perspective: 2400px;
+  -webkit-transition: -webkit-transform .9s cubic-bezier(.45,.05,.3,1); transition: transform .9s cubic-bezier(.45,.05,.3,1); }
+/* geschlossenes Buch (nur Umschlag) liegt mittig */
+.buch.nur-rechts { -webkit-transform: translateX(-25%); transform: translateX(-25%); }
+.buch.nur-links { -webkit-transform: translateX(25%); transform: translateX(25%); }
 .seite { position: absolute; top: 0; width: 50%; height: 100%; background-color: #fbf8f1; background-repeat: no-repeat; overflow: hidden; }
 .seite-links { left: 0; border-radius: 6px 0 0 6px; box-shadow: -6px 10px 28px rgba(0,0,0,.35); }
 .seite-rechts { left: 50%; border-radius: 0 6px 6px 0; box-shadow: 6px 10px 28px rgba(0,0,0,.35); }
 .seite-links::after, .seite-rechts::after { content: ""; position: absolute; top: 0; bottom: 0; width: 9%; pointer-events: none; z-index: 6; }
 .seite-links::after { right: 0; background: linear-gradient(to left, rgba(0,0,0,.16), rgba(0,0,0,0)); }
 .seite-rechts::after { left: 0; background: linear-gradient(to right, rgba(0,0,0,.16), rgba(0,0,0,0)); }
+/* Fortsetzung: durchgehende Doppelseiten-Bilder – der Falz nur als Hauch, damit er keine Gesichter "verschluckt" */
+.buch-bildschirm.fortsetzung .seite-links::after, .buch-bildschirm.fortsetzung .seite-rechts::after { width: 3.5%; opacity: .35; }
+.buch-bildschirm.fortsetzung .falz { background: rgba(0,0,0,.05); }
 .seite.leer { background: transparent !important; box-shadow: none; }
 .seite.leer::after { display: none; }
 .falz { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0,0,0,.12); z-index: 7; pointer-events: none; }
@@ -118,37 +125,63 @@ button { font: inherit; }
 
 .dreh-hinweis { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 30; background: rgba(42,30,20,.94);
   -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; color: #fff; }
-.dreh-ipad { width: 90px; height: 124px; border: 6px solid #fff; border-radius: 14px; -webkit-animation: kf-drehipad 2.4s ease-in-out infinite; animation: kf-drehipad 2.4s ease-in-out infinite; }
-.dreh-text { margin-top: 36px; font-family: var(--rund); font-size: 22px; }
+/* Papier-Collage (Stop-Motion-Bilder in bilder/extras/hochkant/) */
+.dreh-collage { position: relative; width: 330px; height: 270px; pointer-events: none; }
+.dreh-ipad-schwenk { position: absolute; left: 85px; top: 7px; width: 180px; height: 254px;
+  -webkit-animation: kf-drehschwenk 2.4s ease-in-out infinite; animation: kf-drehschwenk 2.4s ease-in-out infinite; }
+.dreh-ipad-bild { display: block; width: 100%; height: 100%; }
+.dreh-pfannkuchen { position: absolute; left: 0; top: 0; width: 86px; -webkit-transform: rotate(-12deg); transform: rotate(-12deg); }
+.dreh-pfeil { position: absolute; right: 0; bottom: 0; width: 98px; }
+.dreh-text { margin-top: 34px; font-family: var(--rund); font-size: 24px; text-align: center; padding: 0 16px; }
+/* hochkant stehen – drehen (im Uhrzeigersinn, wie der Pfeil) – quer liegen – kurz ausblenden und von vorn */
+@-webkit-keyframes kf-drehschwenk { 0%, 22% { -webkit-transform: rotate(0); opacity: 1; } 52%, 86% { -webkit-transform: rotate(90deg); opacity: 1; } 93% { -webkit-transform: rotate(90deg); opacity: 0; } 94% { -webkit-transform: rotate(0); opacity: 0; } 100% { -webkit-transform: rotate(0); opacity: 1; } }
+@keyframes kf-drehschwenk { 0%, 22% { transform: rotate(0); opacity: 1; } 52%, 86% { transform: rotate(90deg); opacity: 1; } 93% { transform: rotate(90deg); opacity: 0; } 94% { transform: rotate(0); opacity: 0; } 100% { transform: rotate(0); opacity: 1; } }
+@media (max-height: 620px) {
+  .dreh-collage { width: 250px; height: 205px; }
+  .dreh-ipad-schwenk { left: 64px; top: 5px; width: 136px; height: 192px; }
+  .dreh-pfannkuchen { width: 64px; } .dreh-pfeil { width: 74px; }
+  .dreh-text { margin-top: 22px; font-size: 21px; }
+}
+@media (prefers-reduced-motion: reduce) { .dreh-ipad-schwenk { -webkit-animation: none; animation: none; } }
 @media (orientation: portrait) { .dreh-hinweis { display: -webkit-flex; display: flex; } }
 @-webkit-keyframes kf-drehipad { 0%, 30% { -webkit-transform: rotate(0); } 60%, 100% { -webkit-transform: rotate(-90deg); } }
 @keyframes kf-drehipad { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
 
 /* ─────────────── Satz: Originalbuch (nur Deutsch) ─────────────── */
 .abdeckung { position: absolute; z-index: 1; border-radius: 2px; }
-.satz { position: absolute; z-index: 2; overflow: hidden; padding: .35em .3em 1.1em; font-family: var(--buchschrift); font-size: .9em; line-height: 1.34; color: #26211c;
+.satz { position: absolute; z-index: 5; overflow: hidden; padding: .35em .3em 1.1em; font-family: var(--buchschrift); font-size: .9em; line-height: 1.34; color: #26211c;
   -webkit-hyphens: auto; hyphens: auto; text-rendering: optimizeLegibility; -webkit-font-feature-settings: "kern", "liga", "onum"; font-feature-settings: "kern", "liga", "onum";
   hanging-punctuation: first; text-wrap: pretty; }
 .satz p { margin: 0 0 .32em; white-space: pre-line; }
 .satz p:last-child { margin-bottom: 0; }
 .initiale { float: left; font-family: var(--rund); font-weight: 900; font-size: 3.05em; line-height: .8; margin: .06em .09em -.05em 0; }
 .fehlt { font-family: var(--rund); font-size: .62em; color: #b0453a; border: 1px dashed #d98a80; background: rgba(255,244,236,.85); padding: .35em .5em; border-radius: 4px; }
-.titelfeld-de { position: absolute; z-index: 2; overflow: hidden; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+.titelfeld-de { position: absolute; z-index: 5; overflow: hidden; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
   -webkit-justify-content: center; justify-content: center; font-family: var(--buchschrift); font-weight: 700; line-height: 1.0; padding: 0 .08em; letter-spacing: -.01em; }
 .titelfeld-innen { white-space: nowrap; }
 
 /* ─────────────── Satz: Fortsetzung ─────────────── */
-.text-kasten { position: absolute; top: 7%; bottom: 7%; z-index: 3; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+.text-kasten { position: absolute; top: 7%; bottom: 7%; z-index: 5; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
   -webkit-justify-content: center; justify-content: center; font-family: var(--buchschrift); line-height: 1.42; color: #26211c; overflow: hidden;
   -webkit-hyphens: auto; hyphens: auto; text-wrap: pretty; hanging-punctuation: first; }
 .text-rechts { left: 30%; right: 8%; }
 .text-links { left: 8%; right: 22%; }
 .ist-titel, .ist-widmung { text-align: center; -webkit-align-items: center; align-items: center; }
 .ist-titel { left: 22%; right: 6%; }
+/* Schattentheater (s15): Hinweis als Papierzettel unten auf dem freien Boden – nie auf der Spielfläche */
+.text-kasten.text-unten { top: auto; bottom: 6%; left: 12%; right: 10%; padding: .55em .9em; text-align: center;
+  background: #fbf3de; color: #2a2118; border-radius: 3px; box-shadow: 0 3px 10px rgba(0,0,0,.45);
+  -webkit-transform: rotate(-1.5deg); transform: rotate(-1.5deg); -webkit-align-items: center; align-items: center; }
+.text-unten .klein { font-size: 1em; font-style: normal; opacity: 1; margin: 0; }
 .dunkel .text-kasten { color: #f7efdc; }
 .rueckblende .text-kasten { font-style: italic; }
 .absatz { margin: 0 0 .5em; }
-.laut { font-family: var(--rund); font-weight: 900; font-size: 2.5em; line-height: 1.02; margin: .05em 0 .2em; letter-spacing: .01em; }
+.laut { font-family: var(--rund); font-weight: 900; font-size: 2.5em; line-height: 1.02; margin: .05em 0 .2em; letter-spacing: .01em;
+  -webkit-transform-origin: 20% 60%; transform-origin: 20% 60%; }
+/* beim Vorlesen: das Geräuschwort springt in Kevins Pause auf */
+.laut-knall { -webkit-animation: kf-laut-knall .9s cubic-bezier(.2,1.6,.4,1) 1; animation: kf-laut-knall .9s cubic-bezier(.2,1.6,.4,1) 1; }
+@-webkit-keyframes kf-laut-knall { 0% { -webkit-transform: scale(1) rotate(0); } 18% { -webkit-transform: scale(1.45) rotate(-5deg); } 40% { -webkit-transform: scale(.92) rotate(3deg); } 62% { -webkit-transform: scale(1.1) rotate(-1.5deg); } 100% { -webkit-transform: scale(1) rotate(0); } }
+@keyframes kf-laut-knall { 0% { transform: scale(1) rotate(0); } 18% { transform: scale(1.45) rotate(-5deg); } 40% { transform: scale(.92) rotate(3deg); } 62% { transform: scale(1.1) rotate(-1.5deg); } 100% { transform: scale(1) rotate(0); } }
 .buchtitel { font-family: var(--rund); font-weight: 900; font-size: 2.6em; line-height: 1.0; margin: 0 0 .35em; }
 .klein { font-size: .8em; font-style: italic; opacity: .82; margin: .2em 0 .5em; }
 .handschrift { font-family: var(--handschrift); font-size: 1.55em; color: #1b3a8a; text-align: center; margin: .3em 0 .2em; }
@@ -300,8 +333,17 @@ button { font: inherit; }
 @keyframes kf-picken { 0%, 45%, 82%, 100% { transform: rotate(0); } 53% { transform: rotate(-15deg); } 59% { transform: rotate(-9deg); } 66% { transform: rotate(-15deg); } 73% { transform: rotate(-10deg); } }
 @-webkit-keyframes kf-drohen { 0%, 38%, 76%, 100% { -webkit-transform: rotate(0); } 45% { -webkit-transform: rotate(6deg); } 52% { -webkit-transform: rotate(-4deg); } 59% { -webkit-transform: rotate(6deg); } 66% { -webkit-transform: rotate(-4deg); } }
 @keyframes kf-drohen { 0%, 38%, 76%, 100% { transform: rotate(0); } 45% { transform: rotate(6deg); } 52% { transform: rotate(-4deg); } 59% { transform: rotate(6deg); } 66% { transform: rotate(-4deg); } }
-@-webkit-keyframes kf-gabel { 0%, 30%, 100% { -webkit-transform: translateX(0) rotate(0); } 55%, 68% { -webkit-transform: translateX(2%) rotate(-5deg); } }
-@keyframes kf-gabel { 0%, 30%, 100% { transform: translateX(0) rotate(0); } 55%, 68% { transform: translateX(2%) rotate(-5deg); } }
+/* Der Hahn kräht einmal (ausgelöst vom Takt in buch.js, zusammen mit Ton und Schallwellen) */
+@-webkit-keyframes kf-kraehen1 { 0%, 94%, 100% { -webkit-transform: rotate(0); } 12% { -webkit-transform: rotate(-9deg); } 22% { -webkit-transform: rotate(-7.5deg); } 32% { -webkit-transform: rotate(-9deg); } 62% { -webkit-transform: rotate(-8.5deg); } 78% { -webkit-transform: rotate(-9deg); } }
+@keyframes kf-kraehen1 { 0%, 94%, 100% { transform: rotate(0); } 12% { transform: rotate(-9deg); } 22% { transform: rotate(-7.5deg); } 32% { transform: rotate(-9deg); } 62% { transform: rotate(-8.5deg); } 78% { transform: rotate(-9deg); } }
+@-webkit-keyframes kf-gabel { 0%, 30%, 82%, 100% { -webkit-transform: rotate(0); } 45% { -webkit-transform: rotate(2.5deg); } 55% { -webkit-transform: rotate(0.6deg); } 67% { -webkit-transform: rotate(2.5deg); } }
+@keyframes kf-gabel { 0%, 30%, 82%, 100% { transform: rotate(0); } 45% { transform: rotate(2.5deg); } 55% { transform: rotate(0.6deg); } 67% { transform: rotate(2.5deg); } }
+@-webkit-keyframes kf-ohrzucken { 0%, 66%, 86%, 100% { -webkit-transform: rotate(0); } 70% { -webkit-transform: rotate(-7deg); } 74% { -webkit-transform: rotate(-1deg); } 78% { -webkit-transform: rotate(-7deg); } }
+@keyframes kf-ohrzucken { 0%, 66%, 86%, 100% { transform: rotate(0); } 70% { transform: rotate(-7deg); } 74% { transform: rotate(-1deg); } 78% { transform: rotate(-7deg); } }
+@-webkit-keyframes kf-loeffel { 0%, 56%, 100% { -webkit-transform: rotate(0); } 11% { -webkit-transform: rotate(-6deg); } 23% { -webkit-transform: rotate(5deg); } 35% { -webkit-transform: rotate(-5deg); } 46% { -webkit-transform: rotate(2deg); } }
+@keyframes kf-loeffel { 0%, 56%, 100% { transform: rotate(0); } 11% { transform: rotate(-6deg); } 23% { transform: rotate(5deg); } 35% { transform: rotate(-5deg); } 46% { transform: rotate(2deg); } }
+@-webkit-keyframes kf-winken { 0%, 62%, 100% { -webkit-transform: rotate(0); } 13% { -webkit-transform: rotate(5deg); } 26% { -webkit-transform: rotate(-3deg); } 39% { -webkit-transform: rotate(4deg); } 51% { -webkit-transform: rotate(-1deg); } }
+@keyframes kf-winken { 0%, 62%, 100% { transform: rotate(0); } 13% { transform: rotate(5deg); } 26% { transform: rotate(-3deg); } 39% { transform: rotate(4deg); } 51% { transform: rotate(-1deg); } }
 @keyframes kf-sanftdrehen { 0%, 100% { transform: rotate(-7deg) scale(1); } 50% { transform: rotate(7deg) scale(1.06); } }
 @-webkit-keyframes kf-steigen { 0% { -webkit-transform: translate(0, 0) scale(1); opacity: 1; } 70% { -webkit-transform: translate(8%, -28%) scale(1.25); opacity: .15; } 71% { -webkit-transform: translate(0, 10%) scale(.7); opacity: 0; } 100% { -webkit-transform: translate(0, 0) scale(1); opacity: 1; } }
 @keyframes kf-steigen { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 70% { transform: translate(8%, -28%) scale(1.25); opacity: .15; } 71% { transform: translate(0, 10%) scale(.7); opacity: 0; } 100% { transform: translate(0, 0) scale(1); opacity: 1; } }
@@ -320,3 +362,166 @@ button { font: inherit; }
 .tresor-fehler { color: #b0453a; font-family: var(--rund); font-size: 16px; }
 .tresor-pfanne { width: 90px; height: 90px; margin: 0 auto 12px; border-radius: 50%; background: #e9b43c; box-shadow: inset 0 -8px 0 #c89232, 0 0 0 10px #2a2622;
   -webkit-animation: kf-wenden 2s ease-in-out infinite; animation: kf-wenden 2s ease-in-out infinite; }
+
+/* ─────────────── Fliegender Pfannekuchen: gelandet in der Pfanne (s17) ─────────────── */
+.flug-kuchen { position: absolute; z-index: 8; height: auto; pointer-events: none; -webkit-transform-origin: 50% 50%; transform-origin: 50% 50%;
+  -webkit-animation: kf-einblenden .15s both; animation: kf-einblenden .15s both; }
+
+/* ─────────────── Omsis Küche: Willkommensbild (extras/kueche-willkommen) ─────────────── */
+/* quer: Omsi winkt links im Bild, Überschrift und Karten liegen im hellen Bereich rechts */
+.kueche.mit-willkommen { padding: 0; overflow: hidden; }
+.kueche-bild { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #fff; background-repeat: no-repeat;
+  background-size: cover; background-position: left bottom; opacity: 0; -webkit-transition: opacity .6s; transition: opacity .6s; }
+.kueche-bild.da { opacity: 1; }
+.kueche-menue { position: absolute; top: 0; bottom: 0; left: 48%; right: 0; padding: 1.8vh 2.2vw 1.6vh .4vw; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.kueche-menue .kueche-kopf { margin-bottom: 1vh; }
+.kueche-menue .kueche-titel { font-size: 7vh; }
+.kueche-menue .karte-menue { width: 46%; margin: .6vh 2%; padding-bottom: .5vh; border-radius: 8px; background: rgba(255,252,244,.94);
+  box-shadow: 0 3px 12px rgba(60,40,20,.16); }
+.kueche-menue .karte-bild { height: 13.5vh; }
+.kueche-menue .karte-titel-m { margin-top: .35em; }
+.kueche-menue .kueche-fuss { margin-top: 1.2vh; }
+.karte-bild.bild-akte { background-position: 18% 32%; }
+.karte-bild.bild-turm { background-size: contain; background-color: #fbf6ea; background-origin: content-box; padding: 5% 6% 3%; }
+/* hochkant (oder fast quadratisch): Bild als Kopf, Karten darunter */
+@media (orientation: portrait), (max-aspect-ratio: 5/4) {
+  .kueche.mit-willkommen { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .kueche-bild { position: relative; height: 42vh; background-position: 0 58%; }
+  .kueche-menue { position: static; padding: 2vh 3vw 4vh; overflow: visible; }
+  .kueche-menue .karte-menue { width: 45%; margin: 1.2vh 1.5%; }
+  .kueche-menue .karte-bild { height: 15vh; }
+}
+
+/* ─────────────── Geheimakte: gemaltes Dossier (extras/geheimakte-omsi) ─────────────── */
+/* Bild im Format 4:3 so groß wie möglich; der Text liegt schräg auf dem leeren Blatt */
+.akte-dossier { position: relative; width: 96vw; height: 72vw; max-width: 130vh; max-height: 97.5vh; background: #fdfcf7 no-repeat center;
+  background-size: 100% 100%; border-radius: 8px; box-shadow: 0 18px 50px rgba(0,0,0,.45); font-family: var(--maschine); color: #2b2b2b; overflow: hidden; }
+.akte-blatt-text { position: absolute; left: 36.95%; top: 16.16%; width: 53.87%; height: 53.87%; overflow: hidden; line-height: 1.3;
+  -webkit-transform: rotate(4.6deg); transform: rotate(4.6deg); }
+.akte-dossier .akte-kopf { font-size: 1.4em; letter-spacing: .06em; line-height: 1.15; }
+.akte-dossier .akte-unter { font-size: .68em; margin: .35em 0 .9em; }
+.akte-dossier .akte-felder { max-width: none; font-size: 1em; line-height: 1.3; }
+.akte-dossier .akte-zeile { display: -webkit-flex; display: flex; margin-bottom: .2em; }
+.akte-dossier .akte-name { -webkit-flex: 0 0 33%; flex: 0 0 33%; min-width: 0; padding-right: .5em; }
+.akte-dossier .akte-wert { -webkit-flex: 1 1 auto; flex: 1 1 auto; min-width: 0; }
+.akte-dossier .akte-unterschrift { position: static; font-size: 1.45em; margin: .2em 0 0 6%; }
+.akte-dossier .akte-stempel { right: auto; bottom: auto; left: 50%; top: 63.5%; font-size: 1.75em; border-width: .1em; }
+@media (orientation: portrait), (max-aspect-ratio: 5/4) {
+  .akte-bildschirm { -webkit-align-items: flex-start; align-items: flex-start; }
+  .akte-dossier { width: 94vw; height: auto; max-width: none; max-height: none; margin: 8vh 0 4vh; padding-top: 70.5vw; background-size: 100% auto; background-position: center top; }
+  .akte-blatt-text { position: relative; left: auto; top: auto; width: auto; height: auto; overflow: visible; -webkit-transform: none; transform: none; padding: 1vh 6vw 5vh; }
+  .akte-dossier .akte-stempel { left: auto; top: auto; right: 8%; bottom: 5%; }
+}
+
+/* ─────────────── Omsis Rezept: gemalter Zutatenrahmen (extras/rezeptkarte-rahmen) ─────────────── */
+/* helles Papier unter dem durchsichtigen Rahmen; Zutaten links, Zubereitung rechts, Fußnote unten Mitte */
+.rezeptkarte.mit-rahmen { position: relative; width: 94vw; height: 70.5vw; max-width: 121vh; max-height: 90.75vh; padding: 0; background-color: #fffdf5;
+  border-radius: 10px; overflow: hidden; line-height: 1.42; -webkit-transform: rotate(-1deg); transform: rotate(-1deg); }
+.rezept-rahmen { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+.rezeptkarte.mit-rahmen .rezept-titel { position: absolute; left: 7%; right: 18%; top: 4.5%; margin: 0; font-size: 1.75em; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; border-bottom: .09em solid #d9534f; }
+.rezept-spalte { position: absolute; top: 16.5%; overflow: hidden; }
+.rezept-zutaten { left: 9.5%; width: 37.5%; height: 31%; }
+.rezept-schritte { left: 49.5%; width: 34%; height: 38.5%; }
+.rezeptkarte.mit-rahmen .rezept-luecke { height: .6em; }
+.rezeptkarte.mit-rahmen .rezept-zeile { margin-bottom: .12em; }
+.rezept-schritte { counter-reset: schritt; }
+.rezept-schritte .rezept-zeile { padding-left: 1.1em; text-indent: -1.1em; }
+.rezept-schritte .rezept-zeile:before { counter-increment: schritt; content: counter(schritt) ". "; color: #c62f1c; }
+.rezeptkarte.mit-rahmen .rezept-fuss { position: absolute; left: 37%; width: 41%; top: 60%; margin: 0; text-align: center; font-size: 1.2em; white-space: nowrap; }
+@media print { .rezeptkarte.mit-rahmen { width: 100%; height: auto; padding-top: 75%; max-width: none; max-height: none; } }
+
+/* ─────────────── Blinzeln: Augenlider aus "Seidenpapier" in Hautfarbe ─────────────── */
+.augen-halter { position: absolute; pointer-events: none; z-index: 3; }
+.augenlid { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: 50%;
+  border-bottom: 2px solid rgba(0,0,0,.35); box-sizing: border-box; opacity: 0;
+  background-image: radial-gradient(ellipse at 50% 25%, rgba(255,255,255,.22), rgba(255,255,255,0) 70%);
+  -webkit-transform-origin: 50% 0; transform-origin: 50% 0; -webkit-transform: scaleY(.05); transform: scaleY(.05); }
+/* einmal blinzeln (≈ 0,3 s) am Ende jedes Durchgangs */
+@-webkit-keyframes kf-lid { 0%, 90.5% { opacity: 0; -webkit-transform: scaleY(.05); } 91% { opacity: 1; -webkit-transform: scaleY(.3); } 93% { opacity: 1; -webkit-transform: scaleY(1); } 95.5% { opacity: 1; -webkit-transform: scaleY(.3); } 96%, 100% { opacity: 0; -webkit-transform: scaleY(.05); } }
+@keyframes kf-lid { 0%, 90.5% { opacity: 0; transform: scaleY(.05); } 91% { opacity: 1; transform: scaleY(.3); } 93% { opacity: 1; transform: scaleY(1); } 95.5% { opacity: 1; transform: scaleY(.3); } 96%, 100% { opacity: 0; transform: scaleY(.05); } }
+/* doppelt blinzeln */
+@-webkit-keyframes kf-lid-doppelt { 0%, 84.5% { opacity: 0; -webkit-transform: scaleY(.05); } 85% { opacity: 1; -webkit-transform: scaleY(.3); } 86.5% { -webkit-transform: scaleY(1); } 88.5% { opacity: 1; -webkit-transform: scaleY(.3); } 89% { opacity: 0; -webkit-transform: scaleY(.05); } 91.5% { opacity: 0; -webkit-transform: scaleY(.05); } 92% { opacity: 1; -webkit-transform: scaleY(.3); } 93.5% { -webkit-transform: scaleY(1); } 95.5% { opacity: 1; -webkit-transform: scaleY(.3); } 96%, 100% { opacity: 0; -webkit-transform: scaleY(.05); } }
+@keyframes kf-lid-doppelt { 0%, 84.5% { opacity: 0; transform: scaleY(.05); } 85% { opacity: 1; transform: scaleY(.3); } 86.5% { transform: scaleY(1); } 88.5% { opacity: 1; transform: scaleY(.3); } 89% { opacity: 0; transform: scaleY(.05); } 91.5% { opacity: 0; transform: scaleY(.05); } 92% { opacity: 1; transform: scaleY(.3); } 93.5% { transform: scaleY(1); } 95.5% { opacity: 1; transform: scaleY(.3); } 96%, 100% { opacity: 0; transform: scaleY(.05); } }
+/* Pfannkuchen: ein Auge zwinkert (hält kurz zu), beide blinzeln später gemeinsam */
+@-webkit-keyframes kf-lid-zwinker { 0%, 38% { opacity: 0; -webkit-transform: scaleY(.05); } 39% { opacity: 1; -webkit-transform: scaleY(.4); } 41%, 49% { opacity: 1; -webkit-transform: scaleY(1); } 51% { opacity: 1; -webkit-transform: scaleY(.3); } 52%, 91.5% { opacity: 0; -webkit-transform: scaleY(.05); } 92% { opacity: 1; -webkit-transform: scaleY(.3); } 93.5% { -webkit-transform: scaleY(1); } 95.5% { opacity: 1; -webkit-transform: scaleY(.3); } 96%, 100% { opacity: 0; -webkit-transform: scaleY(.05); } }
+@keyframes kf-lid-zwinker { 0%, 38% { opacity: 0; transform: scaleY(.05); } 39% { opacity: 1; transform: scaleY(.4); } 41%, 49% { opacity: 1; transform: scaleY(1); } 51% { opacity: 1; transform: scaleY(.3); } 52%, 91.5% { opacity: 0; transform: scaleY(.05); } 92% { opacity: 1; transform: scaleY(.3); } 93.5% { transform: scaleY(1); } 95.5% { opacity: 1; transform: scaleY(.3); } 96%, 100% { opacity: 0; transform: scaleY(.05); } }
+@-webkit-keyframes kf-lid-mit { 0%, 91.5% { opacity: 0; -webkit-transform: scaleY(.05); } 92% { opacity: 1; -webkit-transform: scaleY(.3); } 93.5% { -webkit-transform: scaleY(1); } 95.5% { opacity: 1; -webkit-transform: scaleY(.3); } 96%, 100% { opacity: 0; -webkit-transform: scaleY(.05); } }
+@keyframes kf-lid-mit { 0%, 91.5% { opacity: 0; transform: scaleY(.05); } 92% { opacity: 1; transform: scaleY(.3); } 93.5% { transform: scaleY(1); } 95.5% { opacity: 1; transform: scaleY(.3); } 96%, 100% { opacity: 0; transform: scaleY(.05); } }
+@media (prefers-reduced-motion: reduce) { .augenlid { -webkit-animation: none !important; animation: none !important; } }
+
+/* ─────────────── Bonus-Spiel: Pfannkuchen wenden (js/spiel.js) ─────────────── */
+/* Pfanne, Flammen, Teller und Konfetti malt das Canvas; Texte, Bräunungs-Leiste und Knöpfe liegen darüber.
+   Der ganze Bildschirm ist Tippfläche (außer "Zur Küche"). */
+.spiel-bildschirm { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; cursor: pointer; -ms-touch-action: manipulation; touch-action: manipulation; }
+.spiel-canvas { position: absolute; top: 0; left: 0; }
+.spiel-zurueck { position: absolute; top: 14px; left: 14px; z-index: 6; }
+.spiel-zaehler { position: absolute; top: 16px; right: 16px; z-index: 6; font-family: var(--rund); font-weight: 700; font-size: 2.5vh; color: #5a4a3a;
+  background: rgba(255,251,240,.9); padding: .35em .9em; border-radius: 999px; box-shadow: 0 2px 10px rgba(60,40,20,.14); }
+.spiel-kopf { position: absolute; top: 2vh; left: 0; right: 0; text-align: center; pointer-events: none; z-index: 2; }
+.spiel-titel { display: inline-block; font-family: var(--rund); font-weight: 900; font-size: 6.4vh; line-height: 1.05; }
+.spiel-hinweis { font-family: var(--rund); font-size: 3vh; line-height: 1.3; color: #4a3a2a; margin-top: .25em; min-height: 1.3em; padding: 0 4vw; }
+.spiel-lob { position: absolute; left: 3vw; right: 3vw; top: 20%; z-index: 4; text-align: center; pointer-events: none; font-family: var(--rund); font-weight: 900;
+  font-size: 6vh; line-height: 1.1; color: #d8371c; text-shadow: 0 2px 0 #fff, 0 0 4px #fff, 0 0 16px #fff;
+  -webkit-animation: kf-hereinkleben .7s ease-out both; animation: kf-hereinkleben .7s ease-out both; }
+.spiel-lob:empty { display: none; }
+.spiel-lob.frueh { color: #1f47a8; }
+.spiel-lob.knusprig { color: #8b5a2b; }
+/* Ausblenden als eigene Animation (eine Transition käme gegen das "both" der Einklebe-Animation nicht an) */
+.spiel-lob.weg { -webkit-animation: kf-spiel-weg .6s ease-in both; animation: kf-spiel-weg .6s ease-in both; }
+@-webkit-keyframes kf-spiel-weg { from { opacity: 1; } to { opacity: 0; } }
+@keyframes kf-spiel-weg { from { opacity: 1; } to { opacity: 0; } }
+.spiel-fuss { position: absolute; left: 0; right: 0; bottom: 2.4vh; text-align: center; z-index: 3; }
+.spiel-skala { display: block; width: 62vw; max-width: 760px; margin: 0 auto 1.8vh; }
+.spiel-skala-titel { font-family: var(--rund); font-size: 2.1vh; color: #6a5a48; margin-bottom: .9vh; }
+.spiel-bahn { position: relative; }
+.spiel-leiste { display: -webkit-flex; display: flex; height: 5.4vh; border-radius: 999px; overflow: hidden;
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,.75), 0 3px 10px rgba(60,40,20,.2); }
+.spiel-stufe { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+  font-family: var(--rund); font-weight: 800; font-size: 2.3vh; color: #3a2a1e; white-space: nowrap; overflow: hidden; }
+.spiel-stufe.dunkel { color: #fff8e6; }
+.spiel-stufe.stufe-1 { -webkit-transition: box-shadow .4s; transition: box-shadow .4s; }
+.spiel-stufe.stufe-1.an { box-shadow: inset 0 0 0 .5vh #fff; }
+/* der Bräunungs-Kreis: zeigt die Farbe der Unterseite und wandert über die Leiste */
+.spiel-zeiger { position: absolute; top: 50%; left: 0; width: 8.4vh; height: 8.4vh; margin: -4.2vh 0 0 -4.2vh; border-radius: 50%;
+  background-color: #f3e2aa; border: .6vh solid #fff; box-shadow: 0 3px 12px rgba(60,40,20,.35);
+  background-image: radial-gradient(circle at 35% 30%, rgba(255,255,255,.45), rgba(255,255,255,0) 60%); }
+.knopf.gross.spiel-wenden { font-size: 4.6vh; padding: .38em 2.4em; background: #d8371c; color: #fff;
+  -webkit-transition: background-color .4s, color .4s, opacity .4s; transition: background-color .4s, color .4s, opacity .4s; }
+.knopf.spiel-wenden.golden { background: #e9b43c; color: #3a2a1e; -webkit-animation: kf-spiel-leuchten 1.8s ease-in-out infinite; animation: kf-spiel-leuchten 1.8s ease-in-out infinite; }
+.knopf.spiel-wenden.ruht { opacity: .45; }
+@-webkit-keyframes kf-spiel-leuchten { 0%, 100% { box-shadow: 0 2px 0 rgba(0,0,0,.25), 0 0 0 0 rgba(233,180,60,.55); } 50% { box-shadow: 0 2px 0 rgba(0,0,0,.25), 0 0 0 1.6vh rgba(233,180,60,0); } }
+@keyframes kf-spiel-leuchten { 0%, 100% { box-shadow: 0 2px 0 rgba(0,0,0,.25), 0 0 0 0 rgba(233,180,60,.55); } 50% { box-shadow: 0 2px 0 rgba(0,0,0,.25), 0 0 0 1.6vh rgba(233,180,60,0); } }
+/* geschafft: Überschrift oben, Knöpfe unten, dazwischen der Stapel mit Marmelade (Canvas) */
+.spiel-bildschirm.ist-fertig .spiel-kopf, .spiel-bildschirm.ist-fertig .spiel-fuss, .spiel-bildschirm.ist-fertig .spiel-zaehler,
+.spiel-bildschirm.ist-fertig .spiel-lob, .spiel-bildschirm.ist-fertig .spiel-zurueck { opacity: 0; visibility: hidden; pointer-events: none;
+  -webkit-transition: opacity .5s, visibility 0s .5s; transition: opacity .5s, visibility 0s .5s; }
+.spiel-ende { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 7; display: none; pointer-events: none; padding: 3vh 4vw 4vh;
+  -webkit-flex-direction: column; flex-direction: column; -webkit-justify-content: space-between; justify-content: space-between; text-align: center; }
+.spiel-ende.sichtbar { display: -webkit-flex; display: flex; -webkit-animation: kf-einblenden .9s both; animation: kf-einblenden .9s both; }
+.spiel-ende-titel { display: inline-block; font-family: var(--rund); font-weight: 900; font-size: 6.6vh; line-height: 1.08; }
+.spiel-ende-unter { font-family: var(--buchschrift); font-style: italic; font-size: 3.2vh; color: #4a3a2a; margin-top: .4em; }
+.spiel-ende-knoepfe { pointer-events: auto; }
+.spiel-ende-knoepfe .knopf { margin: .3em .5em; font-size: 3.4vh; }
+@media (orientation: portrait) {
+  .spiel-kopf { top: 74px; }
+  .spiel-titel { font-size: 7.4vw; }
+  .spiel-hinweis { font-size: 2.5vh; min-height: 2.6em; }
+  .spiel-skala { width: 88vw; }
+  .spiel-ende { padding-top: 8vh; padding-bottom: 6vh; }
+  .spiel-ende-titel { font-size: 7.6vw; }
+}
+
+/* Küche mit mehr als 6 Karten (seit dem Bonus-Spiel): quer etwas kompakter, damit alles ohne Scrollen passt */
+@media (min-aspect-ratio: 501/400) {
+  .kueche-menue.viele { padding-top: 1.2vh; }
+  .kueche-menue.viele .kueche-kopf { margin-bottom: .6vh; }
+  .kueche-menue.viele .kueche-titel { font-size: 6.4vh; }
+  .kueche-menue.viele .kueche-unter { font-size: 2.1vh; }
+  .kueche-menue.viele .karte-menue { margin-top: .4vh; margin-bottom: .4vh; padding-bottom: .3vh; }
+  .kueche-menue.viele .karte-rahmen { padding: 7px; }
+  .kueche-menue.viele .karte-bild { height: 9.6vh; }
+  .kueche-menue.viele .karte-titel-m { font-size: 2.45vh; margin-top: .25em; }
+  .kueche-menue.viele .karte-unter { font-size: 1.85vh; line-height: 1.25; }
+  .kueche-menue.viele .kueche-fuss { margin-top: .6vh; }
+}

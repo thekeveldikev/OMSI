@@ -4,10 +4,15 @@
 (function () {
   var F = window.EFFEKTE = {};
   var laufend = null;
+  // Auslöser: manche Effekte zeigen sich nur kurz, wenn etwas passiert (z. B. Schallwellen beim Krähen)
+  var ausgeloest = {};
+  F.ausloesen = function (name) { ausgeloest[name] = B.jetzt(); };
+  function seitAusloesung(name) { return ausgeloest[name] ? (B.jetzt() - ausgeloest[name]) / 1000 : Infinity; }
 
   // auftraege: [{eff: {typ, x, y, ...}, rechteck: {x, y, b, h} in CSS-Pixeln, bild: <img>?}]
   F.starten = function (canvas, auftraege, bild) {
     F.stoppen();
+    ausgeloest = {};
     var ctx = canvas.getContext("2d");
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var W = canvas.width / dpr, H = canvas.height / dpr;
@@ -78,14 +83,41 @@
       };
     },
 
+    // Rauch aus dem Schornstein. e.links: zieht nach links; e.groesse: Faktor; e.sichtbar: [[x,y],…] –
+    // nur innerhalb dieser Fläche zu sehen (so steigt er z. B. HINTER der Dachkante hervor)
     rauch: function (e, r) {
-      var q = px(r, e.x, e.y), s = r.h * 0.05;
-      return teilchenSystem(function () { return { x: q.x, y: q.y, vx: Z(4, 14), vy: Z(-26, -16), r: s * Z(0.5, 0.8), alter: 0, leben: Z(3, 4.5), seed: B.ganz(1, 999) }; },
-        1.4, 12, function (ctx, p, dt) {
-          p.x += p.vx * dt; p.y += p.vy * dt; p.r += s * 0.35 * dt;
-          ctx.save(); ctx.globalAlpha = 0.55 * (1 - p.alter / p.leben);
+      var q = px(r, e.x, e.y), s = r.h * 0.05 * (e.groesse || 1), richtung = e.links ? -1 : 1;
+      var teile = teilchenSystem(function () { return { x: q.x + Z(-s * 0.15, s * 0.15), y: q.y, vx: richtung * Z(4, 14) * (e.groesse || 1), vy: Z(-26, -16) * (e.groesse || 1),
+                                                       r: s * Z(0.35, 0.55), alter: 0, leben: Z(3, 4.5), seed: B.ganz(1, 999) }; },
+        e.rate || 1.4, 12, function (ctx, p, dt) {
+          p.x += p.vx * dt; p.y += p.vy * dt; p.r += s * 0.38 * dt;
+          var a = p.alter / p.leben;
+          ctx.save(); ctx.globalAlpha = 0.55 * Math.min(1, a * 5) * (1 - a);
           PAPIER.risspfad(ctx, p.x, p.y, p.r * 1.2, p.r, 10, p.seed);
           ctx.fillStyle = PAPIER.muster(ctx, "#b8c4d6"); ctx.fill(); ctx.restore();
+        });
+      if (!e.sichtbar) return teile;
+      return function (ctx, t, dt) {
+        ctx.save(); ctx.beginPath();
+        e.sichtbar.forEach(function (pt, i) { var z = px(r, pt[0], pt[1]); if (i) ctx.lineTo(z.x, z.y); else ctx.moveTo(z.x, z.y); });
+        ctx.closePath(); ctx.clip();
+        teile(ctx, t, dt);
+        ctx.restore();
+      };
+    },
+
+    // Schlafen: kleine Papier-"Z", die aus dem Kissen aufsteigen und verblassen
+    zzz: function (e, r) {
+      var q = px(r, e.x, e.y), s = r.h * 0.022, richtung = e.links ? -1 : 1;
+      return teilchenSystem(function () { return { x: q.x, y: q.y, alter: 0, leben: 4.2, ph: Z(0, 6), g: Z(0.8, 1.25) }; },
+        e.rate || 0.55, 5, function (ctx, p, dt, t) {
+          var a = p.alter / p.leben, k = s * p.g * (0.55 + a * 0.9);
+          var x = p.x + richtung * a * s * 5 + Math.sin(t * 1.6 + p.ph) * s * 0.6, y = p.y - a * s * 7;
+          ctx.save(); ctx.translate(x, y); ctx.rotate(-0.25 * richtung + Math.sin(t + p.ph) * 0.12);
+          ctx.globalAlpha = Math.sin(Math.PI * a) * 0.9;
+          ctx.strokeStyle = PAPIER.muster(ctx, e.farbe || "tiefblau"); ctx.lineWidth = k * 0.28; ctx.lineJoin = "round"; ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(-k * 0.5, -k * 0.5); ctx.lineTo(k * 0.5, -k * 0.5); ctx.lineTo(-k * 0.5, k * 0.5); ctx.lineTo(k * 0.5, k * 0.5); ctx.stroke();
+          ctx.restore();
         });
     },
 
@@ -233,13 +265,14 @@
     },
 
     kerze: function (e, r) {
-      var q = px(r, e.x, e.y), h = r.h * 0.045;
+      var q = px(r, e.x, e.y), h = r.h * (e.hoehe || 0.045);
       return function (ctx, t) {
         var f = 0.85 + 0.15 * Math.sin(t * 13) + 0.06 * Math.sin(t * 31);
         ctx.save(); ctx.globalCompositeOperation = "lighter";
-        var g = ctx.createRadialGradient(q.x, q.y - h * 0.5, 1, q.x, q.y - h * 0.5, h * 2.2);
-        g.addColorStop(0, "rgba(255,200,90,0.35)"); g.addColorStop(1, "rgba(255,200,90,0)");
+        var g = ctx.createRadialGradient(q.x, q.y - h * 0.5, 1, q.x, q.y - h * 0.5, h * 2.2 * (0.95 + 0.05 * f));
+        g.addColorStop(0, "rgba(255,200,90," + (0.3 + 0.06 * f).toFixed(3) + ")"); g.addColorStop(1, "rgba(255,200,90,0)");
         ctx.fillStyle = g; ctx.fillRect(q.x - h * 2.5, q.y - h * 3, h * 5, h * 5); ctx.restore();
+        if (e.nurLicht) return;
         PAPIER.flammenpfad(ctx, q.x, q.y, h * 0.5, h * f, Math.sin(t * 4) * h * 0.12); ctx.fillStyle = PAPIER.muster(ctx, "orange"); ctx.fill();
         PAPIER.flammenpfad(ctx, q.x, q.y, h * 0.26, h * 0.6 * f, 0); ctx.fillStyle = PAPIER.muster(ctx, "gelb"); ctx.fill();
       };
@@ -267,14 +300,26 @@
     },
 
     ruehren: function (e, r) {
-      var q = px(r, e.x, e.y), rad = r.h * 0.08;
+      var mx = r.x + e.ex * r.b, my = r.y + e.ey * r.h, rx = e.erx * r.b, ry = e.ery * r.h;
+      var schlieren = [];
+      for (var i = 0; i < 7; i++) schlieren.push({ k: 0.25 + 0.1 * i, ph: i * 2.3, laenge: B.zufall(0.7, 1.4), hell: i % 2 === 0 });
       return function (ctx, t) {
-        ctx.save(); ctx.lineCap = "round";
-        for (var i = 0; i < 3; i++) {
-          var a = t * 5 + i * 2.1;
-          ctx.globalAlpha = 0.7; ctx.strokeStyle = PAPIER.muster(ctx, "creme"); ctx.lineWidth = 3;
-          ctx.beginPath(); ctx.arc(q.x, q.y, rad * (0.5 + i * 0.25), a, a + 1.1); ctx.stroke();
-        }
+        ctx.save();
+        ctx.beginPath(); ctx.ellipse(mx, my, rx * 0.97, ry * 0.9, 0, 0, Math.PI * 2); ctx.clip();
+        ctx.lineCap = "round";
+        schlieren.forEach(function (sl) {
+          var a0 = sl.ph + t * (e.tempo || 2.2) * (1.15 - sl.k * 0.5), n = 14;
+          ctx.globalAlpha = 0.5;
+          ctx.strokeStyle = sl.hell ? "rgba(255,252,225,0.9)" : "rgba(214,160,40,0.55)";
+          ctx.lineWidth = Math.max(1.5, ry * (sl.hell ? 0.09 : 0.06));
+          ctx.beginPath();
+          for (var j = 0; j <= n; j++) {
+            var a = a0 + sl.laenge * j / n, k = sl.k * (1 + 0.08 * Math.sin(j * 0.9 + t));
+            var x = mx + Math.cos(a) * rx * k, y = my + Math.sin(a) * ry * k;
+            if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+          }
+          ctx.stroke();
+        });
         ctx.restore();
       };
     },
@@ -317,13 +362,23 @@
     },
 
     // Schallbögen (Kikeriki!)
+    // Schallwellen. Mit e.ausloeser nur, solange der Ton läuft (EFFEKTE.ausloesen(name)), sonst dauernd.
     schall: function (e, r) {
       var q = px(r, e.x, e.y), s = r.h * 0.05, winkel = e.winkel || -0.4;
       return function (ctx, t) {
+        var zeit = t, blende = 1;
+        if (e.ausloeser) {
+          zeit = seitAusloesung(e.ausloeser);
+          var dauer = e.dauer || 2.4;
+          if (zeit > dauer) return;
+          blende = Math.min(1, zeit / 0.15, (dauer - zeit) / 0.5);
+        }
         ctx.save(); ctx.lineCap = "round";
         for (var i = 0; i < 3; i++) {
-          var u = ((t * 0.8 + i / 3) % 1);
-          ctx.globalAlpha = 0.9 * (1 - u); ctx.strokeStyle = PAPIER.muster(ctx, ["rot", "orange", "gelb"][i]); ctx.lineWidth = s * 0.18;
+          var phase = zeit * 0.9 - i * 0.28;
+          if (e.ausloeser && phase < 0) continue;
+          var u = e.ausloeser ? phase % 1 : ((t * 0.8 + i / 3) % 1);
+          ctx.globalAlpha = 0.9 * (1 - u) * blende; ctx.strokeStyle = PAPIER.muster(ctx, ["rot", "orange", "gelb"][i]); ctx.lineWidth = s * 0.18;
           ctx.beginPath(); ctx.arc(q.x, q.y, s * (0.6 + u * 2.2), winkel - 0.6, winkel + 0.6); ctx.stroke();
         }
         ctx.restore();
@@ -357,6 +412,7 @@
     // schwebender Staub im Lichtschein (Keller, Mühle)
     staub: function (e, r) {
       var q = px(r, e.x, e.y), weite = (e.breite || 0.4) * r.b;
+      if (e.hoehe) weite = Math.max(weite, e.hoehe * r.h);
       var teile = [];
       for (var i = 0; i < 26; i++) teile.push({ x: Z(-0.5, 0.5), y: Z(-0.5, 0.5), ph: Z(0, 6), g: Z(1, 2.6) });
       return function (ctx, t) {

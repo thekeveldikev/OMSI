@@ -5,6 +5,14 @@
   var FIN = window.FINALE = {};
   var z = null;
 
+  // Der gemalte Turm ohne Kerzen (Illustrationen_2026-09-26/extras/geburtstagsturm-ohne-kerzen.png),
+  // auf die Alpha-Bounds zugeschnitten: Ausschnitt ab (62, 242) des 1448×1086-Originals.
+  // oben = Oberseite des obersten Pfannekuchens als Ellipse in Bildpixeln (Mitte, Radien, Neigung) –
+  // darauf stehen die echten, einzeln auspustbaren Kerzen.
+  var TURM = { src: "bilder/extras/geburtstagsturm-ohne-kerzen.png", b: 1324, h: 737,
+               oben: { x: 665, y: 126, rx: 422, ry: 114, dreh: -0.035 }, img: null };
+  B.ladeBild(TURM.src, function (img) { TURM.img = img; });
+
   FIN.starten = function (ziel, zurueck) {
     KLANG.entsperren();
     B.leeren(ziel);
@@ -27,29 +35,51 @@
     function aufbauen() {
       W = wurzel.clientWidth; H = wurzel.clientHeight;
       ctx = B.canvasGroesse(cv, W, H);
-      var alt = kerzen;
+      var alt = {};
+      kerzen.forEach(function (k) { alt[k.nr] = k; });
       kerzen = [];
-      var cx = W / 2, turmB = Math.min(W * 0.62, H * 0.95), rx = turmB / 2, ry = rx * 0.26;
-      var obenY = H * 0.5, lagen = 7, lageH = Math.min(H * 0.045, rx * 0.16);
-      z.turm = { cx: cx, rx: rx, ry: ry, obenY: obenY, lagen: lagen, lageH: lageH };
-      // Kerzen in Ringen auf der Oberseite verteilen
+      // Platz zwischen Überschrift und Knopfleiste: Kerzenspitzen bis Tellerrand passen hinein
+      var O = TURM.oben;
+      var kopfUnten = kopf.offsetTop + kopf.offsetHeight + 6, leisteOben = leiste.offsetTop - 6;
+      var platz = Math.max(H * 0.4, leisteOben - kopfUnten);
+      var lageH = Math.min(H * 0.045, W * 0.03), kerzenH = lageH * 2.9;
+      var s = Math.min(Math.min(W * 0.31, H * 0.475) / O.rx, (platz - kerzenH) / (TURM.h - O.y + O.ry * 0.84));
+      var rx = O.rx * s, ry = O.ry * s;
+      var luft = Math.max(0, platz - kerzenH - (TURM.h - O.y + O.ry * 0.84) * s);
+      var cx = W / 2, obenY = kopfUnten + luft * 0.5 + kerzenH + ry * 0.84;
+      lageH = Math.min(lageH, rx * 0.16);
+      z.turm = { cx: cx, rx: rx, ry: ry, dreh: O.dreh, obenY: obenY, lagen: 7, lageH: lageH,
+                 bild: { x: cx - O.x * s, y: obenY - O.y * s, b: TURM.b * s, h: TURM.h * s } };
+      // Kerzen in Ringen auf der Oberseite verteilen: alter − 1 auf die Ringe, dazu die große in der Mitte
+      // (zusammen genau "alter" Kerzen – vorher kam die Mitte noch obendrauf).
+      var ringKerzen = Math.max(0, alter - 1), cd = Math.cos(O.dreh), sd = Math.sin(O.dreh);
       var ringe = [0.18, 0.4, 0.62, 0.84], gewicht = ringe.reduce(function (a, r) { return a + r; }, 0), n = 0;
+      function neu(nr, ex, ey, eigen) {
+        var vorher = alt[nr] || {};
+        var k = { nr: nr, x: cx + ex * cd - ey * sd, y: obenY + ex * sd + ey * cd, an: vorher.an !== undefined ? vorher.an : true,
+                  ph: vorher.ph !== undefined ? vorher.ph : Math.random() * 6, hf: vorher.hf || eigen.hf || 1.5 + Math.random() * 0.4,
+                  farbe: eigen.farbe, mitte: !!eigen.mitte };
+        k.h = lageH * k.hf;
+        kerzen.push(k);
+      }
       ringe.forEach(function (r, i) {
-        var anzahl = i === ringe.length - 1 ? alter - n : Math.round(alter * r / gewicht);
+        var anzahl = i === ringe.length - 1 ? ringKerzen - n : Math.min(ringKerzen - n, Math.round(ringKerzen * r / gewicht));
         for (var j = 0; j < anzahl; j++) {
           var a = (j / anzahl) * Math.PI * 2 + i * 0.4;
-          kerzen.push({ x: cx + Math.cos(a) * rx * r, y: obenY + Math.sin(a) * ry * r, an: true, ph: Math.random() * 6,
-                        farbe: ["rot", "blau", "gelb", "gruen", "rosa", "hellblau"][(n + j) % 6], h: lageH * (1.5 + Math.random() * 0.4) });
+          neu(n + j, Math.cos(a) * rx * r, Math.sin(a) * ry * r, { farbe: ["rot", "blau", "gelb", "gruen", "rosa", "hellblau"][(n + j) % 6] });
         }
         n += anzahl;
       });
-      kerzen.push({ x: cx, y: obenY, an: true, ph: 1, farbe: "rot", h: lageH * 2.2, mitte: true });
-      if (alt.length === kerzen.length) kerzen.forEach(function (k, i) { k.an = alt[i].an; });
+      if (alter >= 1) neu(n, 0, 0, { farbe: "rot", hf: 2.2, mitte: true });
       kerzen.sort(function (a, b) { return a.y - b.y; });
     }
+    // zum Nachprüfen (Anzahl soll genau dem Alter entsprechen)
+    FIN.kerzenDaten = function () { return kerzen.map(function (k) { return { x: k.x, y: k.y, h: k.h, an: k.an, mitte: k.mitte }; }); };
 
     function turm() {
       var T = z.turm;
+      if (TURM.img) { ctx.drawImage(TURM.img, T.bild.x, T.bild.y, T.bild.b, T.bild.h); return; }
+      // Ersatz, solange das Bild fehlt: der gezeichnete Turm
       // Teller
       ctx.beginPath(); ctx.ellipse(T.cx, T.obenY + T.lagen * T.lageH + T.ry * 0.5, T.rx * 1.25, T.ry * 1.3, 0, 0, Math.PI * 2);
       ctx.fillStyle = PAPIER.muster(ctx, "weiss"); ctx.fill();

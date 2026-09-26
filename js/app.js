@@ -29,8 +29,11 @@
   };
 
   function aufraeumen() {
+    if (window.RADIO) RADIO.stoppen();
+    if (window.MAKINGOF) MAKINGOF.stoppen();
     if (window.BUCH) BUCH.schliessen();
     if (window.FINALE) FINALE.stoppen();
+    if (window.SPIEL) SPIEL.stoppen();
     if (window.EFFEKTE) EFFEKTE.stoppen();
     B.leeren(wurzel);
     window.scrollTo(0, 0);
@@ -42,11 +45,14 @@
     B.merken("bildschirm", name);
     if (name === "start") return zeigeStart();
     if (name === "kueche") return zeigeKueche();
+    if (name === "radio") return RADIO.starten(wurzel, function () { APP.zeige("kueche"); });
     if (name === "original") return BUCH.oeffnen(wurzel, "original", function () { APP.zeige("kueche"); });
     if (name === "fortsetzung") return BUCH.oeffnen(wurzel, "fortsetzung", function () { APP.zeige("kueche"); });
     if (name === "finale") return FINALE.starten(wurzel, function () { APP.zeige("kueche"); });
     if (name === "akte") return zeigeAkte();
     if (name === "rezept") return zeigeRezept();
+    if (name === "makingof") return MAKINGOF.starten(wurzel, function () { APP.zeige("kueche"); });
+    if (name === "spiel") return SPIEL.starten(wurzel, function () { APP.zeige("kueche"); });
   };
 
   // ───────────────────── Startbild: das Haus ─────────────────────
@@ -74,24 +80,35 @@
 
   // ───────────────────── Omsis Küche (Menü) ─────────────────────
   function zeigeKueche() {
-    var k = B.el("div", "kueche", wurzel);
+    var k = B.el("div", "kueche mit-willkommen", wurzel);
     PAPIER.hinterlegen(k, "creme", { kachel: 320 });
-    var kopf = B.el("div", "kueche-kopf", k);
+    // Willkommensbild: Omsi am Frühstückstisch winkt von links; Überschrift und Karten liegen
+    // im hellen freien Bereich rechts daneben (hochkant: Bild als Kopf, Karten darunter).
+    var bild = B.el("div", "kueche-bild", k);
+    B.ladeBild("bilder/extras/kueche-willkommen.jpg", function () {
+      bild.style.backgroundImage = "url(\"bilder/extras/kueche-willkommen.jpg\")"; bild.className = "kueche-bild da";
+    });
+    var menue = B.el("div", "kueche-menue", k);
+    var kopf = B.el("div", "kueche-kopf", menue);
     var h = B.el("h1", "kueche-titel", kopf, B.ersetzen("{OMA}s Küche"));
     PAPIER.schriftFuellen(h, "blau", { akzent: "tiefblau" });
     B.el("div", "kueche-unter", kopf, "Such dir etwas aus – überall darf getippt werden.");
-    var raster = B.el("div", "karten", k);
+    var raster = B.el("div", "karten", menue);
 
     var karten = [
+      { ziel: "radio", titel: "Das Radio von damals", unter: "Omsi liest vor. Und wir lachen zusammen.", farbe: "orange", bild: "bilder/radio/radio-papier.png" },
+      { ziel: "makingof", titel: "Bevor der Pfannekuchen fliegt", unter: "Das Atelierbuch – Bilder, Entwürfe und kleine Geheimnisse", farbe: "blau", bild: "bilder/making-of/01_titel_atelier.jpg", symbol: "karte" },
       { ziel: "original", titel: "Das Pfannkuchenbuch", unter: "Das Buch von damals – jetzt lebendig", farbe: "gelb", bild: B.pfad(window.ORIGINAL.bildPfad, 1), hoch: true },
       { ziel: "fortsetzung", titel: B.ersetzen(window.FORTSETZUNG.titel), unter: "Die streng geheime Fortsetzung", farbe: "rot", bild: window.FORTSETZUNG.bildPfad + window.FORTSETZUNG.seiten[0].bild.datei, symbol: "pfanne" },
       { ziel: "schatten", titel: "Das Schattentheater", unter: "Laken, Lampe, Vorhang auf!", farbe: "tiefblau", symbol: "laken" },
-      { ziel: "akte", titel: B.ersetzen("Geheimakte {OMA}"), unter: "Zugang nur für 007", farbe: "ocker", symbol: "akte" },
-      { ziel: "finale", titel: "Die Geburtstagstorte", unter: B.ersetzen("{ALTER} Kerzen – puste sie aus!"), farbe: "rosa", symbol: "torte" },
-      { ziel: "rezept", titel: B.ersetzen("{OMA}s Rezept"), unter: "Die leckersten Pfannekuchen der Welt", farbe: "gruen", symbol: "karte" }
+      { ziel: "akte", titel: B.ersetzen("Geheimakte {OMA}"), unter: "Zugang nur für 007", farbe: "ocker", bild: "bilder/extras/geheimakte-omsi.jpg", bildArt: "akte", symbol: "akte" },
+      { ziel: "finale", titel: "Die Geburtstagstorte", unter: B.ersetzen("{ALTER} Kerzen – puste sie aus!"), farbe: "rosa", bild: "bilder/extras/geburtstagsturm-ohne-kerzen.png", bildArt: "turm", symbol: "torte" },
+      { ziel: "rezept", titel: B.ersetzen("{OMA}s Rezept"), unter: "Die leckersten Pfannekuchen der Welt", farbe: "gruen", symbol: "karte" },
+      { ziel: "spiel", titel: "Pfannkuchen wenden", unter: "Wer schafft drei goldgelbe?", farbe: "orange", symbol: "wenden" }
     ];
     if (B.E.entwurf !== false) karten.push({ ziel: "werkstatt", titel: "Text-Werkstatt", unter: "Nur für Kevin: deutschen Text eintippen", farbe: "grau", symbol: "karte" });
     if (B.E.entwurf !== false) karten.push({ ziel: "studio", titel: "Aufnahmestudio", unter: "Nur für Kevin: Seiten einsprechen", farbe: "grau", symbol: "mikro" });
+    if (karten.length > 6) menue.className = "kueche-menue viele";   // quer etwas kompakter, damit alles ohne Scrollen passt
 
     karten.forEach(function (kd, i) {
       var karte = B.el("div", "karte-menue", raster);
@@ -103,7 +120,7 @@
       } else if (kd.bild) {
         B.ladeBild(kd.bild, function () {
           bildflaeche.style.backgroundImage = "url(\"" + kd.bild + "\")";
-          bildflaeche.className = "karte-bild mit-foto" + (kd.hoch ? " hochformat" : "");
+          bildflaeche.className = "karte-bild mit-foto" + (kd.hoch ? " hochformat" : "") + (kd.bildArt ? " bild-" + kd.bildArt : "");
         }, function () { symbolZeichnen(bildflaeche, kd.symbol || "pfanne"); });
       } else symbolZeichnen(bildflaeche, kd.symbol);
       B.el("div", "karte-titel-m", karte, kd.titel);
@@ -116,7 +133,7 @@
         APP.zeige(kd.ziel);
       });
     });
-    var fuss = B.el("div", "kueche-fuss", k);
+    var fuss = B.el("div", "kueche-fuss", menue);
     var neu = B.el("button", "knopf klein", fuss, "↺ Zurück zum Gartentor");
     B.tippen(neu, function () { APP.zeige("start"); });
     if (window.location.protocol === "https:" && navigator.serviceWorker) {
@@ -174,6 +191,18 @@
       for (var i = 4; i >= 0; i--) { c.beginPath(); c.ellipse(110, 80 + i * 12, 70, 20, 0, 0, Math.PI * 2); c.fillStyle = P.muster(c, i % 2 ? "gold" : "ocker", { akzent: "braun" }); c.fill(); }
       c.beginPath(); c.ellipse(110, 76, 62, 16, 0, 0, Math.PI * 2); c.fillStyle = P.muster(c, "rot"); c.fill();
       for (var k = 0; k < 9; k++) { var x = 60 + k * 12.5, y = 70 + Math.sin(k) * 6; c.fillStyle = P.muster(c, ["blau", "gelb", "gruen"][k % 3]); c.fillRect(x, y - 24, 5, 24); P.flammenpfad(c, x + 2.5, y - 25, 7, 12, 0); c.fillStyle = P.muster(c, "orange"); c.fill(); }
+    } else if (art === "wenden") {
+      // Pfanne über Flammen, darüber der gemalte Pfannkuchen im Flug (wie im Spiel)
+      [80, 104, 128].forEach(function (x, i) { P.flammenpfad(c, x, 148, 22, 36 + i % 2 * 6, 0); c.fillStyle = P.muster(c, "orange"); c.fill(); });
+      c.fillStyle = P.muster(c, "schwarz");
+      c.save(); c.translate(52, 102); c.rotate(0.35); c.fillRect(-44, -5, 48, 10); c.restore();
+      c.beginPath(); c.ellipse(104, 104, 56, 18, 0, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = "rgba(58,42,30,0.55)"; c.lineWidth = 3; c.lineCap = "round";
+      c.beginPath(); c.arc(104, 96, 62, Math.PI * 1.12, Math.PI * 1.38); c.stroke();
+      c.beginPath(); c.arc(104, 96, 62, Math.PI * 1.62, Math.PI * 1.88); c.stroke();
+      B.ladeBild("bilder/extras/pfannekuchen-flug.png", function (img) {
+        c.save(); c.translate(106, 44); c.rotate(-0.25); c.drawImage(img, -44, -22, 88, 44); c.restore();
+      }, function () { c.beginPath(); c.ellipse(106, 44, 44, 16, -0.25, 0, Math.PI * 2); c.fillStyle = P.muster(c, "gold", { akzent: "braun" }); c.fill(); });
     } else if (art === "mikro") {
       c.beginPath(); c.moveTo(110, 108); c.lineTo(110, 134); c.moveTo(84, 136); c.lineTo(136, 136);
       c.strokeStyle = P.muster(c, "schwarz"); c.lineWidth = 7; c.stroke();
@@ -191,19 +220,17 @@
   }
 
   // ───────────────────── Geheimakte M ─────────────────────
+  // Das gemalte Dossier (Foto, Lupe, Sonnenbrille, Stempel) ist die Bühne; die Texte werden
+  // als HTML auf das leere Blatt getippt. Hochkant liegt das Blatt unter dem Bild.
   function zeigeAkte() {
     var A = window.EXTRAS.akte;
     var seite = B.el("div", "akte-bildschirm", wurzel);
     PAPIER.hinterlegen(seite, "tiefblau", { kachel: 300 });
     var zurueck = B.el("button", "knopf akte-zurueck", seite, "⌂ Zur Küche");
     B.tippen(zurueck, function () { APP.zeige("kueche"); });
-    var mappe = B.el("div", "akte", seite);
-    PAPIER.hinterlegen(mappe, "ocker", { seed: 7 });
-    B.el("div", "akte-reiter", mappe, "STRENG GEHEIM");
-    var blatt = B.el("div", "akte-blatt", mappe);
-    var foto = B.el("div", "akte-foto", blatt);
-    foto.style.backgroundImage = "url(\"bilder/extras/omsi.jpg\")";
-    B.el("div", "akte-klammer", blatt);
+    var dossier = B.el("div", "akte-dossier", seite);
+    dossier.style.backgroundImage = "url(\"bilder/extras/geheimakte-omsi.jpg\")";
+    var blatt = B.el("div", "akte-blatt-text", dossier);
     B.el("div", "akte-kopf", blatt, B.ersetzen(A.kopf));
     B.el("div", "akte-unter", blatt, B.ersetzen(A.unter));
     var liste = B.el("div", "akte-felder", blatt);
@@ -213,8 +240,22 @@
       var wert = B.el("span", "akte-wert", z, "");
       return { el: wert, text: B.ersetzen(f[1]) };
     });
-    var stempel = B.el("div", "akte-stempel", blatt, B.ersetzen(A.stempel));
     var unterschrift = B.el("div", "akte-unterschrift", blatt, B.ersetzen(A.unterschrift));
+    var stempel = B.el("div", "akte-stempel", dossier, B.ersetzen(A.stempel));
+    // Schrift so groß wie möglich, ohne übers Blatt zu laufen (mit dem vollen Text gemessen)
+    function einpassen() {
+      if (aktuell !== "akte" || !dossier.parentNode) { window.removeEventListener("resize", einpassen, false); return; }
+      var vorher = zeilen.map(function (z) { return z.el.textContent; });
+      zeilen.forEach(function (z) { z.el.textContent = z.text; });
+      var bildH = dossier.clientWidth * 0.75, quer = window.innerWidth > window.innerHeight * 1.25;   // wie die CSS-Regel
+      dossier.style.fontSize = (bildH / 34) + "px";   // Stempel und Unterschrift wachsen mit dem Bild
+      var f = quer ? Math.max(12, bildH * 0.026) : Math.max(16, Math.min(22, window.innerHeight * 0.019));
+      blatt.style.fontSize = f + "px";
+      while (quer && f > 11 && blatt.scrollHeight > blatt.clientHeight + 1) { f -= 0.5; blatt.style.fontSize = f + "px"; }
+      zeilen.forEach(function (z, i) { z.el.textContent = vorher[i]; });
+    }
+    einpassen();
+    window.addEventListener("resize", einpassen, false);
     // Schreibmaschine
     var i = 0, j = 0;
     function tippe() {
@@ -233,6 +274,8 @@
   }
 
   // ───────────────────── Omsis Rezept ─────────────────────
+  // Rezeptkarte im gemalten Zutatenrahmen (Schüssel, Eier, Mehl, Milch, Butter, Marmelade).
+  // Darunter helles Papier; der Text steht in der freien Mitte: Zutaten links, Zubereitung rechts.
   function zeigeRezept() {
     var R = window.EXTRAS.rezept;
     var seite = B.el("div", "rezept-bildschirm", wurzel);
@@ -241,14 +284,36 @@
     B.tippen(zurueck, function () { APP.zeige("kueche"); });
     var drucken = B.el("button", "knopf rezept-drucken", seite, "🖨 Drucken");
     B.tippen(drucken, function () { window.print(); });
-    var karte = B.el("div", "rezeptkarte", seite);
-    B.el("div", "rezept-titel", karte, B.ersetzen(R.titel));
+    var karte = B.el("div", "rezeptkarte mit-rahmen", seite);
+    PAPIER.hinterlegen(karte, "creme", { kachel: 260, seed: 9 });
+    var rahmen = B.el("img", "rezept-rahmen", karte);
+    rahmen.alt = ""; rahmen.src = "bilder/extras/rezeptkarte-rahmen.png";
+    var titel = B.el("div", "rezept-titel", karte, B.ersetzen(R.titel));
+    // an der ersten Leerzeile teilen: davor die Zutaten, danach die Zubereitung (sonst in der Mitte)
+    var trenn = R.zeilen.indexOf("");
+    if (trenn < 0) trenn = Math.ceil(R.zeilen.length / 2);
+    var spalten = [B.el("div", "rezept-spalte rezept-zutaten", karte), B.el("div", "rezept-spalte rezept-schritte", karte)];
+    var nr = 0;
     R.zeilen.forEach(function (z, i) {
-      var zeile = B.el("div", z ? "rezept-zeile" : "rezept-luecke", karte, B.ersetzen(z));
-      zeile.style.webkitAnimationDelay = zeile.style.animationDelay = (0.3 + i * 0.18) + "s";
+      if (i === trenn && z === "") return;
+      var zeile = B.el("div", z ? "rezept-zeile" : "rezept-luecke", spalten[i < trenn ? 0 : 1], B.ersetzen(z));
+      zeile.style.webkitAnimationDelay = zeile.style.animationDelay = (0.3 + nr++ * 0.18) + "s";
     });
     var fuss = B.el("div", "rezept-fuss", karte, B.ersetzen(R.fussnote));
-    fuss.style.webkitAnimationDelay = fuss.style.animationDelay = (0.5 + R.zeilen.length * 0.18) + "s";
+    fuss.style.webkitAnimationDelay = fuss.style.animationDelay = (0.5 + nr * 0.18) + "s";
+    // Schrift so groß wie möglich, ohne dass etwas in die gemalten Zutaten läuft
+    function einpassen() {
+      if (aktuell !== "rezept" || !karte.parentNode) { window.removeEventListener("resize", einpassen, false); return; }
+      var f = karte.clientHeight / 27;
+      function passt() {
+        for (var s = 0; s < spalten.length; s++) if (spalten[s].scrollHeight > spalten[s].clientHeight + 1) return false;
+        return titel.scrollWidth <= titel.clientWidth + 1 && fuss.scrollWidth <= fuss.clientWidth + 1;
+      }
+      karte.style.fontSize = f + "px";
+      while (f > 10 && !passt()) { f -= 0.5; karte.style.fontSize = f + "px"; }
+    }
+    einpassen();
+    window.addEventListener("resize", einpassen, false);
     if (B.E.entwurf !== false && R.hinweis) B.el("div", "rezept-hinweis", seite, R.hinweis);
   }
 
@@ -256,10 +321,14 @@
   function alleDateien() {
     // Veröffentlichte Fassung: das Veröffentlichen-Werkzeug hat die genaue Liste mitgegeben
     if (window.TRESOR_INFO && window.TRESOR_INFO.dateien) return window.TRESOR_INFO.dateien.slice();
-    var d = ["index.html", "css/app.css", "js/basis.js", "js/papier.js", "js/klang.js", "js/klangkulisse.js", "js/effekte.js", "js/buch.js", "js/schatten.js", "js/finale.js", "js/app.js",
+    var d = ["index.html", "css/app.css", "js/basis.js", "js/papier.js", "js/klang.js", "js/klangkulisse.js", "js/effekte.js", "js/buch.js", "js/schatten.js", "js/finale.js", "js/spiel.js", "js/app.js",
              "daten/einstellungen.js", "daten/textfelder.js", "daten/original.js", "daten/text_de.js", "daten/fortsetzung.js", "daten/ebenen.js", "daten/extras.js", "daten/klang.js",
-             "bilder/extras/haus.jpg", "bilder/extras/omsi.jpg"];
+             "bilder/extras/haus.jpg", "bilder/extras/omsi.jpg",
+             "bilder/extras/kueche-willkommen.jpg", "bilder/extras/geheimakte-omsi.jpg", "bilder/extras/rezeptkarte-rahmen.png",
+             "bilder/extras/geburtstagsturm-ohne-kerzen.png", "bilder/extras/pfannekuchen-flug.png",
+             "bilder/schatten/omsi-profil.png", "bilder/schatten/kevin-klein-profil.png", "bilder/schatten/kevin-gross-profil.png", "bilder/schatten/pfanne-leer.png"];
     var endungen = [".m4a", ".mp3", ".wav"];
+    d.push("css/radio.css", "js/radio.js", "daten/radio.js", "bilder/radio/radio-papier.png", "audio/radio/erinnerung.m4a");
     window.ORIGINAL.doppelseiten.forEach(function (ds) {
       ds.forEach(function (n) {
         var s = window.ORIGINAL.seiten[n] || {};
@@ -272,6 +341,11 @@
     d.push("daten/verteilung.js");
     d.push("daten/original_teile.js");
     d.push("daten/original_figuren.js");
+    d.push("daten/original_augen.js");
+    d.push("daten/vorlese_zeiten.js");
+    ["ipad-01", "ipad-02", "ipad-03", "pfannkuchen-01", "pfannkuchen-02", "drehpfeil-01", "drehpfeil-02"].forEach(function (n) {
+      d.push("bilder/extras/hochkant/" + n + ".png");            // Hochkant-Hinweis (Stop-Motion)
+    });
     window.FORTSETZUNG.seiten.forEach(function (s) {
       d.push(window.FORTSETZUNG.bildPfad + s.bild.datei);
       endungen.forEach(function (e) { d.push(window.FORTSETZUNG.audioPfad + s.id + e); });
@@ -289,6 +363,7 @@
       });
       for (var n in klaenge) d.push(K.ordner + n + K.endung);
     }
+    if (window.MAKINGOF && window.MAKING_OF) d = d.concat(MAKINGOF.dateien());
     return d;
   }
   // Lädt alles einmal durch – der Service Worker merkt es sich, danach geht es ohne Internet.
