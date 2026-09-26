@@ -2,7 +2,7 @@
    ES5 und WebKit-Präfixe für ältere iPads; alle Listener werden wieder entfernt. */
 (function () {
   var M = window.MENUE_KUECHE = {}, lauf = null, anschluesse = {};
-  var dateien = ['kueche.png', 'originalcover.png', 'wolke.png', 'pfannkuchen-v2.png', 'efeu.png', 'titel-papier-v1.png', 'briefpapier-v1.png', 'vogel-v2-0.png', 'vogel-v2-1.png', 'vogel-v2-2.png', 'vogel-v2-3.png'];
+  var dateien = ['kueche.png', 'originalcover.png', 'wolke.png', 'pfannkuchen-v2.png', 'efeu.png', 'titel-papier-v2.png', 'briefpapier-v1.png', 'vogel-v2-0.png', 'vogel-v2-1.png', 'vogel-v2-2.png', 'vogel-v2-3.png'];
   function position(el, box, bezug) {
     var b = bezug || [0, 0, 1536, 1024];
     el.style.left = (box[0] - b[0]) / b[2] * 100 + '%';
@@ -98,10 +98,11 @@
     lid(dekor, [774, 532, 23, 24], '#c5c5b2', '#454740', -12, 7.7, -.7);
     [[1276,392],[1300,403],[1321,390],[1345,381],[1359,413],[1381,394]].forEach(function (xy, i) { flamme(dekor, xy[0]-5, xy[1]-27, 10, 24, false, i); });
     for (var g = 0; g < 9; g++) flamme(dekor, 715 + g * 23, 849 + Math.sin(g * .7) * 4, 11, 17, true, g);
-    var kopf = B.el('h1', 'mk-kopf', s.buehne); position(kopf, [348, 28, 349, 205]);
-    var titel = bild(kopf, 'titel-papier-v1.png', 'mk-titelgrafik');
-    titel.alt = B.ersetzen(MENUE_DATEN.titel); titel.removeAttribute('aria-hidden');
-    var untertitel = B.el('p', 'mk-untertitel', s.buehne, MENUE_DATEN.untertitel); position(untertitel, [477, 235, 231, 32]);
+    var kopf = B.el('h1', 'mk-kopf', s.buehne); position(kopf, [349, 31, 350, 198]);
+    kopf.setAttribute('aria-label', B.ersetzen(MENUE_DATEN.titel));
+    var titel = bild(kopf, 'titel-papier-v2.png', 'mk-titelgrafik');
+    var glanz = B.el('span', 'mk-titel-glanz', kopf); glanz.setAttribute('aria-hidden', 'true');
+    var untertitel = B.el('p', 'mk-untertitel', s.buehne, MENUE_DATEN.untertitel); position(untertitel, [478, 229, 230, 40]);
     MENUE_DATEN.punkte.forEach(function (p) { zielKnopf(s.buehne, p, false); });
     var liste = B.el('nav', 'mk-schnell', s.root); liste.setAttribute('aria-label', 'Alle Ziele in Omsis Küche');
     MENUE_DATEN.punkte.forEach(function (p) { zielKnopf(liste, p, true); });

@@ -14,7 +14,10 @@
 .mk-rezepttext { font:italic 3.4em/1.12 'Segoe Print','Bradley Hand',cursive; color:#074e82; transform:rotate(-13deg); -webkit-transform:rotate(-13deg); }
 .mk-kopf { position:absolute; z-index:5; pointer-events:none; margin:0; }
 .mk-titelgrafik { display:block; width:100%; height:100%; object-fit:contain; }
-.mk-untertitel { position:absolute; margin:0; z-index:5; pointer-events:none; text-align:right; white-space:nowrap; font:italic 2.6em/1.2 Georgia,serif; }
+.mk-titel-glanz { position:absolute; inset:0; display:block; pointer-events:none; background:linear-gradient(108deg,transparent 39%,rgba(227,244,255,.92) 47%,rgba(123,190,255,.74) 50%,transparent 59%); background-size:260% 100%; background-position:100% 50%; -webkit-mask-image:url('../bilder/menue-v2/titel-papier-v2.png'); mask-image:url('../bilder/menue-v2/titel-papier-v2.png'); -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-size:100% 100%; mask-size:100% 100%; -webkit-animation:mk-titel-reflex 8.5s ease-in-out infinite; animation:mk-titel-reflex 8.5s ease-in-out infinite; }
+@-webkit-keyframes mk-titel-reflex { 0%,55% { background-position:100% 50%; opacity:0; } 62% { opacity:.9; } 76% { background-position:0 50%; opacity:.82; } 84%,100% { background-position:0 50%; opacity:0; } }
+@keyframes mk-titel-reflex { 0%,55% { background-position:100% 50%; opacity:0; } 62% { opacity:.9; } 76% { background-position:0 50%; opacity:.82; } 84%,100% { background-position:0 50%; opacity:0; } }
+.mk-untertitel { position:absolute; margin:0; z-index:5; pointer-events:none; text-align:right; white-space:nowrap; font:2.3em/1.2 Georgia,serif; font-style:italic; }
 .mk-ziel { position:absolute; z-index:10; display:block; margin:0; padding:0; border:0; background:transparent; color:#241d15; cursor:pointer; border-radius:1em; font:2.05em/1.05 Georgia,serif; }
 .mk-schild { position:absolute; display:flex; align-items:center; justify-content:center; padding:0 .25em; border-radius:.15em; white-space:nowrap; }
 .mk-ziel:focus { outline:.12em dashed #285c73; outline-offset:-.15em; }
