@@ -56,3 +56,53 @@
 @keyframes mo-turn-prev{from{opacity:.55;transform:perspective(1800px) rotateY(5deg) translateX(-15px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.mo-turn-next,.mo-turn-prev{animation:none}}
 .mo-layout-folio .mo-art,.mo-layout-portrait .mo-art,.mo-layout-gatefold .mo-art,.mo-layout-board .mo-art{mix-blend-mode:multiply}
+/* Zweite Ausgabe: kleine Randbilder und die interaktive Schublade. */
+.mo-layout-thanks:before,.mo-layout-thanks:after{display:none}
+.mo-thanks{position:absolute;left:140px;right:140px;top:50%;transform:translateY(-50%);margin:0;text-align:center;font:600 76px/1.3 Atelier,Georgia,serif;letter-spacing:-.025em}
+.mo-margin-art{position:absolute;left:140px;top:943px;width:225px;height:65px;z-index:8;padding:0;border:0;background:transparent;pointer-events:none}
+.mo-margin-art img{width:100%;height:100%;object-fit:contain;display:block}
+.mo-margin-find{pointer-events:auto;cursor:pointer!important}.mo-margin-find:after{content:'';position:absolute;inset:-20px}
+.mo-margin-find:focus{outline:3px solid #a86c31;outline-offset:4px}
+.mo-edition-0 .mo-ornament{left:400px;border-bottom:0;background:none}
+.mo-edition-1 .mo-margin-art{left:610px;top:76px;width:145px;height:96px;transform:rotate(-5deg)}
+.mo-edition-1 .mo-ornament{background:none;border-bottom:0;border-color:#526b42}
+.mo-edition-2 .mo-margin-art{left:810px;top:943px;width:80px;height:65px;transform:rotate(6deg)}
+.mo-edition-2 .mo-ornament{right:650px;background:none;border-bottom:0}
+.mo-edition-3 .mo-margin-art{left:185px;top:953px;width:600px;height:50px}
+.mo-edition-3 .mo-ornament{left:850px;background:none;border-bottom:0}
+.mo-edition-4 .mo-margin-art{left:110px;top:943px;width:260px;height:62px;transform:rotate(-4deg)}
+.mo-edition-4 .mo-ornament{left:415px;background:none;border-bottom:1px dashed #9b854680;border-top:0}
+.mo-edition-5 .mo-margin-art{left:820px;top:75px;width:85px;height:100px;transform:rotate(12deg);opacity:.9}
+.mo-edition-5 .mo-running{right:210px}.mo-edition-5 .mo-ornament{background:none;border-bottom:0;border-color:#52733f}
+.mo-layout-board .mo-margin-art,.mo-layout-archive .mo-margin-art,.mo-layout-gallery .mo-margin-art{left:1150px;top:956px;width:175px;height:55px;transform:none}
+.mo-layout-board .mo-ornament,.mo-layout-archive .mo-ornament,.mo-layout-gallery .mo-ornament{left:60px;right:335px}
+.mo-layout-screen .mo-margin-art{left:780px;top:940px;width:200px;height:68px}
+.mo-layout-portrait.mo-edition-2 .mo-margin-art{left:120px;top:943px}
+.mo-layout-gatefold.mo-edition-1 .mo-margin-art{top:85px;left:830px;width:135px;height:92px}
+.mo-margin-low .mo-margin-art{left:80px;top:848px;width:255px;height:155px;transform:rotate(-3deg)}
+.mo-margin-low.mo-edition-2 .mo-margin-art{left:130px;width:150px;transform:rotate(5deg)}
+.mo-margin-low.mo-edition-3 .mo-margin-art{left:65px;width:290px;transform:none}
+.mo-margin-low .mo-caption{left:375px;right:610px;top:872px;bottom:auto;padding-top:16px}
+.mo-margin-low .mo-ornament{left:395px;right:60px}
+.mo-drawer{max-width:1120px;margin:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.mo-drawer-item{border:1px solid #b7a875;background:#f5efdf;color:#263f42;padding:27px 24px;text-align:left;min-height:145px;cursor:pointer;box-shadow:0 4px 12px #0002}
+.mo-drawer-item:nth-child(3n+2){background:#e8e2cd}.mo-drawer-item:nth-child(3n){background:#dee5dc}
+.mo-drawer-item strong{display:block;font:600 31px/1.05 Atelier,Georgia;margin-bottom:12px}.mo-drawer-item span{font:17px/1.4 AtelierSans,Arial}
+.mo-modal button{cursor:pointer}.mo-modal button:focus-visible,.mo-modal a:focus-visible{outline:3px solid #c98d32;outline-offset:3px}
+.mo-bonus-sheet [aria-pressed=true]{outline:3px solid #a66a31;outline-offset:2px}
+.mo-stamps{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin:20px auto}
+.mo-stamp{width:95px;height:78px;border:1px solid #a99565;background:#eee4ca;padding:5px}.mo-stamp img{width:100%;height:100%;object-fit:contain}
+.mo-collage-canvas{position:relative;display:block;width:100%;height:360px;border:1px solid #b8a87f;background:#fffaf0;overflow:hidden;box-shadow:0 7px 15px #53442720;touch-action:manipulation}
+.mo-collage-canvas img{position:absolute;height:auto;max-height:60%;object-fit:contain;pointer-events:none}
+.mo-range-label{display:block;font:18px AtelierSans;margin:14px}.mo-range-label input{width:80%!important}
+.mo-color-stage{height:290px;display:flex;justify-content:center;gap:25px;padding:25px;border:1px solid #9b8546;transition:background .15s}
+.mo-color-stage img{width:40%;height:100%;object-fit:contain}.mo-swatches{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:20px}.mo-swatches .mo-btn{margin:0}
+.mo-framing{position:relative;width:100%;max-width:700px;height:360px;margin:auto;overflow:hidden;background:#eee4ce}.mo-framing img{width:100%;height:100%;object-fit:cover;display:block}
+.mo-framing.mo-show-grid:after{content:'';position:absolute;inset:0;background:linear-gradient(to right,transparent 33.1%,#fff9 33.1%,#fff9 33.4%,transparent 33.4%,transparent 66.4%,#fff9 66.4%,#fff9 66.7%,transparent 66.7%),linear-gradient(to bottom,transparent 33.1%,#fff9 33.1%,#fff9 33.4%,transparent 33.4%,transparent 66.4%,#fff9 66.4%,#fff9 66.7%,transparent 66.7%);pointer-events:none}
+.mo-sequence{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:25px 0}.mo-scene{position:relative;border:1px solid #b8a77a;background:#fffaf0;padding:10px;color:#243d44}.mo-scene img{width:100%;height:170px;object-fit:contain}.mo-scene span{display:block;font:22px Atelier;margin:10px 0}.mo-scene[data-order]:after{content:attr(data-order);position:absolute;top:10px;left:10px;border-radius:50%;width:42px;height:42px;line-height:42px;background:#284f50;color:#fff;font-size:24px}.mo-scene:disabled{opacity:.7}
+.mo-memory{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:730px;margin:20px auto}.mo-memory-card{height:135px;padding:12px;border:4px double #bda366;background:#315660}.mo-memory-card:after{content:'?';font:600 56px Atelier;color:#e9dfc2}.mo-memory-card img{display:none;width:100%;height:100%;object-fit:contain}.mo-memory-card.is-open{background:#fffaf0}.mo-memory-card.is-open img{display:block}.mo-memory-card.is-open:after{display:none}.mo-memory-card.is-matched{border-color:#64876a}
+.mo-cover-study{position:relative;width:320px;height:430px;margin:25px auto;background:#e9dfc4;box-shadow:6px 10px 20px #352c3533;border:10px solid #e9dfc4}.mo-cover-study img{position:absolute;top:130px;left:0;width:100%;height:260px;object-fit:cover}.mo-cover-study strong{position:absolute;top:18px;left:20px;right:20px;font:600 36px/1 Atelier}.mo-cover-study>span{position:absolute;bottom:5px;left:0;right:0;font:18px AtelierSans}
+.mo-album{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:25px}.mo-album-item{padding:18px;background:#eee4cf;border:1px dashed #9b8546}.mo-album-item>img{height:125px;width:100%;object-fit:contain;filter:grayscale(1);opacity:.22}.mo-album-item.is-found{background:#fffaf0;border-style:solid}.mo-album-item.is-found>img{filter:none;opacity:1}.mo-album-item h4{font:600 28px Atelier;margin:10px 0}.mo-album-item p{font:19px/1.3 Atelier;min-height:75px}
+.mo-postcard{display:flex;align-items:center;min-height:330px;border:1px solid #9b8546;background:#f5efdf;padding:30px;box-shadow:0 8px 20px #493e2720;margin:25px auto}.mo-postcard>img{width:40%;height:260px;object-fit:contain}.mo-postcard-message{padding:20px 0 20px 40px;width:60%;white-space:pre-wrap;text-align:left;font:600 30px/1.3 Atelier;overflow-wrap:anywhere}.mo-card-label{display:block;text-align:left;margin:20px auto;max-width:680px;font:18px AtelierSans}.mo-card-label textarea{box-sizing:border-box;display:block;width:100%;margin-top:8px;font:24px Atelier;padding:14px;border:1px solid #b5a77f;background:#fffaf0;color:#243d44}.mo-download-link{display:block;color:#235b66;font:20px AtelierSans;margin:20px}
+@media(max-width:700px){.mo-drawer{grid-template-columns:1fr 1fr}.mo-drawer-item{padding:18px}.mo-drawer-item strong{font-size:26px}.mo-album{grid-template-columns:1fr 1fr}.mo-memory-card{height:105px}.mo-sequence{grid-template-columns:1fr 1fr}.mo-postcard{padding:12px}.mo-postcard-message{font-size:24px;padding-left:18px}.mo-bar-title{display:none}}
+@media(prefers-reduced-motion:reduce){.mo-color-stage{transition:none}}

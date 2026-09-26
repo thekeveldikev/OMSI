@@ -827,9 +827,9 @@
       el.className += " laut-knall";
     }
     var w = (e.wort || "").toUpperCase();
-    if (/PUFF/.test(w)) KULISSE.spiele("f_puff", 1, KLANG.puff);
-    else if (/D[ÖO]+M|BUMM|RUMMS/.test(w)) KULISSE.spiele("f_doeoem", 1, function () { KLANG.taste(38, 2.6, 0.09); KLANG.taste(50, 2.6, 0.07); KLANG.taste(57, 2.6, 0.05); });
-    else if (/HOPP|HUI/.test(w)) KULISSE.spiele("f_hopp", 1, function () { if (!KULISSE.spiele("ev_wenden", 0.9)) KLANG.hopp(); });
+    if (/PUFF/.test(w)) KULISSE.spiele("f_puff", 0.9, KLANG.puff, true);
+    else if (/D[ÖO]+M|BUMM|RUMMS/.test(w)) KULISSE.spiele("f_doeoem", 0.9, function () { KLANG.taste(38, 2.6, 0.09); KLANG.taste(50, 2.6, 0.07); KLANG.taste(57, 2.6, 0.05); }, true);
+    else if (/HOPP|HUI/.test(w)) KULISSE.spiele("f_hopp", 0.9, function () { if (!KULISSE.spiele("ev_wenden", 0.9)) KLANG.hopp(); }, true);
     else KLANG.plopp();
   }
 
@@ -1066,13 +1066,14 @@
         gelandetEntfernen();
         var cv = S.dom.effekte, ctx = cv.getContext("2d"), W = S.w, H = S.h;
         z = { t0: B.jetzt(), gelandet: false, gefangen: null, id: 0, W: W, H: H, jetzt: null };
-        KLANG.hopp();
+        KULISSE.spiele("f_hopp", 0.9, KLANG.hopp, true);
         var start = { x: PFANNE.x * W, y: PFANNE.y * H }, gipfel = 0.07 * H, rP = PFANNE.r * H;
         var dauerHoch = 1.5, dauerRunter = 1.9, dauer = dauerHoch + dauerRunter;
         function landen(gefangen) {
           z.gelandet = true;
           ctx.clearRect(0, 0, W, H);
-          KLANG.plopp(); setTimeout(KLANG.tusch, 150);
+          KULISSE.spiele("f_ev_plopp", 0.9, KLANG.plopp, true);
+          setTimeout(function () { KULISSE.spiele("f_ev_glitzer", 0.7, KLANG.tusch, true); }, 150);
           var mitBild = gelandetZeigen(W, H);
           if (!mitBild) zeichne(ctx, start.x, start.y, rP, PFANNE.flach, PFANNE.dreh);
           var anzeige = B.el("div", "flug-meldung", S.dom.buch, gefangen ? "Gefangen! Genau in der Pfanne!" : "… genau in der Pfanne!");

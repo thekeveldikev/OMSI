@@ -107,11 +107,11 @@
   }
 
   // ── Einzelgeräusche ──
-  function einzel(name, laut, ersatz) {
+  function einzel(name, laut, ersatz, direkt) {
     holen(name, function (b) {
       if (!buchOffen || !eingeschaltet()) return;
       var q = ctx.createBufferSource(), g = ctx.createGain();
-      q.buffer = b; g.gain.value = laut; q.connect(g); g.connect(summe);
+      q.buffer = b; g.gain.value = laut; q.connect(g); g.connect(direkt ? ctx.destination : summe);
       starte(q, jetzt() + 0.02);
       var k = { q: q, g: g, ende: jetzt() + b.duration + 0.1 };
       klaenge.push(k);
@@ -143,7 +143,7 @@
 
   // Nur behalten, was gerade läuft oder gleich gebraucht wird (Speicher auf älteren iPads)
   function aufraeumen(behalten) {
-    for (var n in puffer) if (puffer[n] && /^amb_/.test(n) && !behalten[n] && !schichten[n]) delete puffer[n];
+    for (var n in puffer) if (puffer[n] && /^(f_)?amb_/.test(n) && !behalten[n] && !schichten[n]) delete puffer[n];
   }
 
   // ───────────── Schnittstelle für buch.js ─────────────
@@ -203,9 +203,10 @@
 
   // Ein Einzelgeräusch genau jetzt (z. B. der Hahn kräht, wenn er den Kopf zurücklegt)
   // ersatz: wird aufgerufen, wenn es die Datei nicht gibt (dann klingt z. B. das eingebaute Geräusch)
-  KU.spiele = function (name, laut, ersatz) {
+  // direkt: am Vorlese-Dämpfer vorbei (Geräuschwörter wie PUFF! gehören zur Geschichte und bleiben laut)
+  KU.spiele = function (name, laut, ersatz, direkt) {
     if (!buchOffen || !eingeschaltet() || !bereit()) { if (ersatz) ersatz(); return false; }
-    einzel(name, laut == null ? 0.8 : laut, ersatz);
+    einzel(name, laut == null ? 0.8 : laut, ersatz, direkt);
     return true;
   };
 
