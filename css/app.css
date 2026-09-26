@@ -1,0 +1,322 @@
+/* ─────────────── Grundlagen ─────────────── */
+:root {
+  --papier: #f7f1e3;
+  --tinte: #2a2622;
+  --buchschrift: "Iowan Old Style", "Palatino", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --handschrift: "Noteworthy", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive;
+  --filzstift: "Marker Felt", "Chalkboard SE", "Segoe Print", "Comic Sans MS", cursive;
+  --maschine: "American Typewriter", "Courier New", Courier, monospace;
+  --rund: "Futura", "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; height: 100%; background: #3a2a1e; color: var(--tinte); overflow: hidden;
+  -webkit-text-size-adjust: 100%; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+body { font-family: var(--buchschrift); }
+#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
+button { font: inherit; }
+
+.knopf { cursor: pointer; border: 0; border-radius: 999px; padding: .55em 1.1em; font-family: var(--rund); font-size: 17px; font-weight: 600;
+  background: #fffaf0; color: #3a2a1e; box-shadow: 0 2px 0 rgba(0,0,0,.25), 0 4px 14px rgba(0,0,0,.18); white-space: nowrap; }
+.knopf:active { -webkit-transform: translateY(1px); transform: translateY(1px); }
+.knopf.klein { font-size: 14px; padding: .45em .9em; opacity: .85; }
+.knopf.gross { font-size: 22px; padding: .7em 1.4em; }
+.knopf.vorlesen.an { background: #d8371c; color: #fff; }
+.knopf.geraeusche { padding: .55em .85em; font-size: 19px; line-height: 1; }
+.knopf.geraeusche.aus { opacity: .55; text-decoration: line-through; }
+
+.meldung { position: fixed; left: 50%; bottom: 28px; -webkit-transform: translateX(-50%); transform: translateX(-50%); z-index: 100;
+  background: #2a2622; color: #fff; padding: .8em 1.3em; border-radius: 14px; font-family: var(--rund); font-size: 16px; max-width: 86vw; text-align: center;
+  -webkit-transition: opacity .6s; transition: opacity .6s; box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+.meldung.weg { opacity: 0; }
+
+/* ─────────────── Startbild: das Haus ─────────────── */
+.start { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-size: cover; background-position: center; cursor: pointer;
+  -webkit-transition: -webkit-transform 1.3s cubic-bezier(.5,0,.3,1), opacity 1.3s; transition: transform 1.3s cubic-bezier(.5,0,.3,1), opacity 1.3s;
+  -webkit-transform-origin: 41% 80%; transform-origin: 41% 80%; }
+.start.rein { -webkit-transform: scale(3.2); transform: scale(3.2); opacity: 0; }
+.start-titel { position: absolute; left: 4%; top: 5%; background: rgba(255,251,240,.92); padding: .35em .8em .5em; border-radius: 6px;
+  -webkit-transform: rotate(-2.5deg); transform: rotate(-2.5deg); box-shadow: 0 6px 22px rgba(0,0,0,.18); text-align: center; }
+.start-fuer { font-family: var(--rund); font-weight: 900; font-size: 9vh; line-height: 1; letter-spacing: .01em; }
+.start-anlass { font-family: var(--buchschrift); font-style: italic; font-size: 3.2vh; color: #3a3a58; margin-top: .15em; }
+.start-schild { position: absolute; left: 49.5%; top: 75.5%; background: #1f4aa8; color: #fff; font-family: var(--rund); font-weight: 700;
+  font-size: 1.9vh; padding: .25em .6em; border: 2px solid #fff; border-radius: 4px; box-shadow: 0 0 0 2px #1f4aa8, 0 3px 8px rgba(0,0,0,.3); }
+.start-tor { position: absolute; left: 36.5%; top: 72%; width: 8%; height: 17%; }
+.start-tor-ring { position: absolute; top: 50%; left: 50%; width: 10vh; height: 10vh; margin: -5vh 0 0 -5vh; border-radius: 50%;
+  border: 4px solid rgba(255,255,255,.95); -webkit-animation: kf-puls 1.8s ease-out infinite; animation: kf-puls 1.8s ease-out infinite; }
+.start-hinweis { position: absolute; left: 50%; bottom: 3%; -webkit-transform: translateX(-50%); transform: translateX(-50%);
+  font-family: var(--rund); font-size: 2.6vh; background: rgba(42,38,34,.78); color: #fff; padding: .5em 1.1em; border-radius: 999px;
+  -webkit-transition: opacity .4s; transition: opacity .4s; white-space: nowrap; }
+@-webkit-keyframes kf-puls { 0% { -webkit-transform: scale(.6); opacity: 1; } 100% { -webkit-transform: scale(1.6); opacity: 0; } }
+@keyframes kf-puls { 0% { transform: scale(.6); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+
+/* ─────────────── Omsis Küche ─────────────── */
+.kueche { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 3vh 3vw 4vh; }
+.kueche-kopf { text-align: center; margin-bottom: 2.5vh; }
+.kueche-titel { font-family: var(--rund); font-weight: 900; font-size: 7.5vh; margin: 0; line-height: 1.05; }
+.kueche-unter { font-style: italic; font-size: 2.4vh; color: #5a4a3a; }
+.karten { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-justify-content: center; justify-content: center; }
+.karte-menue { width: 30%; margin: 1.2vh 1.2%; cursor: pointer; text-align: center; -webkit-transition: -webkit-transform .2s; transition: transform .2s; }
+.karte-menue:nth-child(odd) { -webkit-transform: rotate(-1deg); transform: rotate(-1deg); }
+.karte-menue:nth-child(even) { -webkit-transform: rotate(1.2deg); transform: rotate(1.2deg); }
+.karte-menue:active { -webkit-transform: scale(.97); transform: scale(.97); }
+.karte-rahmen { padding: 9px; border-radius: 6px; box-shadow: 0 8px 22px rgba(60,40,20,.22); }
+.karte-bild { height: 22vh; background: #fffdf6 center / cover no-repeat; border-radius: 3px; position: relative; overflow: hidden; }
+.karte-bild.hochformat { background-size: contain; background-color: #fbf6ea; }
+.karte-symbol { display: block; }
+.karte-titel-m { font-family: var(--rund); font-weight: 800; font-size: 2.7vh; margin-top: .6em; color: #2a2622; line-height: 1.15; }
+.karte-unter { font-style: italic; font-size: 2vh; color: #6a5a48; }
+.kueche-fuss { text-align: center; margin-top: 3vh; }
+.kueche-fuss .knopf { margin: .3em; }
+@media (orientation: portrait) { .karte-menue { width: 45%; } .karte-bild { height: 16vh; } }
+
+/* ─────────────── Buch-Bildschirm ─────────────── */
+.buch-bildschirm { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #3a2a1e;
+  background-image: radial-gradient(ellipse at 50% 45%, #6b4a30 0%, #3a2a1e 70%); }
+.leiste { position: absolute; top: 0; left: 0; right: 0; height: 64px; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+  padding: 0 14px; z-index: 20; }
+.leiste .knopf { margin-right: 10px; }
+.leiste-titel { -webkit-flex: 1; flex: 1; text-align: center; color: #f6ead2; font-style: italic; font-size: 20px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.buehne { position: absolute; top: 64px; left: 60px; right: 60px; bottom: 34px; display: -webkit-flex; display: flex;
+  -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; cursor: pointer; }
+.buch { position: relative; -webkit-perspective: 2400px; perspective: 2400px; }
+.seite { position: absolute; top: 0; width: 50%; height: 100%; background-color: #fbf8f1; background-repeat: no-repeat; overflow: hidden; }
+.seite-links { left: 0; border-radius: 6px 0 0 6px; box-shadow: -6px 10px 28px rgba(0,0,0,.35); }
+.seite-rechts { left: 50%; border-radius: 0 6px 6px 0; box-shadow: 6px 10px 28px rgba(0,0,0,.35); }
+.seite-links::after, .seite-rechts::after { content: ""; position: absolute; top: 0; bottom: 0; width: 9%; pointer-events: none; z-index: 6; }
+.seite-links::after { right: 0; background: linear-gradient(to left, rgba(0,0,0,.16), rgba(0,0,0,0)); }
+.seite-rechts::after { left: 0; background: linear-gradient(to right, rgba(0,0,0,.16), rgba(0,0,0,0)); }
+.seite.leer { background: transparent !important; box-shadow: none; }
+.seite.leer::after { display: none; }
+.falz { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0,0,0,.12); z-index: 7; pointer-events: none; }
+.buch.nur-rechts .falz, .buch.nur-links .falz { display: none; }
+.effekt-schicht { position: absolute; top: 0; left: 0; z-index: 8; pointer-events: none; }
+.ebenen-schicht { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 4; pointer-events: none; overflow: hidden; border-radius: 6px;
+  -webkit-transition: opacity .45s; transition: opacity .45s; }
+.ebene-hintergrund { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.ebene { position: absolute; }
+.ebene img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.ebene-bild2 { opacity: 0; -webkit-animation: kf-blinzeln 4s steps(1) infinite; animation: kf-blinzeln 4s steps(1) infinite; }
+
+/* Umblättern */
+.blatt { position: absolute; top: 0; width: 50%; height: 100%; z-index: 9; -webkit-transform-style: preserve-3d; transform-style: preserve-3d; }
+.blatt-rechts { left: 50%; -webkit-transform-origin: 0 50%; transform-origin: 0 50%; }
+.blatt-links { left: 0; -webkit-transform-origin: 100% 50%; transform-origin: 100% 50%; }
+.blatt .seite { left: 0; width: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; box-shadow: 0 0 20px rgba(0,0,0,.25); }
+.blatt-rechts .blatt-vorn { border-radius: 0 6px 6px 0; }
+.blatt-rechts .blatt-hinten { border-radius: 6px 0 0 6px; }
+.blatt-links .blatt-vorn { border-radius: 6px 0 0 6px; }
+.blatt-links .blatt-hinten { border-radius: 0 6px 6px 0; }
+.blatt-hinten { -webkit-transform: rotateY(180deg); transform: rotateY(180deg); }
+.blatt-schatten { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; pointer-events: none; z-index: 20;
+  background: linear-gradient(to right, rgba(0,0,0,.45), rgba(0,0,0,.05) 70%); }
+
+.pfeil { position: absolute; top: 50%; margin-top: -30px; width: 52px; height: 60px; border: 0; background: rgba(255,250,240,.16); color: #fff7e6;
+  font-size: 44px; line-height: 56px; border-radius: 14px; cursor: pointer; z-index: 15; padding: 0; }
+.pfeil-links { left: 6px; } .pfeil-rechts { right: 6px; }
+.pfeil:active { background: rgba(255,250,240,.35); }
+.seitenzahl { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; color: rgba(246,234,210,.7); font-family: var(--rund); font-size: 14px; }
+
+.dreh-hinweis { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 30; background: rgba(42,30,20,.94);
+  -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; color: #fff; }
+.dreh-ipad { width: 90px; height: 124px; border: 6px solid #fff; border-radius: 14px; -webkit-animation: kf-drehipad 2.4s ease-in-out infinite; animation: kf-drehipad 2.4s ease-in-out infinite; }
+.dreh-text { margin-top: 36px; font-family: var(--rund); font-size: 22px; }
+@media (orientation: portrait) { .dreh-hinweis { display: -webkit-flex; display: flex; } }
+@-webkit-keyframes kf-drehipad { 0%, 30% { -webkit-transform: rotate(0); } 60%, 100% { -webkit-transform: rotate(-90deg); } }
+@keyframes kf-drehipad { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+
+/* ─────────────── Satz: Originalbuch (nur Deutsch) ─────────────── */
+.abdeckung { position: absolute; z-index: 1; border-radius: 2px; }
+.satz { position: absolute; z-index: 2; overflow: hidden; padding: .35em .3em 1.1em; font-family: var(--buchschrift); font-size: .9em; line-height: 1.34; color: #26211c;
+  -webkit-hyphens: auto; hyphens: auto; text-rendering: optimizeLegibility; -webkit-font-feature-settings: "kern", "liga", "onum"; font-feature-settings: "kern", "liga", "onum";
+  hanging-punctuation: first; text-wrap: pretty; }
+.satz p { margin: 0 0 .32em; white-space: pre-line; }
+.satz p:last-child { margin-bottom: 0; }
+.initiale { float: left; font-family: var(--rund); font-weight: 900; font-size: 3.05em; line-height: .8; margin: .06em .09em -.05em 0; }
+.fehlt { font-family: var(--rund); font-size: .62em; color: #b0453a; border: 1px dashed #d98a80; background: rgba(255,244,236,.85); padding: .35em .5em; border-radius: 4px; }
+.titelfeld-de { position: absolute; z-index: 2; overflow: hidden; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+  -webkit-justify-content: center; justify-content: center; font-family: var(--buchschrift); font-weight: 700; line-height: 1.0; padding: 0 .08em; letter-spacing: -.01em; }
+.titelfeld-innen { white-space: nowrap; }
+
+/* ─────────────── Satz: Fortsetzung ─────────────── */
+.text-kasten { position: absolute; top: 7%; bottom: 7%; z-index: 3; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+  -webkit-justify-content: center; justify-content: center; font-family: var(--buchschrift); line-height: 1.42; color: #26211c; overflow: hidden;
+  -webkit-hyphens: auto; hyphens: auto; text-wrap: pretty; hanging-punctuation: first; }
+.text-rechts { left: 30%; right: 8%; }
+.text-links { left: 8%; right: 22%; }
+.ist-titel, .ist-widmung { text-align: center; -webkit-align-items: center; align-items: center; }
+.ist-titel { left: 22%; right: 6%; }
+.dunkel .text-kasten { color: #f7efdc; }
+.rueckblende .text-kasten { font-style: italic; }
+.absatz { margin: 0 0 .5em; }
+.laut { font-family: var(--rund); font-weight: 900; font-size: 2.5em; line-height: 1.02; margin: .05em 0 .2em; letter-spacing: .01em; }
+.buchtitel { font-family: var(--rund); font-weight: 900; font-size: 2.6em; line-height: 1.0; margin: 0 0 .35em; }
+.klein { font-size: .8em; font-style: italic; opacity: .82; margin: .2em 0 .5em; }
+.handschrift { font-family: var(--handschrift); font-size: 1.55em; color: #1b3a8a; text-align: center; margin: .3em 0 .2em; }
+.dunkel .handschrift { color: #bcd3ff; }
+.vers { font-style: italic; margin: .2em 0 .7em; }
+.vers-zeile { line-height: 1.34; }
+.vers-luecke { height: .55em; }
+.schild { position: relative; -webkit-align-self: center; align-self: center; margin: .4em 0 .8em; padding: .55em .9em .5em; background: #fffdf8;
+  font-family: var(--filzstift); font-size: 1.12em; line-height: 1.2; text-align: center; color: #1f47a8; -webkit-transform: rotate(-2.2deg); transform: rotate(-2.2deg);
+  box-shadow: 0 3px 10px rgba(0,0,0,.18); border: 1px solid #eee4d0; hyphens: none; -webkit-hyphens: none; }
+.schild-zeile:first-of-type { color: #c62f1c; }
+.klebe { position: absolute; top: -.45em; width: 2.2em; height: .9em; background: rgba(236,226,190,.8); }
+.klebe-l { left: -.5em; -webkit-transform: rotate(-24deg); transform: rotate(-24deg); }
+.klebe-r { right: -.5em; -webkit-transform: rotate(22deg); transform: rotate(22deg); }
+.schild-auf-bild { position: absolute; z-index: 3; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+  -webkit-justify-content: center; justify-content: center; text-align: center; font-family: var(--filzstift); color: #1f47a8; font-size: .62em; line-height: 1.12;
+  -webkit-transform: rotate(-3deg); transform: rotate(-3deg); }
+.schild-auf-bild div:nth-child(-n+2) { color: #c62f1c; }
+.karte { position: relative; -webkit-align-self: center; align-self: center; width: 88%; margin: .3em 0 .8em; padding: .7em 1em 1.1em; font-family: var(--handschrift); font-size: .92em;
+  color: #22387a; line-height: 1.5; -webkit-transform: rotate(1.4deg); transform: rotate(1.4deg); box-shadow: 0 4px 14px rgba(0,0,0,.2);
+  background: #fffdf5 repeating-linear-gradient(to bottom, transparent 0, transparent 1.45em, #b9cdea 1.45em, #b9cdea 1.52em); background-position: 0 1.9em; hyphens: none; -webkit-hyphens: none; }
+.karte-titel { font-size: 1.25em; border-bottom: 2px solid #d9534f; margin-bottom: .2em; }
+.mit-knick .knick { position: absolute; right: 0; bottom: 0; width: 2.4em; height: 2.4em; background: linear-gradient(135deg, #fffdf5 0, #fffdf5 50%, #e7dcc0 50%, #cdbf9a 100%);
+  box-shadow: -2px -2px 5px rgba(0,0,0,.12); }
+.platzhalter-fleck { position: absolute; left: 10%; top: 12%; width: 76%; height: 58%; border-radius: 43% 57% 38% 62% / 52% 41% 59% 48%; opacity: .9; }
+.platzhalter-text { position: absolute; left: 7%; right: 7%; bottom: 6%; font-family: var(--rund); font-size: .58em; line-height: 1.35; color: #3a2e22;
+  background: rgba(255,253,246,.88); padding: .7em .8em; border-radius: 6px; z-index: 2; }
+.platzhalter-titel { font-weight: 800; margin-bottom: .3em; }
+.flug-meldung { position: absolute; left: 0; right: 50%; top: 42%; text-align: center; z-index: 12; font-family: var(--rund); font-weight: 900; font-size: 1.6em; color: #d8371c;
+  text-shadow: 0 2px 0 #fff, 0 0 12px #fff; -webkit-animation: kf-hereinkleben .7s ease-out both; animation: kf-hereinkleben .7s ease-out both; pointer-events: none; }
+
+/* ─────────────── Ebenen-Animationen (Papierpuppen) ─────────────── */
+@-webkit-keyframes kf-wackeln { 0%,100% { -webkit-transform: rotate(-2deg); } 50% { -webkit-transform: rotate(2deg); } }
+@keyframes kf-wackeln { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@-webkit-keyframes kf-pendeln { 0%,100% { -webkit-transform: rotate(-6deg); } 50% { -webkit-transform: rotate(6deg); } }
+@keyframes kf-pendeln { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@-webkit-keyframes kf-schweben { 0%,100% { -webkit-transform: translateY(0) rotate(-1deg); } 50% { -webkit-transform: translateY(-4%) rotate(1deg); } }
+@keyframes kf-schweben { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-4%) rotate(1deg); } }
+@-webkit-keyframes kf-atmen { 0%,100% { -webkit-transform: scale(1); } 50% { -webkit-transform: scale(1.025, 1.035); } }
+@keyframes kf-atmen { 0%,100% { transform: scale(1); } 50% { transform: scale(1.025, 1.035); } }
+@-webkit-keyframes kf-huepfen { 0%,100% { -webkit-transform: translateY(0); } 40% { -webkit-transform: translateY(-9%); } 60% { -webkit-transform: translateY(0) scale(1.04,.96); } }
+@keyframes kf-huepfen { 0%,100% { transform: translateY(0); } 40% { transform: translateY(-9%); } 60% { transform: translateY(0) scale(1.04,.96); } }
+@-webkit-keyframes kf-drehen { from { -webkit-transform: rotate(0); } to { -webkit-transform: rotate(360deg); } }
+@keyframes kf-drehen { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@-webkit-keyframes kf-zittern { 0% { -webkit-transform: translate(0,0) rotate(0); } 33% { -webkit-transform: translate(.3%,-.2%) rotate(.3deg); } 66% { -webkit-transform: translate(-.2%,.2%) rotate(-.25deg); } }
+@keyframes kf-zittern { 0% { transform: translate(0,0) rotate(0); } 33% { transform: translate(.3%,-.2%) rotate(.3deg); } 66% { transform: translate(-.2%,.2%) rotate(-.25deg); } }
+@-webkit-keyframes kf-hereinkleben { 0% { -webkit-transform: translateY(-30%) scale(1.25) rotate(-8deg); opacity: 0; } 70% { -webkit-transform: translateY(2%) scale(.98) rotate(1deg); opacity: 1; } 100% { -webkit-transform: none; opacity: 1; } }
+@keyframes kf-hereinkleben { 0% { transform: translateY(-30%) scale(1.25) rotate(-8deg); opacity: 0; } 70% { transform: translateY(2%) scale(.98) rotate(1deg); opacity: 1; } 100% { transform: none; opacity: 1; } }
+@-webkit-keyframes kf-puff { 0% { -webkit-transform: scale(.2); opacity: 0; } 40% { -webkit-transform: scale(1.1); opacity: 1; } 100% { -webkit-transform: scale(1); opacity: 1; } }
+@keyframes kf-puff { 0% { transform: scale(.2); opacity: 0; } 40% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@-webkit-keyframes kf-blinzeln { 0%, 92% { opacity: 0; } 93%, 97% { opacity: 1; } 98%, 100% { opacity: 0; } }
+@keyframes kf-blinzeln { 0%, 92% { opacity: 0; } 93%, 97% { opacity: 1; } 98%, 100% { opacity: 0; } }
+
+/* ─────────────── Schattentheater ─────────────── */
+.schatten-bildschirm { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50; background: #0b1230; cursor: pointer; }
+.schatten-canvas { position: absolute; top: 0; left: 0; }
+.schatten-text { position: absolute; left: 6%; right: 6%; top: 71%; bottom: 2%; text-align: center; color: #f7ecd0; font-family: var(--buchschrift); font-style: italic;
+  font-size: 3.4vh; line-height: 1.38; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-justify-content: center; justify-content: center; }
+.schatten-zeile { opacity: 0; -webkit-transition: opacity .9s; transition: opacity .9s; }
+.schatten-zu { position: absolute; top: 14px; right: 14px; }
+.schatten-hinweis { position: absolute; top: 18px; left: 18px; color: rgba(247,236,208,.7); font-family: var(--rund); font-size: 15px; -webkit-transition: opacity 1s; transition: opacity 1s; }
+
+/* ─────────────── Finale ─────────────── */
+.finale-bildschirm { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; }
+.finale-canvas { position: absolute; top: 0; left: 0; }
+.finale-kopf { position: absolute; top: 3%; left: 0; right: 0; text-align: center; pointer-events: none; }
+.finale-titel { font-family: var(--rund); font-weight: 900; font-size: 8vh; line-height: 1; }
+.finale-unter { font-style: italic; font-size: 2.6vh; color: #5a4a3a; margin-top: .3em; }
+.finale-leiste { position: absolute; bottom: 4%; left: 0; right: 0; text-align: center; }
+.finale-oder { font-style: italic; color: #5a4a3a; margin-top: .5em; font-size: 2.2vh; }
+.finale-zurueck { position: absolute; top: 14px; left: 14px; }
+.finale-ende { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; -webkit-flex-direction: column; flex-direction: column;
+  -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; background: rgba(247,241,227,.0); pointer-events: none; }
+.finale-ende.sichtbar { display: -webkit-flex; display: flex; -webkit-animation: kf-einblenden 1.2s 1.6s both; animation: kf-einblenden 1.2s 1.6s both; pointer-events: auto; background: rgba(247,241,227,.82); }
+.finale-bild { width: 46vh; height: 32vh; background: center / cover no-repeat; border: 10px solid #fff; box-shadow: 0 12px 34px rgba(0,0,0,.28); -webkit-transform: rotate(-2deg); transform: rotate(-2deg); }
+.finale-gruss { font-family: var(--rund); font-weight: 900; font-size: 6vh; text-align: center; margin: 3vh 4vw .5vh; line-height: 1.05; }
+.finale-absender { font-family: var(--handschrift); font-size: 3.6vh; color: #1b3a8a; margin-bottom: 2vh; }
+@-webkit-keyframes kf-einblenden { from { opacity: 0; } to { opacity: 1; } }
+@keyframes kf-einblenden { from { opacity: 0; } to { opacity: 1; } }
+
+/* ─────────────── Geheimakte & Rezept ─────────────── */
+.akte-bildschirm, .rezept-bildschirm { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: auto; display: -webkit-flex; display: flex;
+  -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; }
+.akte-zurueck { position: absolute; top: 14px; left: 14px; z-index: 5; }
+.akte { position: relative; width: min(88vw, 118vh); width: 88vw; max-width: 118vh; padding: 5vh 3vw 3vh; border-radius: 10px; box-shadow: 0 18px 50px rgba(0,0,0,.45);
+  -webkit-transform: rotate(-1deg); transform: rotate(-1deg); }
+.akte-reiter { position: absolute; top: -4vh; left: 6%; background: #b3812c; color: #fff8e6; padding: .6vh 1.6em; border-radius: 10px 10px 0 0; font-family: var(--rund);
+  font-weight: 800; letter-spacing: .2em; font-size: 2vh; }
+.akte-blatt { position: relative; background: #fbf8ef; padding: 4vh 4vw 5vh; min-height: 62vh; box-shadow: 0 2px 8px rgba(0,0,0,.2); font-family: var(--maschine); color: #2b2b2b; }
+.akte-foto { position: absolute; top: 3vh; right: 3vw; width: 24vh; height: 17vh; background: center / cover; border: 6px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,.25);
+  -webkit-transform: rotate(3deg); transform: rotate(3deg); }
+.akte-klammer { position: absolute; top: 1.6vh; right: calc(3vw + 9vh); width: 3vh; height: 6vh; border: 3px solid #8b949e; border-radius: 1.5vh; }
+.akte-kopf { text-transform: uppercase; font-size: 4.2vh; font-weight: 700; letter-spacing: .08em; }
+.akte-unter { font-size: 1.7vh; color: #7a6a5a; margin: .6vh 0 3vh; }
+.akte-felder { max-width: 70%; font-size: 2.3vh; line-height: 1.55; }
+.akte-name { display: inline-block; min-width: 11em; color: #7a6a5a; }
+.akte-wert { font-weight: 700; }
+.akte-stempel { position: absolute; right: 7%; bottom: 13%; border: .5vh solid #c62f1c; color: #c62f1c; font-family: var(--rund); font-weight: 900; font-size: 6vh;
+  padding: .1em .45em; letter-spacing: .08em; opacity: 0; -webkit-transform: rotate(-14deg) scale(3); transform: rotate(-14deg) scale(3); }
+.akte-stempel.knall { -webkit-animation: kf-stempel .35s ease-in forwards; animation: kf-stempel .35s ease-in forwards; }
+@-webkit-keyframes kf-stempel { to { opacity: .85; -webkit-transform: rotate(-14deg) scale(1); } }
+@keyframes kf-stempel { to { opacity: .85; transform: rotate(-14deg) scale(1); } }
+.akte-unterschrift { position: absolute; left: 4vw; bottom: 3vh; font-family: var(--handschrift); font-size: 3.4vh; color: #1b3a8a; opacity: 0; -webkit-transition: opacity 1s .6s; transition: opacity 1s .6s; }
+.akte-unterschrift.da { opacity: 1; }
+.rezeptkarte { width: 80vh; max-width: 90vw; padding: 5vh 5vh 6vh; background: #fffdf5 repeating-linear-gradient(to bottom, transparent 0, transparent 4.6vh, #b9cdea 4.6vh, #b9cdea 4.8vh);
+  background-position: 0 9vh; font-family: var(--handschrift); color: #22387a; font-size: 3vh; line-height: 4.8vh; box-shadow: 0 16px 44px rgba(0,0,0,.35);
+  -webkit-transform: rotate(-1.5deg); transform: rotate(-1.5deg); }
+.rezept-titel { font-size: 5vh; border-bottom: 3px solid #d9534f; margin-bottom: 1vh; line-height: 1.3; }
+.rezept-zeile, .rezept-fuss { -webkit-animation: kf-einblenden .6s both; animation: kf-einblenden .6s both; }
+.rezept-luecke { height: 2.4vh; }
+.rezept-fuss { margin-top: 2vh; text-align: right; font-size: 3.4vh; }
+.rezept-drucken { position: absolute; top: 14px; right: 14px; }
+.rezept-hinweis { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; font-family: var(--rund); color: #fff; font-size: 14px; opacity: .85; }
+@media print { .knopf, .rezept-hinweis { display: none !important; } .rezeptkarte { box-shadow: none; -webkit-transform: none; transform: none; } }
+.mini-seite { position: absolute; top: 0; left: 50%; height: 100%; background-size: 100% 100%; box-shadow: 0 2px 10px rgba(0,0,0,.2); }
+.karte-bild { background-color: #fbf6ea; }
+
+/* Abschnitte (langer Text in Teilen) */
+.weiter-marke { cursor: pointer; position: absolute; right: .3em; bottom: .15em; font-family: var(--rund); font-weight: 700; font-size: .72em; color: #fff;
+  background: #d8371c; padding: .12em .6em .16em; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  -webkit-animation: kf-stupsen 1.6s ease-in-out infinite; animation: kf-stupsen 1.6s ease-in-out infinite; }
+.text-kasten .weiter-marke { position: relative; right: auto; bottom: auto; -webkit-align-self: flex-end; align-self: flex-end; margin-top: .3em; }
+.blende > * { -webkit-animation: kf-einblenden .5s both; animation: kf-einblenden .5s both; }
+@-webkit-keyframes kf-stupsen { 0%,100% { -webkit-transform: translateX(0); } 50% { -webkit-transform: translateX(3px); } }
+@keyframes kf-stupsen { 0%,100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+
+/* ─────────────── Bewegungen für ausgeschnittene Original-Teile ─────────────── */
+.ebene-loch { position: absolute; }
+/* Pfannkuchen wenden: hoch, in der Luft umdrehen, zurück – dann kurze Pause */
+@-webkit-keyframes kf-wenden { 0%, 62%, 100% { -webkit-transform: translateY(0) scaleY(1) rotate(0); }
+  12% { -webkit-transform: translateY(-14%) scaleY(.55) rotate(-4deg); } 22% { -webkit-transform: translateY(-24%) scaleY(-.9) rotate(-2deg); }
+  32% { -webkit-transform: translateY(-26%) scaleY(-.3) rotate(3deg); } 42% { -webkit-transform: translateY(-18%) scaleY(.95) rotate(2deg); }
+  52% { -webkit-transform: translateY(2%) scaleY(1.05, .9) rotate(0); } 57% { -webkit-transform: translateY(0) scaleY(.96) rotate(0); } }
+@keyframes kf-wenden { 0%, 62%, 100% { transform: translateY(0) scaleY(1) rotate(0); }
+  12% { transform: translateY(-14%) scaleY(.55) rotate(-4deg); } 22% { transform: translateY(-24%) scaleY(-.9) rotate(-2deg); }
+  32% { transform: translateY(-26%) scaleY(-.3) rotate(3deg); } 42% { transform: translateY(-18%) scaleY(.95) rotate(2deg); }
+  52% { transform: translateY(2%) scaleY(.9) rotate(0); } 57% { transform: translateY(0) scaleY(.96) rotate(0); } }
+@-webkit-keyframes kf-nicken { 0%, 100% { -webkit-transform: rotate(0); } 30% { -webkit-transform: rotate(-2.5deg); } 45% { -webkit-transform: rotate(1.5deg); } 60% { -webkit-transform: rotate(-1.5deg); } 75% { -webkit-transform: rotate(0); } }
+@keyframes kf-nicken { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-2.5deg); } 45% { transform: rotate(1.5deg); } 60% { transform: rotate(-1.5deg); } 75% { transform: rotate(0); } }
+@-webkit-keyframes kf-flackern { 0%, 100% { -webkit-transform: scale(1, 1); } 25% { -webkit-transform: scale(.94, 1.12); } 50% { -webkit-transform: scale(1.04, .9); } 75% { -webkit-transform: scale(.97, 1.08); } }
+@keyframes kf-flackern { 0%, 100% { transform: scale(1, 1); } 25% { transform: scale(.94, 1.12); } 50% { transform: scale(1.04, .9); } 75% { transform: scale(.97, 1.08); } }
+@-webkit-keyframes kf-paddeln { 0%, 100% { -webkit-transform: translateX(0) rotate(0); } 25% { -webkit-transform: translateX(6%) rotate(3deg); } 50% { -webkit-transform: translateX(10%) rotate(0); } 75% { -webkit-transform: translateX(4%) rotate(-3deg); } }
+@keyframes kf-paddeln { 0%, 100% { transform: translateX(0) rotate(0); } 25% { transform: translateX(6%) rotate(3deg); } 50% { transform: translateX(10%) rotate(0); } 75% { transform: translateX(4%) rotate(-3deg); } }
+@-webkit-keyframes kf-sanftdrehen { 0%, 100% { -webkit-transform: rotate(-7deg) scale(1); } 50% { -webkit-transform: rotate(7deg) scale(1.06); } }
+/* Ausgeschnittene Figuren (Werkzeuge/figuren_ausschneiden.py) */
+@-webkit-keyframes kf-kraehen { 0%, 52%, 90%, 100% { -webkit-transform: rotate(0); } 60% { -webkit-transform: rotate(-9deg); } 64% { -webkit-transform: rotate(-7.5deg); } 68% { -webkit-transform: rotate(-9deg); } 80% { -webkit-transform: rotate(-8deg); } }
+@keyframes kf-kraehen { 0%, 52%, 90%, 100% { transform: rotate(0); } 60% { transform: rotate(-9deg); } 64% { transform: rotate(-7.5deg); } 68% { transform: rotate(-9deg); } 80% { transform: rotate(-8deg); } }
+@-webkit-keyframes kf-picken { 0%, 45%, 82%, 100% { -webkit-transform: rotate(0); } 53% { -webkit-transform: rotate(-15deg); } 59% { -webkit-transform: rotate(-9deg); } 66% { -webkit-transform: rotate(-15deg); } 73% { -webkit-transform: rotate(-10deg); } }
+@keyframes kf-picken { 0%, 45%, 82%, 100% { transform: rotate(0); } 53% { transform: rotate(-15deg); } 59% { transform: rotate(-9deg); } 66% { transform: rotate(-15deg); } 73% { transform: rotate(-10deg); } }
+@-webkit-keyframes kf-drohen { 0%, 38%, 76%, 100% { -webkit-transform: rotate(0); } 45% { -webkit-transform: rotate(6deg); } 52% { -webkit-transform: rotate(-4deg); } 59% { -webkit-transform: rotate(6deg); } 66% { -webkit-transform: rotate(-4deg); } }
+@keyframes kf-drohen { 0%, 38%, 76%, 100% { transform: rotate(0); } 45% { transform: rotate(6deg); } 52% { transform: rotate(-4deg); } 59% { transform: rotate(6deg); } 66% { transform: rotate(-4deg); } }
+@-webkit-keyframes kf-gabel { 0%, 30%, 100% { -webkit-transform: translateX(0) rotate(0); } 55%, 68% { -webkit-transform: translateX(2%) rotate(-5deg); } }
+@keyframes kf-gabel { 0%, 30%, 100% { transform: translateX(0) rotate(0); } 55%, 68% { transform: translateX(2%) rotate(-5deg); } }
+@keyframes kf-sanftdrehen { 0%, 100% { transform: rotate(-7deg) scale(1); } 50% { transform: rotate(7deg) scale(1.06); } }
+@-webkit-keyframes kf-steigen { 0% { -webkit-transform: translate(0, 0) scale(1); opacity: 1; } 70% { -webkit-transform: translate(8%, -28%) scale(1.25); opacity: .15; } 71% { -webkit-transform: translate(0, 10%) scale(.7); opacity: 0; } 100% { -webkit-transform: translate(0, 0) scale(1); opacity: 1; } }
+@keyframes kf-steigen { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 70% { transform: translate(8%, -28%) scale(1.25); opacity: .15; } 71% { transform: translate(0, 10%) scale(.7); opacity: 0; } 100% { transform: translate(0, 0) scale(1); opacity: 1; } }
+
+/* ─────────────── Tresor (veröffentlichte Fassung: Geheimwort) ─────────────── */
+.tresor { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+  -webkit-justify-content: center; justify-content: center; background: #3a2a1e radial-gradient(ellipse at 50% 40%, #6b4a30 0%, #3a2a1e 70%); }
+.tresor-karte { background: #fbf6ea; border-radius: 16px; padding: 34px 40px; text-align: center; max-width: 90vw; box-shadow: 0 18px 50px rgba(0,0,0,.45);
+  font-family: var(--buchschrift); font-size: 20px; color: #2a2622; }
+.tresor-karte h1 { font-family: var(--rund); font-weight: 900; margin: 0 0 .4em; }
+.tresor-schild { display: inline-block; font-family: var(--filzstift); color: #c62f1c; font-size: 26px; line-height: 1.15; padding: .5em .9em; background: #fffdf8;
+  border: 1px solid #eee4d0; box-shadow: 0 3px 10px rgba(0,0,0,.18); -webkit-transform: rotate(-2deg); transform: rotate(-2deg); margin-bottom: 14px; }
+.tresor-schild small { color: #1f47a8; font-size: 20px; }
+.tresor-karte input { font: inherit; font-size: 24px; padding: 10px 14px; border-radius: 10px; border: 2px solid #d9ccb0; width: 260px; max-width: 70vw; text-align: center; }
+.tresor-karte button { font-family: var(--rund); font-weight: 800; font-size: 20px; margin-left: 10px; padding: 11px 22px; border: 0; border-radius: 999px; background: #d8371c; color: #fff; cursor: pointer; }
+.tresor-fehler { color: #b0453a; font-family: var(--rund); font-size: 16px; }
+.tresor-pfanne { width: 90px; height: 90px; margin: 0 auto 12px; border-radius: 50%; background: #e9b43c; box-shadow: inset 0 -8px 0 #c89232, 0 0 0 10px #2a2622;
+  -webkit-animation: kf-wenden 2s ease-in-out infinite; animation: kf-wenden 2s ease-in-out infinite; }
