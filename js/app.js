@@ -1,18 +1,13 @@
 /* Die App: Startbild (das Haus) → Omsis Küche → Bücher, Schattentheater,
-   Geheimakte, Rezept, Geburtstagstorte (+ Text-Werkstatt im Entwurfsmodus). */
+   Geheimakte, Rezept und Geburtstagstorte. */
 (function () {
   var APP = window.APP = {};
   var wurzel = null, aktuell = null;
 
-  // Eigene deutsche Texte aus der Text-Werkstatt übernehmen (daten/text_de.js)
+  // Hinterlegte deutsche Texte übernehmen (daten/text_de.js).
   function texteUebernehmen() {
     var T = window.TEXT_DE || {};
     if (!window.ORIGINAL) return;
-    // Im Entwurfsmodus: was gerade in der Text-Werkstatt steht, sofort mit anzeigen
-    if (B.E.entwurf !== false) {
-      var w = B.erinnern("werkstatt", null);
-      if (w) { var neuT = {}; for (var k in T) neuT[k] = T[k]; for (var k2 in w) if (w[k2] && w[k2].join("")) neuT[k2] = w[k2]; T = neuT; }
-    }
     for (var nr in T) {
       if (!window.ORIGINAL.seiten[nr]) continue;
       var alt = window.ORIGINAL.seiten[nr].de || [], neu = T[nr] || [];
@@ -29,6 +24,9 @@
   };
 
   function aufraeumen() {
+    if (window.AKTE) AKTE.stoppen();
+    if (window.BRIEF) BRIEF.stoppen();
+    if (window.MENUE_KUECHE) MENUE_KUECHE.stoppen();
     if (window.RADIO) RADIO.stoppen();
     if (window.MAKINGOF) MAKINGOF.stoppen();
     if (window.BUCH) BUCH.schliessen();
@@ -43,13 +41,15 @@
     aufraeumen();
     aktuell = name;
     B.merken("bildschirm", name);
+    if (window.RUECKWEG) RUECKWEG.zeigen(name);
     if (name === "start") return zeigeStart();
     if (name === "kueche") return zeigeKueche();
+    if (name === "brief") return BRIEF.starten(wurzel, function () { APP.zeige("kueche"); });
     if (name === "radio") return RADIO.starten(wurzel, function () { APP.zeige("kueche"); });
     if (name === "original") return BUCH.oeffnen(wurzel, "original", function () { APP.zeige("kueche"); });
     if (name === "fortsetzung") return BUCH.oeffnen(wurzel, "fortsetzung", function () { APP.zeige("kueche"); });
     if (name === "finale") return FINALE.starten(wurzel, function () { APP.zeige("kueche"); });
-    if (name === "akte") return zeigeAkte();
+    if (name === "akte") return window.AKTE ? AKTE.starten(wurzel) : zeigeAkte();
     if (name === "rezept") return zeigeRezept();
     if (name === "makingof") return MAKINGOF.starten(wurzel, function () { APP.zeige("kueche"); });
     if (name === "spiel") return SPIEL.starten(wurzel, function () { APP.zeige("kueche"); });
@@ -80,6 +80,7 @@
 
   // ───────────────────── Omsis Küche (Menü) ─────────────────────
   function zeigeKueche() {
+    if (window.MENUE_KUECHE && window.MENUE_DATEN) return MENUE_KUECHE.starten(wurzel, { offline: allesVorladen });
     var k = B.el("div", "kueche mit-willkommen", wurzel);
     PAPIER.hinterlegen(k, "creme", { kachel: 320 });
     // Willkommensbild: Omsi am Frühstückstisch winkt von links; Überschrift und Karten liegen
@@ -106,8 +107,6 @@
       { ziel: "rezept", titel: B.ersetzen("{OMA}s Rezept"), unter: "Die leckersten Pfannekuchen der Welt", farbe: "gruen", symbol: "karte" },
       { ziel: "spiel", titel: "Pfannkuchen wenden", unter: "Wer schafft drei goldgelbe?", farbe: "orange", symbol: "wenden" }
     ];
-    if (B.E.entwurf !== false) karten.push({ ziel: "werkstatt", titel: "Text-Werkstatt", unter: "Nur für Kevin: deutschen Text eintippen", farbe: "grau", symbol: "karte" });
-    if (B.E.entwurf !== false) karten.push({ ziel: "studio", titel: "Aufnahmestudio", unter: "Nur für Kevin: Seiten einsprechen", farbe: "grau", symbol: "mikro" });
     if (karten.length > 6) menue.className = "kueche-menue viele";   // quer etwas kompakter, damit alles ohne Scrollen passt
 
     karten.forEach(function (kd, i) {
@@ -128,8 +127,6 @@
       B.tippen(karte, function () {
         KLANG.entsperren(); KLANG.plopp();
         if (kd.ziel === "schatten") { SCHATTEN.starten(schattenVerse(), function () {}); return; }
-        if (kd.ziel === "werkstatt") { window.location.href = "werkstatt.html"; return; }
-        if (kd.ziel === "studio") { window.location.href = "studio.html"; return; }
         APP.zeige(kd.ziel);
       });
     });
@@ -300,6 +297,7 @@
       zeile.style.webkitAnimationDelay = zeile.style.animationDelay = (0.3 + nr++ * 0.18) + "s";
     });
     var fuss = B.el("div", "rezept-fuss", karte, B.ersetzen(R.fussnote));
+    if (window.RUECKWEG) RUECKWEG.rezeptExtras(karte);
     fuss.style.webkitAnimationDelay = fuss.style.animationDelay = (0.5 + nr * 0.18) + "s";
     // Schrift so groß wie möglich, ohne dass etwas in die gemalten Zutaten läuft
     function einpassen() {
@@ -340,7 +338,6 @@
         ((window.ORIGINAL_TEILE || {})[n] || []).concat((window.ORIGINAL_FIGUREN || {})[n] || []).forEach(function (t) { d.push(t.bild); d.push(t.loch); });
       });
     });
-    d.push("daten/verteilung.js");
     d.push("daten/original_teile.js");
     d.push("daten/original_figuren.js");
     d.push("daten/original_augen.js");
@@ -366,6 +363,7 @@
       for (var n in klaenge) d.push(K.ordner + n + K.endung);
     }
     if (window.MAKINGOF && window.MAKING_OF) d = d.concat(MAKINGOF.dateien());
+    if (window.MENUE_KUECHE && window.MENUE_DATEN) d = d.concat(MENUE_KUECHE.dateien());
     return d;
   }
   // Lädt alles einmal durch – der Service Worker merkt es sich, danach geht es ohne Internet.

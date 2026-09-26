@@ -1,0 +1,71 @@
+/* Alles absichtlich auf mk-* begrenzt: parallel bearbeitete Bereiche bleiben unabhängig. */
+.mk-seite { position:absolute; inset:0; top:0; right:0; bottom:0; left:0; overflow:auto; background:#f4eddc; color:#2d251c; -webkit-overflow-scrolling:touch; }
+.mk-rahmen { width:100%; display:flex; justify-content:center; }
+.mk-buehne { position:relative; flex:none; overflow:hidden; background:#faf3df; }
+.mk-dekor { position:absolute; inset:0; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+.mk-dekor img { position:absolute; display:block; }
+.mk-himmel { position:absolute; top:0; left:0; width:18%; height:45%; background:linear-gradient(150deg,#4498d0,#8cd4ed 72%,#d9eef0); }
+.mk-wolke { z-index:1; object-fit:contain; -webkit-animation:mk-wolke 43s linear -22s infinite; animation:mk-wolke 43s linear -22s infinite; }
+.mk-sonne { z-index:1; position:absolute; border-radius:48% 52% 45% 55%; background:linear-gradient(35deg,#ffd332,#fff58c); box-shadow:0 0 2em rgba(255,218,50,.25); }
+.mk-basis { z-index:2; width:100%; height:100%; top:0; left:0; }
+.mk-cover { z-index:3; object-fit:contain; background:#fff; -webkit-transform:rotate(-1.1deg) skewY(-1deg); transform:rotate(-1.1deg) skewY(-1deg); transform-origin:center bottom; }
+.mk-covertext,.mk-rezepttext { position:absolute; z-index:3; white-space:pre-line; text-align:center; }
+.mk-covertext { font:2.05em/1.1 Georgia,serif; color:#09427a; }
+.mk-rezepttext { font:italic 3.4em/1.12 'Segoe Print','Bradley Hand',cursive; color:#074e82; transform:rotate(-13deg); -webkit-transform:rotate(-13deg); }
+.mk-kopf { position:absolute; z-index:5; pointer-events:none; margin:0; }
+.mk-titelgrafik { display:block; width:100%; height:100%; object-fit:contain; }
+.mk-untertitel { position:absolute; margin:0; z-index:5; pointer-events:none; text-align:right; white-space:nowrap; font:italic 2.6em/1.2 Georgia,serif; }
+.mk-ziel { position:absolute; z-index:10; display:block; margin:0; padding:0; border:0; background:transparent; color:#241d15; cursor:pointer; border-radius:1em; font:2.05em/1.05 Georgia,serif; }
+.mk-schild { position:absolute; display:flex; align-items:center; justify-content:center; padding:0 .25em; border-radius:.15em; white-space:nowrap; }
+.mk-ziel:focus { outline:.12em dashed #285c73; outline-offset:-.15em; }
+.mk-ziel:focus:not(:focus-visible) { outline:none; }
+.mk-ziel[aria-disabled=true] { cursor:help; }
+.mk-ziel-fortsetzung { font-size:2.05em; }
+.mk-ziel-fortsetzung .mk-schild { white-space:normal; }
+.mk-ziel-radio { font-size:1.98em; }
+.mk-ziel-brief .mk-schild { color:#114374; white-space:pre-line; font:italic .88em/1.05 'Segoe Print','Bradley Hand',cursive; transform:rotate(14deg); -webkit-transform:rotate(14deg); }
+.mk-vogel { z-index:1; position:absolute; transform-origin:59.210526% 81.25%; -webkit-transform-origin:59.210526% 81.25%; }
+.mk-vogelframe { top:0; left:0; width:100%; height:100%; }
+.mk-pfannkuchen { z-index:4; object-fit:contain; transform-origin:50% 90%; -webkit-animation:mk-pfanne 9s ease-in-out infinite; animation:mk-pfanne 9s ease-in-out infinite; }
+.mk-efeu { z-index:4; object-fit:contain; transform-origin:20% 0; -webkit-transform-origin:20% 0; -webkit-animation:mk-efeu 6.7s ease-in-out infinite alternate; animation:mk-efeu 6.7s ease-in-out infinite alternate; }
+.mk-dampf { z-index:5; position:absolute; overflow:visible; }
+.mk-dampf path { fill:none; stroke:#fff5df; stroke-width:4; stroke-linecap:round; opacity:0; -webkit-animation:mk-dampf 3.6s ease-out infinite; animation:mk-dampf 3.6s ease-out infinite; }
+.mk-lidhalter { z-index:4; position:absolute; pointer-events:none; }
+.mk-lid { position:absolute; width:100%; height:100%; border-radius:50%; border-bottom:.18em solid; opacity:0; background-image:linear-gradient(135deg,rgba(255,233,176,.3) 0%,transparent 48%,rgba(230,119,52,.1) 50%,transparent 75%); transform-origin:50% 0; -webkit-transform-origin:50% 0; -webkit-animation:mk-blinzeln 6s linear infinite; animation:mk-blinzeln 6s linear infinite; }
+.mk-lid:after { content:''; position:absolute; left:12%; top:32%; width:76%; height:25%; border-bottom:.22em solid rgba(64,43,25,.6); border-radius:0 0 50% 50%; }
+.mk-flamme { position:absolute; z-index:4; border-radius:70% 30% 60% 40%; background:radial-gradient(ellipse at 50% 85%,#fffbc8 12%,#ffe651 45%,#efa521 70%,transparent 76%); box-shadow:0 0 1em rgba(255,187,40,.15); transform-origin:50% 100%; -webkit-transform-origin:50% 100%; -webkit-animation:mk-flamme .8s ease-in-out infinite alternate; animation:mk-flamme .8s ease-in-out infinite alternate; }
+.mk-gas { background:radial-gradient(ellipse at 50% 85%,#effcfa 4%,#69e9ff 20%,#167adc 57%,transparent 72%); box-shadow:none; }
+.mk-skala { position:absolute; z-index:4; display:flex; align-items:center; justify-content:space-between; }
+.mk-skala i { width:1px; height:50%; background:#364826; }
+.mk-skala i:nth-child(3n) { height:75%; }
+.mk-skala b { position:absolute; left:84%; height:100%; width:.22em; background:#ba2d21; }
+.mk-fuss { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px 20px; min-height:48px; padding:5px 12px; padding-bottom:max(5px,env(safe-area-inset-bottom)); background:#f4eddc; }
+.mk-fuss button,.mk-fuss a { min-height:44px; display:inline-flex; align-items:center; border:0; padding:7px 9px; color:#6a5943; background:transparent; font:14px/1.2 Georgia,serif; text-decoration:none; cursor:pointer; }
+.mk-fuss button:hover,.mk-fuss a:hover { color:#154b70; text-decoration:underline; }
+.mk-fuss button:focus,.mk-fuss a:focus { outline:2px solid #285c73; }
+.mk-schnell { display:none; }
+.mk-ruhig *,.mk-ruhig *:before,.mk-ruhig *:after { -webkit-animation-play-state:paused!important; animation-play-state:paused!important; }
+.mk-ruhig .mk-lid { opacity:0!important; }
+.mk-bildfehler .mk-schnell { display:flex; }
+@media (orientation:portrait) {
+  .mk-rahmen { margin:0; }
+  .mk-schnell { display:flex; flex-wrap:wrap; padding:14px 12px 8px; gap:9px; max-width:800px; margin:auto; }
+  .mk-listenziel { position:relative; flex:1 0 44%; min-height:58px; border:1px solid #d8c7a6; border-radius:5px; background:#fffbef; color:#3c3120; padding:10px 8px; font:18px/1.2 Georgia,serif; box-shadow:0 2px 0 #e3d5ba; cursor:pointer; }
+  .mk-listenziel[aria-disabled=true] { color:#8b806d; cursor:help; }
+  .mk-listenziel small { display:block; font:11px/1.6 Arial,sans-serif; letter-spacing:.06em; text-transform:uppercase; }
+  .mk-fuss { padding-top:10px; }
+}
+@media (max-width:450px) { .mk-listenziel { font-size:16px; min-height:62px; } .mk-fuss { gap:3px 8px; } }
+@media (prefers-reduced-motion:reduce) { .mk-seite * { -webkit-animation:none!important; animation:none!important; transition:none!important; } }
+@-webkit-keyframes mk-wolke { from { -webkit-transform:translateX(-130%); } to { -webkit-transform:translateX(125%); } }
+@keyframes mk-wolke { from { transform:translateX(-130%); } to { transform:translateX(125%); } }
+@-webkit-keyframes mk-efeu { from { -webkit-transform:rotate(-2deg); } to { -webkit-transform:rotate(3deg); } }
+@keyframes mk-efeu { from { transform:rotate(-2deg); } to { transform:rotate(3deg); } }
+@-webkit-keyframes mk-pfanne { 0%,70%,100% { -webkit-transform:translateY(0) rotate(-1deg); } 77% { -webkit-transform:translateY(9%) rotate(-4deg); } 85% { -webkit-transform:translateY(-21%) rotate(8deg) scaleY(.76); } 93% { -webkit-transform:translateY(3%) rotate(-3deg); } }
+@keyframes mk-pfanne { 0%,70%,100% { transform:translateY(0) rotate(-1deg); } 77% { transform:translateY(9%) rotate(-4deg); } 85% { transform:translateY(-21%) rotate(8deg) scaleY(.76); } 93% { transform:translateY(3%) rotate(-3deg); } }
+@-webkit-keyframes mk-dampf { 0% { opacity:0; -webkit-transform:translateY(8px); } 35% { opacity:.5; } 100% { opacity:0; -webkit-transform:translate(7px,-23px); } }
+@keyframes mk-dampf { 0% { opacity:0; transform:translateY(8px); } 35% { opacity:.5; } 100% { opacity:0; transform:translate(7px,-23px); } }
+@-webkit-keyframes mk-flamme { from { -webkit-transform:rotate(-6deg) scale(.95,1.05); opacity:.85; } to { -webkit-transform:rotate(6deg) scale(1.1,.9); opacity:1; } }
+@keyframes mk-flamme { from { transform:rotate(-6deg) scale(.95,1.05); opacity:.85; } to { transform:rotate(6deg) scale(1.1,.9); opacity:1; } }
+@-webkit-keyframes mk-blinzeln { 0%,92%,100% { opacity:0; -webkit-transform:scaleY(.01); } 93% { opacity:1; -webkit-transform:scaleY(.3); } 94%,95% { opacity:1; -webkit-transform:scaleY(1); } 96% { opacity:0; -webkit-transform:scaleY(.01); } }
+@keyframes mk-blinzeln { 0%,92%,100% { opacity:0; transform:scaleY(.01); } 93% { opacity:1; transform:scaleY(.3); } 94%,95% { opacity:1; transform:scaleY(1); } 96% { opacity:0; transform:scaleY(.01); } }

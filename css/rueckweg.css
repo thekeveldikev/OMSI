@@ -1,0 +1,19 @@
+.rk-zurueck { position:fixed; top:8px; left:10px; top:max(8px,env(safe-area-inset-top)); left:max(10px,env(safe-area-inset-left)); width:150px; height:50px; padding:0; margin:0; border:0; background:transparent; color:#314d55; z-index:20000; cursor:pointer; font:19px/1 Georgia,serif; -webkit-tap-highlight-color:transparent; }
+.rk-zurueck svg { position:absolute; top:0; left:0; width:100%; height:100%; filter:drop-shadow(0 2px 1px rgba(58,38,12,.18)); }
+.rk-zurueck span { position:absolute; left:52px; top:16px; white-space:nowrap; }
+.rk-zurueck:focus { outline:2px dashed #315b6c; outline-offset:2px; }
+.rk-zurueck:focus:not(:focus-visible) { outline:none; }
+/* Alte Rückwege behalten ihren Platz in den Kopfzeilen, sind aber nicht doppelt bedienbar. */
+body[data-rueckweg] .akte-zurueck,body[data-rueckweg] .radio-zurueck,body[data-rueckweg] .brief-zurueck,
+body[data-rueckweg] .spiel-zurueck,body[data-rueckweg] .finale-zurueck,
+body[data-rueckweg] .buch-bildschirm .leiste > button:first-child { visibility:hidden!important; }
+body[data-rueckweg] .mo-bar [data-mo=back] { display:none; }
+body[data-rueckweg] .mo-bar { padding-left:170px; }
+body[data-rueckweg] .mo-modal-head { padding-left:174px; }
+body[data-rueckweg] .leiste-titel { margin-left:20px; }
+.rk-zutat { cursor:pointer; border-radius:3px; position:relative; }
+.rk-zutat:focus { outline:2px dashed #547d3e; }
+.rk-zutat[aria-pressed=true] { color:#547642; text-decoration:line-through; }
+.rk-zutat[aria-pressed=true]:after { content:'✓'; position:absolute; left:-1em; top:0; color:#477743; font-weight:bold; }
+@media(max-width:550px) { .rk-zurueck { width:142px; font-size:18px; left:6px; } body[data-rueckweg] .mo-bar { padding-left:153px; } body[data-rueckweg] .mo-modal-head { padding-top:60px; padding-left:14px; } }
+@media print { .rk-zurueck { display:none!important; } }

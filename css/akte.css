@@ -1,0 +1,26 @@
+.akte-bildschirm.ak2 { display:block; padding:72px 0 18px; overflow:auto; }
+.ak2 .ak2-dossier { position:relative; margin:0 auto; max-width:none; max-height:none; padding:0; background-image:url('../bilder/extras/geheimakte-omsi.jpg'); background-size:100% 100%; }
+.ak2 .ak2-papier { position:absolute; left:36.95%; top:16.16%; width:53.87%; height:53.87%; padding:0; overflow:hidden; transform:rotate(4.6deg); -webkit-transform:rotate(4.6deg); font-family:'American Typewriter','Courier New',monospace; }
+.ak2 .akte-kopf { margin:0; font-size:1.3em; }
+.ak2 .akte-felder { margin:.65em 0; }
+.ak2 .akte-zeile { margin:0 0 .3em; }
+.ak2 .akte-name { flex:0 0 36%; -webkit-flex:0 0 36%; font-weight:normal; }
+.ak2 .akte-wert { margin:0; font-weight:bold; }
+.ak2 .akte-unterschrift { opacity:1; margin:.4em 0 0 4%; }
+.ak2 .akte-stempel { top:67%; left:55%; right:auto; bottom:auto; padding:.12em .3em; background:transparent; cursor:pointer; line-height:1; }
+.ak2 .akte-stempel:focus { outline:2px dashed #b24128; outline-offset:4px; }
+.ak2 .akte-stempel:focus:not(:focus-visible) { outline:none; }
+.ak2-hoch .ak2-dossier { background-image:url('../bilder/menue-v2/akte-hochkant-v1.png'); }
+.ak2-hoch .ak2-papier { left:12%; top:23%; width:76%; height:57%; transform:none; -webkit-transform:none; }
+.ak2-hoch .akte-stempel { left:auto; right:17%; top:82%; bottom:auto; }
+.ak2-hoch .akte-name { flex-basis:37%; -webkit-flex-basis:37%; }
+.ak2-status { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+@media(max-width:550px) {
+  .ak2-hoch .ak2-papier { left:10%; width:82%; }
+  .ak2-hoch .akte-zeile { display:block; margin-bottom:.2em; }
+  .ak2-hoch .akte-name,.ak2-hoch .akte-wert { display:inline; padding:0; }
+  .ak2-hoch .akte-wert:before { content:' '; }
+  .ak2-hoch .akte-felder { line-height:1.2; margin:.4em 0; }
+  .ak2-hoch .akte-kopf { font-size:1.18em; letter-spacing:0; }
+  .ak2-hoch .akte-unter { margin:.3em 0 .5em; }
+}
