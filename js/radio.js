@@ -9,7 +9,7 @@
   function zahl(v, sonst) { return typeof v === 'number' && isFinite(v) ? v : sonst; }
 
   // Kurzes Senderrauschen und mechanischer Klick, nie unter der ganzen Aufnahme.
-  function schalten(an) {
+  function schalten(an, laut) {
     if (B.E.toene === false || !window.KLANG) return;
     KLANG.entsperren();
     var c = KLANG.kontext();
@@ -19,14 +19,31 @@
     for (var i = 0; i < n; i++) {
       var t = i / c.sampleRate;
       var h = Math.min(1, t / 0.006) * Math.pow(1 - i / n, 2);
-      d[i] = (Math.random() * 2 - 1) * h * (an ? 0.12 : 0.09);
-      if (t < 0.025) d[i] += Math.sin(t * 1900) * Math.exp(-t * 220) * 0.22;
+      d[i] = ((Math.random() * 2 - 1) * h * (an ? 0.12 : 0.09) +
+        (t < 0.025 ? Math.sin(t * 1900) * Math.exp(-t * 220) * 0.22 : 0)) * (laut == null ? 1 : laut);
     }
     var q = c.createBufferSource(), f = c.createBiquadFilter();
     q.buffer = buffer; f.type = 'bandpass'; f.frequency.value = an ? 1800 : 900; f.Q.value = 0.6;
     q.connect(f); f.connect(c.destination);
     q.onended = function () { q.disconnect(); f.disconnect(); };
     q.start(0);
+  }
+
+  function schubladenKlang(auf, laut) {
+    if (B.E.toene === false || !laut) return;
+    var c = KLANG.kontext(); if (!c) return;
+    var dauer = auf ? 0.42 : 0.32, n = Math.ceil(c.sampleRate * dauer);
+    var p = c.createBuffer(1, n, c.sampleRate), d = p.getChannelData(0);
+    for (var i = 0; i < n; i++) {
+      var t = i / c.sampleRate, h = Math.sin(Math.PI * i / n);
+      d[i] = (Math.random() * 2 - 1) * h * (0.4 + 0.6 * Math.pow(Math.sin(t * 90), 2)) * 0.065 * laut;
+      var anschlag = t - (dauer - 0.055);
+      if (anschlag >= 0) d[i] += Math.sin(anschlag * 1100) * Math.exp(-anschlag * 95) * 0.16 * laut;
+    }
+    var q = c.createBufferSource(), f = c.createBiquadFilter();
+    q.buffer = p; f.type = 'lowpass'; f.frequency.value = auf ? 1600 : 1100;
+    q.connect(f); f.connect(c.destination);
+    q.onended = function () { q.disconnect(); f.disconnect(); }; q.start(0);
   }
 
   R.starten = function (wurzel, zurueck) {
@@ -36,6 +53,13 @@
     var weg = false, spielt = false, wartet = false, defekt = false, version = 0;
     var pos = Math.max(0, zahl(B.erinnern('radio.position.v1', 0), 0));
     var dauer = D.dauer || 0, gemerkt = 0, frame = null, bereit = false;
+    var laut = B.klemme(zahl(B.erinnern('radio.laut', 75), 75), 0, 100);
+    var quelle = null, gain = null, analyse = null, wellen = null, ctx = null;
+    var nacht = B.erinnern('radio.abend', false) === true;
+    var wieder = B.erinnern('radio.wiederholen', false) === true, schlummer = 0, letzteSekunde = -1;
+    var stellen = B.erinnern('radio.stellen', []);
+    if (!Array.isArray(stellen)) stellen = [];
+    stellen = stellen.filter(function (s) { return typeof s === 'number' && isFinite(s) && s >= 0 && s < dauer; }).slice(0, 6);
     if (pos >= dauer - 0.4) pos = 0;
     var seite = B.el('section', 'radio-seite', wurzel);
     seite.setAttribute('aria-label', D.titel);
@@ -46,13 +70,17 @@
     var inhalt = B.el('div', 'radio-inhalt', seite);
     var intro = B.el('div', 'radio-intro', inhalt);
     B.el('p', 'radio-datum', intro, D.datum);
+    B.el('p', 'radio-sender', intro, D.sender);
     var titel = B.el('h1', 'radio-titel', intro, D.titel);
     PAPIER.schriftFuellen(titel, 'blau', { akzent: 'tiefblau' });
     B.el('p', 'radio-geschichte', intro, D.beschreibung);
 
     var buehne = B.el('div', 'radio-buehne', inhalt);
     var bild = B.el('img', 'radio-bild', buehne);
-    bild.src = D.bild; bild.alt = 'Ein rotes Küchenradio aus buntem, bemaltem Papier'; bild.draggable = false;
+    bild.src = D.bild; bild.alt = 'Ein dunkelgrünes Küchenradio aus bemaltem Papier'; bild.draggable = false;
+    var speaker = B.el('div', 'radio-lautsprecher', buehne);
+    speaker.setAttribute('aria-hidden', 'true');
+    var speakerBild = B.el('img', '', speaker); speakerBild.src = D.bild; speakerBild.alt = ''; speakerBild.draggable = false;
     var lampe = B.el('span', 'radio-lampe', buehne); lampe.setAttribute('aria-hidden', 'true');
     var noten = B.el('div', 'radio-noten', buehne); noten.setAttribute('aria-hidden', 'true');
     ['♪', '♫', '♪'].forEach(function (n) { B.el('span', '', noten, n); });
@@ -67,13 +95,20 @@
     var suche = B.el('input', 'radio-suche', skala);
     suche.type = 'range'; suche.min = '0'; suche.max = String(dauer); suche.step = '0.1'; suche.value = String(pos);
     suche.setAttribute('aria-label', 'Stelle in der Aufnahme');
-    var dreh = B.el('button', 'radio-dreh radio-dreh-an', buehne);
+    var dreh = B.el('button', 'radio-druck radio-druck-an', buehne, '▶');
     dreh.type = 'button'; dreh.setAttribute('aria-label', 'Radio einschalten');
-    var neuDreh = B.el('button', 'radio-dreh radio-dreh-neu', buehne);
+    var neuDreh = B.el('button', 'radio-druck radio-druck-neu', buehne, '↺');
     neuDreh.type = 'button'; neuDreh.setAttribute('aria-label', 'Aufnahme von vorn hören');
-    B.el('span', 'radio-dreh-text radio-dreh-text-an', buehne, 'AN / AUS');
-    B.el('span', 'radio-dreh-text radio-dreh-text-neu', buehne, 'VON VORN');
-    B.el('span', 'radio-sender', buehne, D.sender);
+    PAPIER.hinterlegen(dreh, 'gelb', { seed: 51 }); PAPIER.hinterlegen(neuDreh, 'ocker', { seed: 52 });
+    B.el('span', 'radio-druck-text radio-druck-text-an', buehne, 'HÖREN / PAUSE');
+    B.el('span', 'radio-druck-text radio-druck-text-neu', buehne, 'VON VORN');
+    var regler = B.el('div', 'radio-lautstaerke', buehne);
+    regler.setAttribute('role', 'slider'); regler.tabIndex = 0;
+    regler.setAttribute('aria-label', 'Lautstärke'); regler.setAttribute('aria-valuemin', '0'); regler.setAttribute('aria-valuemax', '100');
+    var rad = B.el('span', 'radio-laut-rad', regler);
+    PAPIER.hinterlegen(rad, 'gelb', { seed: 54 }); B.el('i', 'radio-laut-marke', rad);
+    var lautText = B.el('span', 'radio-laut-text', buehne);
+    B.el('span', 'radio-drehen-hinweis', buehne, '↶ DREHEN ↷');
 
     var bedienung = B.el('div', 'radio-bedienung', inhalt);
     var zeitzeile = B.el('div', 'radio-zeitzeile', bedienung);
@@ -86,16 +121,162 @@
     var neu = B.el('button', 'radio-knopf radio-neu', knoepfe, '↺ Von vorn');
     neu.type = 'button'; neu.setAttribute('data-radio', 'restart');
     var hinweis = B.el('p', 'radio-hinweis', bedienung, 'Deine Stelle bleibt gemerkt. Auch wenn du das Radio ausschaltest.');
-    B.el('p', 'radio-widmung', inhalt, D.widmung);
+    var schublade = B.el('div', 'radio-schublade', inhalt);
+    var fach = B.el('div', 'radio-extrafach', schublade); fach.id = 'radio-extrafach'; fach.style.display = 'none';
+    fach.setAttribute('aria-hidden', 'true');
+    var innen = B.el('div', 'radio-schublade-innen', fach);
+    PAPIER.hinterlegen(innen, 'creme', { seed: 63, kachel: 240 });
+    var fachTaste = B.el('button', 'radio-fach-taste', schublade);
+    var front = B.el('img', 'radio-schubladenbild', fachTaste); front.src = D.schublade; front.alt = ''; front.draggable = false;
+    var fachText = B.el('span', 'radio-fach-text', fachTaste, 'Das kleine Extrafach');
+    var fachHinweis = B.el('span', 'radio-fach-hinweis', fachTaste, 'Am Griff öffnen ↓');
+    fachTaste.type = 'button'; fachTaste.setAttribute('data-radio', 'extras'); fachTaste.setAttribute('aria-expanded', 'false');
+    fachTaste.setAttribute('aria-controls', 'radio-extrafach');
+    var fachOffen = false, fachTimer = null, fachFrame = null;
+    B.tippen(fachTaste, function () {
+      fachOffen = !fachOffen; clearTimeout(fachTimer); B.frameStopp(fachFrame);
+      audioVerbinden(); schubladenKlang(fachOffen, laut / 100);
+      fachTaste.setAttribute('aria-expanded', String(fachOffen)); fach.setAttribute('aria-hidden', String(!fachOffen));
+      fachHinweis.textContent = fachOffen ? 'Am Griff schließen ↑' : 'Am Griff öffnen ↓';
+      schublade.className = 'radio-schublade' + (fachOffen ? ' offen' : '');
+      var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (still) { fach.style.display = fachOffen ? 'block' : 'none'; fach.style.maxHeight = 'none'; return; }
+      if (fachOffen) {
+        fach.style.display = 'block'; fach.style.maxHeight = '0px';
+        void fach.offsetHeight;
+        fachFrame = B.frame(function () { fach.style.maxHeight = fach.scrollHeight + 'px'; });
+        fachTimer = setTimeout(function () { if (!weg && fachOffen) fach.style.maxHeight = 'none'; }, 440);
+      } else {
+        fach.style.maxHeight = fach.scrollHeight + 'px'; void fach.offsetHeight;
+        fachFrame = B.frame(function () { fach.style.maxHeight = '0px'; });
+        fachTimer = setTimeout(function () { if (!weg && !fachOffen) fach.style.display = 'none'; }, 440);
+      }
+    });
+    var bonusZeile = B.el('div', 'radio-bonuszeile', innen);
+    function bonus(name, text, fn) {
+      var b = B.el('button', 'radio-bonus', bonusZeile, text); b.type = 'button'; b.setAttribute('data-radio', name);
+      B.tippen(b, fn); return b;
+    }
+    bonus('back', '↶ 10 Sekunden', function () { springen(pos - 10); });
+    bonus('forward', '10 Sekunden ↷', function () { springen(pos + 10); });
+    var wiederTaste = bonus('repeat', '↻ Noch mal & noch mal', function () {
+      wieder = !wieder; a.loop = wieder; B.merken('radio.wiederholen', wieder); wiederTaste.setAttribute('aria-pressed', String(wieder));
+    });
+    wiederTaste.setAttribute('aria-pressed', String(wieder));
+    var nachtTaste = bonus('night', '☾ Abendlicht', function () {
+      nacht = !nacht; B.merken('radio.abend', nacht); nachtTaste.setAttribute('aria-pressed', String(nacht)); anzeigen();
+    });
+    nachtTaste.setAttribute('aria-pressed', String(nacht));
+    bonus('bookmark', '♡ Diese Stelle merken', function () {
+      var t = Math.floor(pos);
+      if (stellen.some(function (s) { return Math.abs(s - t) < 2; })) { anzeigen('Diese Lieblingsstelle ist schon gemerkt.'); return; }
+      if (stellen.length >= 6) { anzeigen('Sechs Lieblingsstellen sind gemerkt. Du kannst unten eine freimachen.'); return; }
+      stellen.push(t); stellen.sort(function (a, b) { return a - b; }); B.merken('radio.stellen', stellen); lieblingsstellen();
+      anzeigen('Lieblingsstelle bei ' + zeit(t) + ' gemerkt.');
+    });
+    bonus('mute', '♪ Ton aus / an', function () {
+      if (laut) { B.merken('radio.vorStumm', laut); lautSetzen(0); }
+      else lautSetzen(B.klemme(zahl(B.erinnern('radio.vorStumm', 75), 75), 5, 100));
+    });
+    var timerZeile = B.el('label', 'radio-schlummer', innen, 'Schlummer-Radio ');
+    var timerWahl = B.el('select', '', timerZeile); timerWahl.setAttribute('data-radio', 'sleep'); timerWahl.setAttribute('aria-label', 'Schlummer-Timer');
+    [0, 5, 10, 15].forEach(function (n) { var o = B.el('option', '', timerWahl, n ? 'In ' + n + ' Minuten aus' : 'Kein Timer'); o.value = String(n); });
+    var timerInfo = B.el('span', 'radio-timer-info', timerZeile);
+    timerWahl.addEventListener('change', function () { schlummer = Number(timerWahl.value) ? Date.now() + Number(timerWahl.value) * 60000 : 0; letzteSekunde = -1; });
+    var lieblinge = B.el('div', 'radio-lieblinge', innen);
+    function lieblingsstellen() {
+      B.leeren(lieblinge);
+      B.el('p', '', lieblinge, stellen.length ? 'Deine Lieblingsstellen' : 'Ein Lachen festhalten? Merke dir eine Lieblingsstelle.');
+      stellen.forEach(function (t, index) {
+        var chip = B.el('span', 'radio-merke', lieblinge);
+        var sprung = B.el('button', 'radio-merke-sprung', chip, '♡ ' + zeit(t)); sprung.type = 'button';
+        sprung.setAttribute('aria-label', 'Zur Lieblingsstelle bei ' + zeit(t)); B.tippen(sprung, function () { springen(t); });
+        var wegTaste = B.el('button', 'radio-merke-loeschen', chip, '×'); wegTaste.type = 'button';
+        wegTaste.setAttribute('aria-label', 'Lieblingsstelle bei ' + zeit(t) + ' entfernen');
+        B.tippen(wegTaste, function () { stellen.splice(index, 1); B.merken('radio.stellen', stellen); lieblingsstellen(); });
+      });
+    }
+    lieblingsstellen();
     var a = B.el('audio', 'radio-audio', seite);
     a.preload = 'metadata'; a.setAttribute('playsinline', ''); a.src = D.audio;
+    a.loop = wieder;
+
+    // Ein eigener Gain regelt auch auf iPads; HTMLAudio.volume allein reicht dort nicht.
+    function audioVerbinden() {
+      KLANG.entsperren(); ctx = KLANG.kontext();
+      // Safari unterbricht den Kontext bei Sperrbildschirm/Tabwechsel gesondert.
+      // Wieder direkt im Tipp-Ereignis wecken, ohne das HTML-play() zu verzögern.
+      if (ctx && ctx.state === 'interrupted' && ctx.resume) {
+        var weiter = ctx.resume();
+        if (weiter && weiter['catch']) weiter['catch'](function () {
+          if (!weg) anzeigen('Bitte zum Weiterhören noch einmal einschalten.');
+        });
+      }
+      if (!gain && ctx && ctx.createMediaElementSource) {
+        gain = ctx.createGain(); gain.gain.value = laut / 100;
+        analyse = ctx.createAnalyser(); analyse.fftSize = 256; wellen = new Uint8Array(analyse.fftSize);
+        quelle = ctx.createMediaElementSource(a);
+        quelle.connect(gain); gain.connect(analyse); analyse.connect(ctx.destination);
+        a.volume = 1;
+      }
+      if (!gain) a.volume = laut / 100;
+    }
+    function lautSetzen(wert) {
+      laut = Math.round(B.klemme(wert, 0, 100)); B.merken('radio.laut', laut);
+      regler.setAttribute('aria-valuenow', String(laut)); regler.setAttribute('aria-valuetext', laut ? laut + ' Prozent' : 'Stumm');
+      lautText.textContent = laut ? 'LAUTSTÄRKE ' + laut + '%' : 'STUMM';
+      B.transform(rad, 'rotate(' + (-135 + laut * 2.7) + 'deg)');
+      if (gain) {
+        gain.gain.cancelScheduledValues(ctx.currentTime);
+        gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(laut / 100, ctx.currentTime + 0.04);
+      } else a.volume = laut / 100;
+    }
+    lautSetzen(laut);
+    regler.addEventListener('keydown', function (ev) {
+      var k = ev.key, wert = laut;
+      if (k === 'ArrowUp' || k === 'ArrowRight') wert += 5;
+      else if (k === 'ArrowDown' || k === 'ArrowLeft') wert -= 5;
+      else if (k === 'Home') wert = 0;
+      else if (k === 'End') wert = 100;
+      else return;
+      ev.preventDefault(); lautSetzen(wert);
+    });
+    var dreht = false, letzterWinkel = 0, drehWert = laut, zeiger = null;
+    function winkel(ev) {
+      var punkt = ev.touches ? ev.touches[0] : ev, box = regler.getBoundingClientRect();
+      return Math.atan2(punkt.clientX - box.left - box.width / 2, box.top + box.height / 2 - punkt.clientY) * 180 / Math.PI;
+    }
+    function drehStart(ev) {
+      if (ev.button != null && ev.button !== 0) return;
+      ev.preventDefault(); dreht = true; drehWert = laut; letzterWinkel = winkel(ev);
+      zeiger = ev.pointerId; regler.focus();
+      if (regler.setPointerCapture && zeiger != null) regler.setPointerCapture(zeiger);
+    }
+    function drehBewegen(ev) {
+      if (!dreht || (ev.pointerId != null && zeiger !== ev.pointerId)) return;
+      if (ev.cancelable) ev.preventDefault();
+      var w = winkel(ev), delta = w - letzterWinkel;
+      if (delta > 180) delta -= 360; if (delta < -180) delta += 360;
+      letzterWinkel = w; drehWert = B.klemme(drehWert + delta / 2.7, 0, 100); lautSetzen(drehWert);
+    }
+    function drehEnde() { dreht = false; zeiger = null; }
+    var eingaben = window.PointerEvent ? [['pointerdown', drehStart, regler], ['pointermove', drehBewegen, window], ['pointerup', drehEnde, window], ['pointercancel', drehEnde, window]] :
+      [['mousedown', drehStart, regler], ['mousemove', drehBewegen, window], ['mouseup', drehEnde, window], ['touchstart', drehStart, regler], ['touchmove', drehBewegen, window], ['touchend', drehEnde, window], ['touchcancel', drehEnde, window]];
+    eingaben.forEach(function (e) { e[2].addEventListener(e[0], e[1], { passive: false }); });
+    function springen(t) {
+      pos = B.klemme(t, 0, Math.max(0, dauer - 0.05));
+      if (bereit) a.currentTime = pos; B.merken('radio.position.v1', pos); zeitanzeige();
+      if (!spielt) anzeigen();
+    }
 
     function speichern() {
       if (bereit && !a.ended) pos = zahl(a.currentTime, pos);
       B.merken('radio.position.v1', pos);
     }
     function anzeigen(text) {
-      seite.className = 'radio-seite' + (spielt && !wartet ? ' spielt' : '') + (wartet ? ' wartet' : '');
+      seite.className = 'radio-seite' + (spielt && !wartet ? ' spielt' : '') + (wartet ? ' wartet' : '') + (nacht ? ' abend' : '');
+      dreh.textContent = spielt ? 'Ⅱ' : '▶';
       play.textContent = spielt ? 'Ⅱ Pause' : (pos > 0.5 ? '▶ Weiterhören' : '▶ Radio einschalten');
       dreh.setAttribute('aria-label', spielt ? 'Radio pausieren' : 'Radio einschalten');
       play.setAttribute('aria-pressed', spielt ? 'true' : 'false');
@@ -111,7 +292,7 @@
     }
     function pause(klang) {
       version++; a.pause(); spielt = false; wartet = false; speichern();
-      if (klang) schalten(false);
+      if (klang) schalten(false, laut / 100);
       anzeigen();
     }
     function fehlgeschlagen() {
@@ -124,7 +305,7 @@
       var anfrage = ++version;
       if (defekt) { defekt = false; bereit = false; a.load(); }
       if (a.ended || pos >= dauer - 0.15) { pos = 0; if (bereit) a.currentTime = 0; }
-      KLANG.entsperren(); schalten(true);
+      audioVerbinden(); schalten(true, laut / 100);
       spielt = true; wartet = a.readyState < 3; anzeigen();
       // play() innerhalb des Tipp-Ereignisses: Safari braucht die direkte Freigabe.
       var p = a.play();
@@ -162,16 +343,16 @@
       pos = zahl(a.currentTime, pos); zeitanzeige();
       if (Date.now() - gemerkt > 1000) { speichern(); gemerkt = Date.now(); }
     });
-    a.addEventListener('playing', function () { if (!weg) { spielt = true; wartet = false; anzeigen(); } });
-    a.addEventListener('waiting', function () { if (!weg && spielt) { wartet = true; anzeigen(); } });
+    a.addEventListener('playing', function () { if (!weg && !a.paused) { spielt = true; wartet = false; anzeigen(); } });
+    a.addEventListener('waiting', function () { if (!weg && spielt && !a.paused) { wartet = true; anzeigen(); } });
     a.addEventListener('pause', function () {
-      if (weg || a.ended || defekt) return;
+      if (weg || a.ended || defekt || !spielt) return;
       spielt = false; wartet = false; speichern(); anzeigen();
     });
     a.addEventListener('ended', function () {
       if (weg) return;
       spielt = false; wartet = false; pos = 0; B.merken('radio.position.v1', 0);
-      schalten(false); anzeigen('Zu Ende gehört. Noch einmal zurück nach damals?');
+      schalten(false, laut / 100); anzeigen('Zu Ende gehört. Noch einmal zurück nach damals?');
     });
     a.addEventListener('error', fehlgeschlagen);
     function versteckt() { if (document.hidden) { if (spielt) pause(false); else speichern(); } }
@@ -179,22 +360,43 @@
     document.addEventListener('visibilitychange', versteckt);
     window.addEventListener('pagehide', verlassen);
     var weniger = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+    var druck = 0;
     function bewegen() {
       if (weg) return;
+      if (schlummer) {
+        var rest = Math.max(0, Math.ceil((schlummer - Date.now()) / 1000));
+        if (rest !== letzteSekunde) { timerInfo.textContent = 'Noch ' + zeit(rest); letzteSekunde = rest; }
+        if (!rest) { schlummer = 0; timerWahl.value = '0'; timerInfo.textContent = ''; pause(true); anzeigen('Schlummer-Radio aus. Deine Stelle ist gemerkt.'); }
+      } else if (timerInfo.textContent) timerInfo.textContent = '';
       if (!weniger || !weniger.matches) {
         var e = D.pegel || [], idx = Math.floor(a.currentTime * (D.pegelHz || 10));
-        var amplitude = spielt && !wartet ? (e[idx] || 0) / 255 : 0;
+        var amplitude = spielt && !wartet ? (e[idx] || 0) / 255 * laut / 100 : 0;
+        if (analyse && spielt && !wartet) {
+          analyse.getByteTimeDomainData(wellen);
+          var summe = 0;
+          for (var k = 0; k < wellen.length; k++) { var sample = (wellen[k] - 128) / 128; summe += sample * sample; }
+          amplitude = Math.min(1, Math.sqrt(summe / wellen.length) * 5.5);
+        }
+        druck += (amplitude - druck) * (amplitude > druck ? 0.6 : 0.16);
+        B.transform(speaker, 'perspective(600px) scale(' + (1 + druck * 0.065).toFixed(4) + ')');
+        speaker.style.boxShadow = '0 ' + (druck * 5).toFixed(1) + 'px ' + (druck * 16).toFixed(1) + 'px rgba(8,23,17,' + (druck * 0.5).toFixed(2) + ')';
         for (var j = 0; j < balken.length; j++) {
           var wert = 0.14 + amplitude * (0.35 + 0.65 * Math.abs(Math.sin(a.currentTime * 7 + j * 1.3)));
           B.transform(balken[j], 'scaleY(' + wert.toFixed(3) + ')');
         }
+      } else {
+        B.transform(speaker, 'none'); speaker.style.boxShadow = 'none';
+        for (var l = 0; l < balken.length; l++) B.transform(balken[l], 'scaleY(.14)');
       }
       frame = B.frame(bewegen);
     }
     aktiv = function () {
       speichern(); weg = true; version++;
-      if (!a.paused) schalten(false);
+      if (!a.paused) schalten(false, laut / 100);
       a.pause(); a.removeAttribute('src'); a.load();
+      if (quelle) quelle.disconnect(); if (gain) gain.disconnect(); if (analyse) analyse.disconnect();
+      eingaben.forEach(function (e) { e[2].removeEventListener(e[0], e[1], false); });
+      clearTimeout(fachTimer); B.frameStopp(fachFrame);
       B.frameStopp(frame);
       document.removeEventListener('visibilitychange', versteckt);
       window.removeEventListener('pagehide', verlassen);

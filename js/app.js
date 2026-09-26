@@ -96,7 +96,7 @@
     var raster = B.el("div", "karten", menue);
 
     var karten = [
-      { ziel: "radio", titel: "Das Radio von damals", unter: "Omsi liest vor. Und wir lachen zusammen.", farbe: "orange", bild: "bilder/radio/radio-papier.png" },
+      { ziel: "radio", titel: "Das Pfannkuchenbuchradio", unter: "Omsi liest vor. Und wir lachen zusammen.", farbe: "gruen", bild: "bilder/radio/radio-waldgruen.png" },
       { ziel: "makingof", titel: "Bevor der Pfannekuchen fliegt", unter: "Das Atelierbuch – Bilder, Entwürfe und kleine Geheimnisse", farbe: "blau", bild: "bilder/making-of/01_titel_atelier.jpg", symbol: "karte" },
       { ziel: "original", titel: "Das Pfannkuchenbuch", unter: "Das Buch von damals – jetzt lebendig", farbe: "gelb", bild: B.pfad(window.ORIGINAL.bildPfad, 1), hoch: true },
       { ziel: "fortsetzung", titel: B.ersetzen(window.FORTSETZUNG.titel), unter: "Die streng geheime Fortsetzung", farbe: "rot", bild: window.FORTSETZUNG.bildPfad + window.FORTSETZUNG.seiten[0].bild.datei, symbol: "pfanne" },
@@ -328,7 +328,8 @@
              "bilder/extras/geburtstagsturm-ohne-kerzen.png", "bilder/extras/pfannekuchen-flug.png",
              "bilder/schatten/omsi-profil.png", "bilder/schatten/kevin-klein-profil.png", "bilder/schatten/kevin-gross-profil.png", "bilder/schatten/pfanne-leer.png"];
     var endungen = [".m4a", ".mp3", ".wav"];
-    d.push("css/radio.css", "js/radio.js", "daten/radio.js", "bilder/radio/radio-papier.png", "audio/radio/erinnerung.m4a");
+    d.push("css/radio.css", "js/radio.js", "daten/radio.js", "bilder/radio/radio-waldgruen.png", "audio/radio/erinnerung.m4a");
+    d.push("bilder/radio/extrafach-front.png");
     window.ORIGINAL.doppelseiten.forEach(function (ds) {
       ds.forEach(function (n) {
         var s = window.ORIGINAL.seiten[n] || {};

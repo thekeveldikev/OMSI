@@ -60,3 +60,82 @@
   .radio-widmung { font-size:17px; }.radio-noten span { font-size:23px; }
 }
 @media (prefers-reduced-motion:reduce) { .radio-noten span { animation:none!important; }.radio-knopf:active { transform:none; } }
+
+/* Waldgrüne Fassung: Drucktasten, Lautsprecher-Membran und echtes Lautstärkerad. */
+.radio-seite { color:#273e35; transition:background .5s; }
+.radio-kopf { padding-top:10px; }.radio-inhalt { padding-bottom:28px; }
+.radio-datum { display:inline-block; color:#98643b; font-size:12px; margin:8px 10px 11px 0; }
+.radio-sender { display:inline-block; position:static; width:auto; margin:0 0 11px; padding-left:12px; border-left:1px solid #ccb991; font:italic 16px var(--buchschrift); color:#62684b; letter-spacing:normal; }
+.radio-titel { font-size:40px; overflow-wrap:break-word; }
+.radio-geschichte { max-width:745px; }
+.radio-buehne { width:620px; margin:1px auto 0; }
+.radio-lautsprecher { position:absolute; left:7.9%; top:27.5%; width:37.2%; height:56%; border-radius:50%; overflow:hidden; pointer-events:none; transform-origin:50% 50%; will-change:transform; }
+.radio-lautsprecher img { position:absolute; width:268.8172043%; max-width:none; height:auto; left:-21.2365591%; top:-49.1071429%; pointer-events:none; }
+.radio-druck { position:absolute; top:62%; width:12%; height:14.5%; min-width:44px; min-height:44px; border:2px solid #fbe8a1; border-bottom:6px solid #ad7a2b; border-radius:5px 8px 4px 5px; color:#193e31; background-color:#e9c65c; font:bold 30px var(--rund); box-shadow:0 5px 0 #18342d,0 7px 7px rgba(20,43,36,.4); cursor:pointer; text-shadow:0 1px #fff8c3; padding:0; }
+.radio-druck-an { left:49.5%; }.radio-druck-neu { left:64%; }
+.radio-druck:active { transform:translateY(4px); box-shadow:0 1px 0 #18342d; border-bottom-width:2px; }
+.radio-druck[aria-pressed=true] { border-bottom-width:3px; transform:translateY(2px); box-shadow:0 2px 0 #18342d,inset 0 0 12px #fff6bd; }
+.radio-druck-text { position:absolute; top:80%; font-family:var(--rund); font-weight:900; font-size:9px; letter-spacing:.04em; color:#fff4c9; pointer-events:none; }
+.radio-druck-text-an { left:47%; width:17%; }.radio-druck-text-neu { left:62%; width:16%; }
+.radio-lautstaerke { position:absolute; left:79.5%; top:60%; width:13%; height:19.5%; border-radius:50%; min-width:44px; min-height:44px; background:#bba65c; padding:5px; border:3px solid #102e26; box-shadow:0 4px 0 #102e26,0 6px 10px rgba(20,43,36,.4); touch-action:none; cursor:grab; }
+.radio-lautstaerke:active { cursor:grabbing; }
+.radio-laut-rad { position:relative; display:block; width:100%; height:100%; border-radius:50%; background-color:#e4c15d; border:2px solid #ffe8a2; box-shadow:inset 1px 2px 3px rgba(255,244,187,.4); pointer-events:none; }
+.radio-laut-marke { position:absolute; top:6%; left:46%; width:8%; height:34%; border-radius:1px; background:#193d31; }
+.radio-laut-text { position:absolute; left:77%; top:81%; width:18%; color:#fff4c9; font:900 9px var(--rund); white-space:nowrap; }
+.radio-drehen-hinweis { position:absolute; left:77%; top:55%; width:18%; font:700 9px var(--rund); letter-spacing:.07em; color:#f3dc95; }
+.radio-druck:focus,.radio-lautstaerke:focus { outline:3px dashed #ffedab; outline-offset:4px; }
+.radio-lampe { left:46%; top:58%; background:#344c29; border-color:#e9ce70; }
+.radio-pegel { left:17%; top:49%; width:20%; height:18%; opacity:.38; }.spielt .radio-pegel { opacity:.68; }
+.radio-noten span { color:#9d6b23; }.radio-noten span:nth-child(3) { color:#447038; }
+.radio-bedienung { width:550px; margin-top:-4px; }
+.radio-zeitzeile { font-size:13px; margin-bottom:12px; gap:0; }.radio-status { margin-right:12px; }.radio-uhr { font-size:13px; }
+.radio-knoepfe { gap:0; }.radio-knopf { min-height:50px; padding:12px 24px; margin:0 6px; font-size:17px; }
+.radio-play { background:#244f3e; }.radio-neu { color:#334d3f; background:#eee0b6; }
+.radio-hinweis { font-size:12px; margin-top:11px; }
+.radio-fach-taste { display:block; min-height:44px; margin:13px auto 0; padding:8px 22px; border:0; background:transparent; cursor:pointer; color:#647344; font:700 15px var(--rund); }
+.radio-extrafach { max-width:710px; margin:5px auto 0; padding:18px 14px 12px; background:#f3eddb; border-top:2px dashed #b6b78a; border-radius:4px 6px 18px 7px; }
+.radio-bonuszeile { display:flex; flex-wrap:wrap; justify-content:center; }
+.radio-bonus { min-height:44px; border:1px solid #c1c6a5; background:#fffdf3; border-radius:5px; padding:9px 13px; margin:4px; font:14px var(--rund); color:#375140; cursor:pointer; }
+.radio-bonus[aria-pressed=true] { background:#d9e2b9; border-color:#6c864d; box-shadow:inset 0 -3px #819966; }
+.radio-schlummer { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; margin:12px 0 0; font:14px var(--rund); }
+.radio-schlummer select { min-height:44px; margin:0 8px; padding:8px; border:1px solid #b6bd99; background:#fffdf3; color:#375140; border-radius:4px; font:inherit; }
+.radio-timer-info { font:13px var(--maschine); margin:8px; }
+.radio-lieblinge { font:13px/1.5 var(--rund); color:#707451; }.radio-lieblinge p { margin:15px 0 7px; }
+.radio-merke { display:inline-flex; margin:4px; background:#fffdf3; border-radius:6px; border:1px solid #d9ceab; }
+.radio-merke button { min-width:44px; min-height:44px; border:0; background:none; color:#566738; font:14px var(--rund); cursor:pointer; }
+.radio-merke-sprung { padding:8px 12px; }.radio-merke-loeschen { border-left:1px solid #e5dec8!important; }
+.radio-bonus:focus,.radio-fach-taste:focus,.radio-merke button:focus { outline:3px dashed #ad7535; outline-offset:3px; }
+.radio-seite.abend { background:#e7d6aa; color:#3a4230; }.abend .radio-extrafach { background:#dac89d; }.abend .radio-lampe { border-color:#fff3b4; }.abend.spielt .radio-lampe { box-shadow:0 0 25px 12px rgba(255,210,98,.6); }
+@media (min-width:900px) and (max-height:800px) {
+  .radio-kopf { padding-top:6px; }.radio-titel { font-size:36px; }.radio-geschichte { font-size:17px; margin-top:8px; }.radio-buehne { width:560px; }
+  .radio-fach-taste { margin-top:6px; }.radio-datum { margin-top:2px; }
+}
+@media (orientation:portrait) and (min-width:600px) {
+  .radio-inhalt { padding-top:32px; }.radio-titel { font-size:42px; }.radio-buehne { margin-top:24px; width:680px; }.radio-geschichte { max-width:630px; font-size:20px; }
+}
+@media (max-width:599px) {
+  .radio-inhalt { padding:6px 12px 24px; }.radio-datum { font-size:10px; }.radio-sender { font-size:14px; }.radio-titel { font-size:28px; }
+  .radio-geschichte { font-size:16px; }.radio-buehne { margin:17px auto 12px; }.radio-druck { font-size:23px; border-bottom-width:4px; }.radio-druck-text { font-size:6px; top:82%; }
+  .radio-lautstaerke { padding:3px; border-width:2px; }.radio-laut-text { font-size:6px; top:83%; }.radio-drehen-hinweis { font-size:6px; }
+  .radio-zeitzeile { font-size:11px; }.radio-uhr { font-size:11px; }.radio-knopf { font-size:14px; padding:12px 12px; margin:0 4px; }.radio-play { min-width:185px; }
+  .radio-extrafach { padding:12px 6px; }.radio-bonus { font-size:12px; padding:8px 9px; }
+}
+@media (prefers-reduced-motion:reduce) { .radio-seite { transition:none; } }
+
+/* Die bemalte Schubladenfront fährt mit dem Fach nach vorn. Das Innenfach
+   darf nach der Bewegung frei wachsen, auch bei größeren Schriften. */
+.radio-schublade { position:relative; width:620px; max-width:100%; margin:25px auto 0; perspective:900px; }
+.radio-schublade .radio-extrafach { width:96%; max-width:none; margin:0 auto; padding:0; border:0; border-radius:7px 7px 0 0; background:transparent; max-height:0; overflow:hidden; transition:max-height .42s cubic-bezier(.22,.7,.25,1); }
+.radio-schublade-innen { position:relative; padding:20px 14px 16px; border:8px solid #6a703b; border-bottom:14px solid #b08b42; background:#f2e6c5; box-shadow:inset 0 10px 16px rgba(58,48,18,.2); }
+.radio-schublade-innen:before,.radio-schublade-innen:after { content:''; position:absolute; top:4px; bottom:8px; width:3px; background:#c3a365; pointer-events:none; }
+.radio-schublade-innen:before { left:4px; }.radio-schublade-innen:after { right:4px; }
+.radio-schublade .radio-fach-taste { display:block; position:relative; width:100%; height:0; min-height:0; padding:25% 0 0; margin:0; background:none; border:0; border-radius:8px; color:#253f2e; transform-origin:center top; transition:transform .42s,filter .42s; filter:drop-shadow(0 5px 3px rgba(49,48,24,.17)); }
+.radio-schubladenbild { position:absolute; left:-2%; top:-17.5%; width:104%; height:auto; max-width:none; pointer-events:none; }
+.radio-fach-text { position:absolute; top:17%; left:7%; width:86%; font:800 21px var(--rund); text-shadow:0 1px rgba(255,231,136,.6); pointer-events:none; }
+.radio-fach-hinweis { position:absolute; top:38%; left:7%; width:86%; font:13px var(--rund); color:#3f542c; pointer-events:none; }
+.radio-schublade.offen .radio-fach-taste { transform:translateY(-4px) rotateX(-9deg); filter:drop-shadow(0 10px 7px rgba(49,48,24,.25)); }
+.radio-schublade .radio-fach-taste:active { transform:translateY(2px) rotateX(-5deg); }
+.abend .radio-schublade-innen { background:#e5d2a3; }
+@media (min-width:900px) and (max-height:800px) { .radio-schublade { width:550px; margin-top:20px; } }
+@media (max-width:599px) { .radio-fach-text { font-size:15px; }.radio-fach-hinweis { font-size:10px; }.radio-schublade-innen { padding:14px 6px; border-width:6px; }.radio-schublade { margin-top:22px; } }
+@media (prefers-reduced-motion:reduce) { .radio-schublade .radio-extrafach,.radio-schublade .radio-fach-taste { transition:none; }.radio-schublade.offen .radio-fach-taste { transform:none; } }
