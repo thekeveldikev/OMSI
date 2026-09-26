@@ -24,6 +24,7 @@
   };
 
   function aufraeumen() {
+    if (window.SCHATTEN) SCHATTEN.stoppen();
     if (window.AKTE) AKTE.stoppen();
     if (window.BRIEF) BRIEF.stoppen();
     if (window.MENUE_KUECHE) MENUE_KUECHE.stoppen();
@@ -44,6 +45,7 @@
     if (window.RUECKWEG) RUECKWEG.zeigen(name);
     if (name === "start") return zeigeStart();
     if (name === "kueche") return zeigeKueche();
+    if (name === "schatten") return SCHATTEN.starten(schattenVerse(), function () { APP.zeige("kueche"); });
     if (name === "brief") return BRIEF.starten(wurzel, function () { APP.zeige("kueche"); });
     if (name === "radio") return RADIO.starten(wurzel, function () { APP.zeige("kueche"); });
     if (name === "original") return BUCH.oeffnen(wurzel, "original", function () { APP.zeige("kueche"); });
@@ -364,6 +366,7 @@
     }
     if (window.MAKINGOF && window.MAKING_OF) d = d.concat(MAKINGOF.dateien());
     if (window.MENUE_KUECHE && window.MENUE_DATEN) d = d.concat(MENUE_KUECHE.dateien());
+    if (window.SCHATTEN) d = d.concat(SCHATTEN.dateien());
     return d;
   }
   // Lädt alles einmal durch – der Service Worker merkt es sich, danach geht es ohne Internet.

@@ -19,6 +19,18 @@
 (function () {
   var SCH = window.SCHATTEN = {};
   var lauf = null;
+  var abschluss = null;
+  SCH.stoppen = function () { if (abschluss) abschluss(false, true); };
+  SCH.bereit = function () { return TEILE_GELADEN && TEILE_OFFEN === 0; };
+  SCH.dateien = function () {
+    var d = ["daten/schatten.js", "js/schatten.js"];
+    Object.keys(window.SCHATTEN_TEILE || {}).forEach(function (n) { d.push("bilder/schatten/" + n + ".png"); });
+    for (var i = 1; i <= 5; i++) d.push("audio/fortsetzung/schatten-" + i + ".m4a");
+    return d;
+  };
+  SCH.zustand = function () {
+    return lauf ? { strophe: lauf.k, pausiert: lauf.pause, zeit: ((lauf.pause ? lauf.pauseZeit : B.jetzt()) - lauf.t0) / 1000, fehlendeBilder: TEILE_FEHLER.slice() } : null;
+  };
 
   var DAUER = [9.5, 9.5, 10.5, 9.5, 8.5];
   var AUFTAKT = 2.6;   // Sekunden vor der ersten Strophe: Raum dunkelt ab, Lampe klickt an
@@ -36,15 +48,24 @@
 
   SCH.starten = function (verse, fertig) {
     if (lauf) return;
+    SCH.stoppen();
+    cutoutsLaden();
     KLANG.entsperren();
     RUHIG = ruhigAbfragen();
     var strophen = verse.map(function (st) { return st.map(B.ersetzen); });
     var n = strophen.length;
     var wurzel = B.el("div", "schatten-bildschirm", document.body);
+    var fokusVorher = document.activeElement, geschlossen = false, entfernt = false, ausTimer = 0, hinweisTimer = 0, bereitGemeldet = false;
+    wurzel.setAttribute("role", "dialog"); wurzel.setAttribute("aria-modal", "true"); wurzel.setAttribute("aria-label", "Das Schattentheater");
     var cv = B.el("canvas", "schatten-canvas", wurzel);
     var text = B.el("div", "schatten-text", wurzel);
     var zu = B.el("button", "knopf schatten-zu", wurzel, "✕ Schließen");
     var hinweis = B.el("div", "schatten-hinweis", wurzel, "Tippen = nächste Strophe");
+    var bedienung = B.el("div", "schatten-bedienung", wurzel);
+    var pause = B.el("button", "knopf schatten-pause", bedienung, "Ⅱ Pause");
+    var nochmal = B.el("button", "knopf schatten-nochmal", bedienung, "↻ Noch einmal");
+    pause.setAttribute("aria-pressed", "false");
+    zu.focus();
     var W, H, ctx, skala = QUALI || Math.min(window.devicePixelRatio || 1, 2);
     function groesse() {
       W = window.innerWidth; H = window.innerHeight; SKALA = skala;
@@ -52,12 +73,13 @@
       cv.style.width = W + "px"; cv.style.height = H + "px";
       ctx = cv.getContext("2d");
       text.style.top = Math.round(lage(W, H).textOben) + "px";   // Verse direkt unter Laken und Publikum
+      if (lauf && (lauf.pause || lauf.test)) bild(lauf.k, lauf.zeitBild || 0);
     }
     groesse();
     window.addEventListener("resize", groesse, false);
 
     // k = -1: Auftakt, 0 … n-1: Strophen, n: Finale
-    lauf = { k: -1, t0: B.jetzt(), start: B.jetzt(), id: 0, zeilen: [], ereignisse: {}, laenge: AUFTAKT, test: false, takte: [], bilder: 0, letztes: 0 };
+    lauf = { k: -1, t0: B.jetzt(), start: B.jetzt(), id: 0, zeilen: [], ereignisse: {}, laenge: AUFTAKT, test: false, pause: false, pauseZeit: 0, takte: [], bilder: 0, letztes: 0 };
     if (window.KULISSE) KULISSE.leiser(true);
 
     // Kevins Aufnahme der Strophe (Aufnahmestudio: audio/fortsetzung/schatten-1 … -5).
@@ -77,7 +99,7 @@
         if (a !== stimme) return;
         if (v >= endungen.length) { stimme = null; return; }
         a.src = pfad + endungen[v++];
-        var p = a.play();
+        var p = lauf && !lauf.pause ? a.play() : null;
         if (p && p["catch"]) p["catch"](function () {});
       }
       a.onloadedmetadata = function () {
@@ -95,6 +117,7 @@
       lauf.k = k; lauf.t0 = B.jetzt(); lauf.ereignisse = {}; lauf.laenge = DAUER[k];
       zeilenFuer(k);
       stimmeStarten(k);
+      if (lauf.pause) lauf.pauseZeit = lauf.t0;
     }
     function finale() {
       stimmeStopp();
@@ -102,32 +125,83 @@
       lauf.zeilen.forEach(function (z) { z.style.opacity = "0"; });
     }
 
-    function ende(sanft) {
-      if (!lauf) return;
-      stimmeStopp();
-      if (window.KULISSE) { var bz = window.BUCH && BUCH.zustand(); KULISSE.leiser(!!(bz && bz.vorlesen)); }
-      B.frameStopp(lauf.id); lauf = null;
-      window.removeEventListener("resize", groesse, false);
+    function ende(sanft, still) {
+      if (entfernt) return;
+      if (!geschlossen) {
+        geschlossen = true;
+        stimmeStopp();
+        if (window.KULISSE) { var bz = window.BUCH && BUCH.zustand(); KULISSE.leiser(!!(bz && bz.vorlesen)); }
+        if (lauf) B.frameStopp(lauf.id); lauf = null;
+        window.removeEventListener("resize", groesse, false);
+        document.removeEventListener("keydown", tastatur, true);
+        document.removeEventListener("visibilitychange", sichtbar, false);
+      }
+      clearTimeout(ausTimer);
+      clearTimeout(hinweisTimer);
       function weg() {
+        if (entfernt) return;
+        entfernt = true; abschluss = null;
         if (wurzel.parentNode) wurzel.parentNode.removeChild(wurzel);
         if (!lauf) buehneFreigeben();   // große Zwischenbilder freigeben (Canvas-Speicher auf dem iPad)
-        if (fertig) fertig();
+        if (!still && fokusVorher && document.documentElement.contains(fokusVorher)) fokusVorher.focus();
+        if (!still && fertig) fertig();
       }
       // am natürlichen Ende sanft ausblenden, beim Schließen sofort weg
-      if (sanft) { wurzel.className += " schatten-weg"; setTimeout(weg, 950); } else weg();
+      if (sanft) { wurzel.className += " schatten-weg"; ausTimer = setTimeout(weg, 950); } else weg();
     }
+    abschluss = ende;
+    function pausieren() {
+      if (!lauf) return;
+      if (!lauf.pause) {
+        lauf.pause = true; lauf.pauseZeit = B.jetzt(); B.frameStopp(lauf.id);
+        if (stimme) stimme.pause();
+      } else {
+        var delta = B.jetzt() - lauf.pauseZeit;
+        lauf.t0 += delta; lauf.start += delta; lauf.pause = false; lauf.letztes = 0;
+        if (stimme) { var p = stimme.play(); if (p && p["catch"]) p["catch"](function () {}); }
+        lauf.id = B.frame(schritt);
+      }
+      pause.textContent = lauf.pause ? "▶ Weiter" : "Ⅱ Pause";
+      pause.setAttribute("aria-pressed", lauf.pause ? "true" : "false");
+    }
+    function weiter() {
+      if (!lauf || !SCH.bereit()) return;
+      if (lauf.k < n - 1) strophe(lauf.k + 1); else if (lauf.k === n - 1) finale(); else { ende(); return; }
+      if (lauf.pause) { lauf.pauseZeit = lauf.t0; bild(lauf.k, 0); }
+    }
+    function sichtbar() { if (document.hidden && lauf && !lauf.pause) pausieren(); }
+    function tastatur(ev) {
+      // Buch-Tastenkürzel dürfen unter dem geöffneten Theater nicht mitlaufen.
+      if ([9,27,32,37,39].indexOf(ev.keyCode) >= 0) ev.stopPropagation();
+      if (ev.keyCode === 27) { ev.preventDefault(); ev.stopPropagation(); ende(); }
+      else if (ev.keyCode === 32 && ev.target.tagName !== "BUTTON") { ev.preventDefault(); pausieren(); }
+      else if (ev.keyCode === 39) { ev.preventDefault(); weiter(); }
+      else if (ev.keyCode === 9) {
+        var knoepfe = [zu, pause, nochmal], i = knoepfe.indexOf(document.activeElement);
+        ev.preventDefault(); knoepfe[(i + (ev.shiftKey ? 2 : 1)) % 3].focus();
+      }
+    }
+    document.addEventListener("keydown", tastatur, true);
+    document.addEventListener("visibilitychange", sichtbar, false);
+    B.tippen(pause, function (ev) { ev.stopPropagation(); pausieren(); });
+    B.tippen(nochmal, function (ev) {
+      ev.stopPropagation(); if (!lauf) return;
+      stimmeStopp(); B.frameStopp(lauf.id); lauf.k = -1; lauf.t0 = lauf.start = B.jetzt();
+      lauf.ereignisse = {}; lauf.test = false; lauf.pause = false; lauf.laenge = AUFTAKT;
+      lauf.zeilen = []; B.leeren(text); pause.textContent = "Ⅱ Pause"; pause.setAttribute("aria-pressed", "false");
+      lauf.id = B.frame(schritt);
+    });
     B.tippen(zu, function (ev) { ev.stopPropagation(); ende(); });
     B.tippen(wurzel, function () {
-      if (!lauf) return;
-      if (lauf.k < n - 1) strophe(lauf.k + 1); else if (lauf.k === n - 1) finale(); else ende();
+      weiter();
     });
-    setTimeout(function () { hinweis.style.opacity = "0"; }, 4000);
 
     // einmalige Ereignisse (Geräusche) je Abschnitt
     function einmal(name, t, ab, fn) { if (t >= ab && !lauf.ereignisse[name]) { lauf.ereignisse[name] = true; if (!lauf.test) fn(); } }
 
     // ein Bild: k = Abschnitt, t = Zeit des Schattenspiels in diesem Abschnitt
     function bild(k, t) {
+      lauf.zeitBild = t;
       if (k >= 0 && k < n) {
         var nz = lauf.zeilen.length, d = DAUER[k] || DAUER[DAUER.length - 1];
         lauf.zeilen.forEach(function (z, i) { z.style.opacity = t > 0.6 + i * (d - 2) / nz ? "1" : "0"; });
@@ -152,7 +226,15 @@
     }
 
     function schritt() {
-      if (!lauf || lauf.test) return;
+      if (!lauf || lauf.test || lauf.pause) return;
+      if (!SCH.bereit()) {
+        hinweis.textContent = "Die Bühne wird vorbereitet …";
+        lauf.t0 = lauf.start = B.jetzt(); bild(-1, 0); lauf.id = B.frame(schritt); return;
+      }
+      if (!bereitGemeldet) {
+        bereitGemeldet = true; hinweis.textContent = "Tippen = nächste Strophe";
+        hinweisTimer = setTimeout(function () { hinweis.style.opacity = "0"; }, 4000);
+      }
       var jetzt = B.jetzt(), k = lauf.k, echt = (jetzt - lauf.t0) / 1000;
       uhr = (jetzt - lauf.start) / 1000;
       takt(jetzt);
@@ -472,6 +554,112 @@
     pfanne: { src: "bilder/schatten/pfanne-leer.png", b: 720, h: 213, griff: [88, 98], mulde: [530, 24], weich: 4 },
     kuchen: { src: "bilder/extras/pfannekuchen-flug.png", b: 640, h: 416, weich: 3 }
   };
+  // Die neue Papierausstattung benutzt dieselben Bühnenkoordinaten und dieselbe
+  // Choreografie. Vollständige PNGs bleiben unverändert; Registrierung aus anker.json.
+  var TEILE = {}, TEILE_GELADEN = false, TEILE_OFFEN = 0, TEILE_FEHLER = [];
+  function cutoutsLaden() {
+    if (TEILE_GELADEN) return;
+    TEILE_GELADEN = true;
+    var daten = window.SCHATTEN_TEILE || {}, namen = Object.keys(daten);
+    TEILE_OFFEN = namen.length;
+    namen.forEach(function (name) {
+      var m = daten[name], sp = TEILE[name] = { b: m.imageSize[0], h: m.imageSize[1], f: 0.5, meta: m, blick: name.indexOf("omsi") === 0 ? -1 : 1 };
+      if (m.fuss) { sp.fussX = m.fuss[0]; sp.unten = m.fuss[1]; sp.oben = m.kopfOben[1]; sp.hand = m.hand; }
+      B.ladeBild("bilder/schatten/" + name + ".png", function (img) {
+        var t = leinwand(sp.b / 2, sp.h / 2), x = t.getContext("2d");
+        x.drawImage(img, 0, 0, t.width, t.height);
+        if (name.indexOf("publikum-") === 0) {
+          if (name === "publikum-omsi-schultern") {
+            var fade = x.createLinearGradient(0, 280, 0, 384);
+            fade.addColorStop(0, "rgba(0,0,0,1)"); fade.addColorStop(1, "rgba(0,0,0,0)");
+            x.globalCompositeOperation = "destination-in"; x.fillStyle = fade; x.fillRect(0, 0, t.width, t.height);
+          }
+          sp.farbig = t; sp.dunkel = leinwand(t.width, t.height);
+          var dc = sp.dunkel.getContext("2d"); dc.drawImage(t, 0, 0);
+          dc.globalCompositeOperation = "source-in"; dc.fillStyle = "#15110e"; dc.fillRect(0, 0, t.width, t.height);
+        } else {
+          x.globalCompositeOperation = "source-in"; x.fillStyle = FARBE; x.fillRect(0, 0, t.width, t.height);
+          spriteFertig(sp, t, 2);
+        }
+        TEILE_OFFEN--;
+        if (!TEILE_OFFEN) cutoutsVerbinden();
+      }, function () { TEILE_FEHLER.push(name); TEILE_OFFEN--; if (!TEILE_OFFEN) cutoutsVerbinden(); });
+    });
+  }
+  function cutoutsVerbinden() {
+    var k = TEILE["kevin-klein-koerper"];
+    if (k && k.scharf && TEILE["kevin-klein-arm"].scharf && TEILE["kevin-klein-kopf"].scharf) {
+      k.rig = "kevin-klein"; SPR.klein = k;
+    }
+    ["omsi", "kevin-gross"].forEach(function (n) {
+      var b = TEILE[n + "-koerper-ohne-arm"], a = TEILE[n + "-arm-pfanne"];
+      if (b && b.scharf && a && a.scharf) b.rig = n;
+    });
+    PROP = {}; // eventuell schon erzeugte Ersatzrequisiten neu aufbauen
+  }
+  function gelenkPunkt(p, g, w) {
+    var dx = p[0] - g[0], dy = p[1] - g[1], c = Math.cos(w), s = Math.sin(w);
+    return [g[0] + dx * c - dy * s, g[1] + dx * s + dy * c];
+  }
+  function gelenkteil(lc, sp, basis, winkel, s, a, ohnePfanne) {
+    if (!sp || !sp.scharf) return;
+    var g = sp.meta.gelenk;
+    lc.save(); lc.translate(g[0] - basis.fussX, g[1] - basis.unten); lc.rotate(winkel || 0);
+    if (ohnePfanne) {
+      lc.beginPath();
+      if (basis.rig === "omsi") lc.rect(sp.hand[0] - 24 - g[0], -g[1], sp.b, sp.h);
+      else lc.rect(-g[0], -g[1], sp.hand[0] + 24, sp.h);
+      lc.clip();
+    }
+    sprite(lc, sp, g[0], g[1], s, a); lc.restore();
+  }
+  function pose(f, name) {
+    var sp = TEILE[name];
+    if (sp && sp.scharf) {
+      sp.oben = name.indexOf("kevin-klein") === 0 ? 103 : (name.indexOf("omsi") === 0 ? 53 : 48);
+      f.sp = sp; f.pose = true;
+    }
+  }
+  function ausschnitt(x, name, box, dx, dy, w, h) {
+    var sp = TEILE[name];
+    if (!sp || !sp.vorlage) return;
+    x.drawImage(sp.vorlage, box[0] * .5, box[1] * .5, (box[2] - box[0]) * .5, (box[3] - box[1]) * .5, dx, dy, w, h);
+  }
+  // Nur die Papiermotive ausschneiden: Claudes bewegliche Stäbe/Fäden bleiben dran.
+  var REQUISIT = {
+    blase: ["denkblase", [78,41,947,866]], haus: ["haus", [199,134,817,716]],
+    sonne: ["sonne", [165,9,857,682]], mond: ["mond", [294,88,742,700]],
+    stern: ["stern-1", [31,205,481,602]], stern2: ["stern-2", [79,282,438,617]], stern3: ["stern-3", [156,341,359,532]],
+    fledermaus: ["fledermaus-oben", [69,179,955,810]], fledermaus2: ["fledermaus-unten", [69,179,955,810]],
+    herz: ["herz", [143,70,880,716]], kerze: ["kerze", [444,118,592,827]],
+    stapel: ["pfannekuchenstapel", [144,51,880,790]]
+  };
+  function papierProp(name) {
+    var r = REQUISIT[name];
+    if (!r || !TEILE["requisit-" + r[0]] || !TEILE["requisit-" + r[0]].vorlage) return null;
+    var box = r[1], h = 300, w = h * (box[2] - box[0]) / (box[3] - box[1]), ax = w / 2, ay = h;
+    if (name.indexOf("stern") === 0) ay = 0;
+    if (name === "blase") { ax = w * .52; ay = h * .82; }
+    if (name.indexOf("fledermaus") === 0) { ax = (512 - box[0]) * h / (box[3] - box[1]); ay = (420 - box[1]) * h / (box[3] - box[1]); }
+    if (name === "haus" && TEILE["requisit-strassenschild"].vorlage) {
+      return propBauen(540, 300, [140,292], function (x) {
+        ausschnitt(x, "requisit-haus", box, 0, 24, 280, 268);
+        ausschnitt(x, "requisit-strassenschild", [69,204,955,610], 280, 174, 255, 117);
+        var adr = B.ersetzen("{ADRESSE}"); x.font = "600 22px " + SCHRIFT_RUND;
+        var f = Math.min(22, 22 * 222 / Math.max(1, x.measureText(adr).width));
+        x.font = "600 " + f + "px " + SCHRIFT_RUND; x.textAlign = "center"; x.textBaseline = "middle";
+        x.fillText(adr, 407, 232); x.fillRect(405, 291, 4, 9);
+      });
+    }
+    return propBauen(w, h, [ax,ay], function (x) {
+      ausschnitt(x, "requisit-" + r[0], box, 0, 0, w, h);
+      if (name.indexOf("fledermaus") === 0) x.clearRect((502-box[0])*h/(box[3]-box[1]), (626-box[1])*h/(box[3]-box[1]), 22*h/(box[3]-box[1]), h);
+      if (name === "herz") {
+        x.textAlign = "center"; x.textBaseline = "middle"; x.font = "700 46px " + SCHRIFT_BUCH;
+        x.fillText(String((B.E && B.E.alter) || ""), (512-box[0])*h/(box[3]-box[1]), (394-box[1])*h/(box[3]-box[1]));
+      }
+    });
+  }
   // Einmal laden und auf einem Hilfscanvas dunkel einfärben (source-in: nur die Alpha-Kontur bleibt)
   function vorbereiten(sp) {
     B.ladeBild(sp.src, function (img) {
@@ -549,7 +737,13 @@
     if (a > 0.004) {
       lc.save();
       lc.translate(f.x, f.gy - f.lift); if (f.neig) lc.rotate(f.neig);
-      if (sp.scharf) { lc.scale(st.sx, st.sy); sprite(lc, sp, sp.fussX, sp.unten, s, a); }
+      if (sp.scharf) {
+        lc.scale(st.sx, st.sy); sprite(lc, sp, sp.fussX, sp.unten, s, a);
+        if (sp.rig) {
+          if (sp.rig === "kevin-klein") gelenkteil(lc, TEILE["kevin-klein-kopf"], sp, f.kopfWinkel || 0, s, a);
+          gelenkteil(lc, TEILE[sp.rig + (sp.rig === "kevin-klein" ? "-arm" : "-arm-pfanne")], sp, f.armWinkel || 0, s, a, f.ohnePfanne);
+        }
+      }
       else { lc.globalAlpha = a; lc.scale(fx, 1); if (sp === SPR.omsi) omsiErsatz(lc, 0, 0, f.h); else kindErsatz(lc, 0, 0, f.h); }
       lc.restore();
     }
@@ -557,6 +751,7 @@
   }
   // Bildpunkt einer Figur → Bühnenkoordinaten (mit Neigung, Spiegelung und Stauchung)
   function punkt(st, p) {
+    if (st.f.sp.rig && p === st.f.sp.hand && st.f.armWinkel) p = gelenkPunkt(p, st.f.sp.meta.gelenk, st.f.armWinkel);
     var f = st.f, sp = f.sp, dx = (p[0] - sp.fussX) * st.sx, dy = (p[1] - sp.unten) * st.sy, n = f.neig || 0, c = Math.cos(n), si = Math.sin(n);
     return { x: f.x + dx * c - dy * si, y: f.gy - f.lift + dx * si + dy * c };
   }
@@ -604,7 +799,7 @@
 
   // ───────────────── Stabfiguren: Papier an Stäbchen, einmal gezeichnet ─────────────────
   var PROP = {};
-  function prop(name) { if (!PROP[name]) PROP[name] = PROP_MALEN[name](); return PROP[name]; }
+  function prop(name) { if (!PROP[name]) PROP[name] = papierProp(name) || (PROP_MALEN[name] || PROP_MALEN.stern)(); return PROP[name]; }
   function propBauen(b, h, anker, malen) {
     var t = leinwand(b, h), x = t.getContext("2d");
     x.fillStyle = FARBE; x.strokeStyle = FARBE; x.lineCap = "round"; x.lineJoin = "round";
@@ -810,7 +1005,16 @@
 
   // Omsi mit Pfanne (und Pfannekuchen darin)
   function omsiMalen(lc, o, pf) {
-    var st = figur(lc, o), hand = punkt(st, SPR.omsi.hand), r = { st: st, hand: hand };
+    var rig = TEILE["omsi-koerper-ohne-arm"];
+    if (pf && !o.pose && rig && rig.rig) {
+      o.sp = rig; o.armWinkel = pf.dreh || 0;
+      var rs = figur(lc, o), rh = punkt(rs, rig.hand);
+      var rm = punkt(rs, gelenkPunkt([130,675], rig.meta.gelenk, o.armWinkel));
+      var rd = o.neig + o.armWinkel;
+      if (pf.kuchen > .01) kuchen(lc, rm.x, rm.y, o.h * .085 * pf.kuchen, LIEGT, rd, pf.sq || 0);
+      return { st: rs, hand: rh, mulde: rm, dreh: rd };
+    }
+    var st = figur(lc, o), hand = punkt(st, o.sp.hand), r = { st: st, hand: hand };
     if (pf) {
       var laenge = o.h * 0.36;
       hand = { x: hand.x, y: hand.y + (pf.dy || 0) };
@@ -877,6 +1081,10 @@
     vor(f, 0.11 * glatt(7.95, 8.35, t));
     if (t > 8.3 && t < 9.0) f.lift += Math.max(0, Math.sin((t - 8.3) * 9)) * 0.02 * f.h;
     atmen(f, 0);
+    f.kopfWinkel = -0.12 * glatt(4.4, 4.9, t) * (1 - glatt(6.05, 6.3, t));
+    f.armWinkel = -0.08 * glatt(4.4, 5.0, t);
+    if (t > 6.3 && t < 7.7 && f.lift > f.h * .02) pose(f, "kevin-klein-sprung");
+    if (t > 8.05) { pose(f, "kevin-klein-vorn"); f.flip = 1; }
     lc.save(); tiefeAn(lc, L, z); figur(lc, f); lc.restore(); tiefeAus();
     // Denkblase am Stäbchen: ein Stapel Pfannekuchen
     var da = t < 8.7 ? glatt(4.45, 5.2, t) : 1 - glatt(8.7, 9.4, t);
@@ -902,6 +1110,7 @@
     vor(k, -0.06 * glatt(1.3, 1.6, t) * (1 - glatt(2.2, 2.8, t)));
     hops(k, t, 6.2, 0.42, 0.15); hops(k, t, 6.66, 0.42, 0.12); zittern(k, t, 6.2, 1.2);   // Juhu!
     atmen(k, 0);
+    if (t > 6.2 && t < 7.3 && k.lift > k.h * .02) pose(k, "kevin-klein-sprung");
     figur(lc, k);
     // Omsi kommt aus der Tiefe: groß und weich, dann scharf an ihrem Platz
     var nah = glatt(0.5, 2.5, t), o = neu(SPR.omsi, L.oX + 0.1 * A * (1 - nah), sh * 0.62, L);
@@ -956,7 +1165,7 @@
     k.alpha = 1 - g;
     var stK = figur(lc, k);
     var gk = { sp: SPR.gross, x: k.x, gy: k.gy, h: k.h, lift: k.lift, neig: k.neig, flip: k.flip, sq: k.sq, alpha: g }, stG = figur(lc, gk);
-    var hand = mischen(punkt(stK, SPR.klein.hand), punkt(stG, SPR.gross.hand), g);
+    var hand = mischen(punkt(stK, SPR.klein.hand), punkt(stG, stG.f.sp.hand), g);
     // Omsi wirft
     var o = neu(SPR.omsi, L.oX, sh * 0.62, L), dreh = 0;
     for (i = 0; i < WUERFE3.length; i++) dreh += wurfDreh(t, WUERFE3[i][0]);
@@ -1008,7 +1217,7 @@
       [[0.06, 0.2], [0.9, 0.1], [0.97, 0.3]].forEach(function (s, n) {
         var x = L.sx + L.sw * s[0], y = L.sy + sh * (s[1] * ab - 0.12 * (1 - ab));
         faden(lc, L, x, y, 1);
-        stabfigur(lc, L, prop("stern"), x, y, sh * (0.07 + n * 0.012), Math.sin(uhr * 1.4 + n * 2) * 0.25, 1, null);
+        stabfigur(lc, L, prop(n ? "stern" + (n + 1) : "stern"), x, y, sh * (0.07 + n * 0.012), Math.sin(uhr * 1.4 + n * 2) * 0.25, 1, null);
       });
     }
     // Omsis Haus steht in der Mitte (Nur eines blieb, ganz wie es war …)
@@ -1041,7 +1250,8 @@
     }
     hops(o, t, 6.2, 0.45, 0.08); zittern(o, t, 6.2, 0.9); vor(o, -0.08 * glatt(6.2, 6.35, t) * (1 - glatt(6.7, 7.2, t)));
     atmen(kv, 0); atmen(o, 1);
-    var stK = figur(lc, kv), fang = punkt(stK, SPR.gross.hand);
+    if (t > 6.2 && t < 6.95) pose(o, "omsi-erschrocken");
+    var stK = figur(lc, kv), fang = punkt(stK, stK.f.sp.hand);
     var r = o.h * 0.085, om = omsiMalen(lc, o, { dreh: dreh, kuchen: t < WUERFE4[0][0] ? 1 : nachschub(t, WUERFE4) });
     Z.pub.blick = fx;
     for (i = 0; i < WUERFE4.length; i++) {
@@ -1077,16 +1287,28 @@
     hops(o, t, 7.9, 0.45, 0.08); zittern(o, t, 7.9, 0.8);            // Freude am Ende
     vor(kv, -0.04 * glatt(7.9, 8.3, t));                              // stolz
     atmen(kv, 0); atmen(o, 1);
-    var stK = figur(lc, kv), kHand = punkt(stK, SPR.gross.hand);
-    var stO = figur(lc, o), oHand = punkt(stO, SPR.omsi.hand);
+    var kevinRig = TEILE["kevin-gross-koerper-ohne-arm"], omsiRig = TEILE["omsi-koerper-ohne-arm"];
+    var gelenke = kevinRig && kevinRig.rig && omsiRig && omsiRig.rig, mitArm = gelenke && t >= 5.3;
+    if (gelenke) {
+      kv.sp = kevinRig; kv.ohnePfanne = !mitArm;
+      o.sp = omsiRig; o.ohnePfanne = true;
+    }
+    if (mitArm) {
+      kv.armWinkel = -0.16 * glatt(5.25, 5.5, t) * (1 - glatt(5.5, 5.75, t)) - wurfDreh(t, 5.95) - .1 * glatt(7.9, 8.3, t);
+      if (t > 8.0) pose(kv, "kevin-gross-jubel");
+    }
+    var stK = figur(lc, kv), kHand = punkt(stK, stK.f.sp.hand);
+    var stO = figur(lc, o), oHand = punkt(stO, o.sp.hand);
     // die Übergabe: die Pfanne schwebt im Bogen hinüber und dreht sich dabei um
-    var pb = glatt(3.9, 5.3, t), oL = o.h * 0.36, kL = kv.h * 0.3, laenge = oL + (kL - oL) * pb;
+    var pb = glatt(3.9, 5.3, t), oL = gelenke ? o.h / 1416 * 172 * 720 / 442 : o.h * .36;
+    var kL = gelenke ? kv.h / 1430 * 141 * 720 / 442 : kv.h * .3, laenge = oL + (kL - oL) * pb;
     var pf = mischen(oHand, kHand, pb); pf.y -= Math.sin(pb * Math.PI) * sh * 0.14;
     var kDreh = kv.neig - 0.16 * glatt(5.25, 5.5, t) * (1 - glatt(5.5, 5.75, t)) - wurfDreh(t, 5.95) - 0.1 * glatt(7.9, 8.3, t);
     var land = t > 7.35 ? Math.exp(-(t - 7.35) * 6) * Math.sin((t - 7.35) * 20) : 0;
     var dreh = o.neig * (1 - pb) + kDreh * pb - Math.sin(pb * Math.PI) * 0.3;
+    if (gelenke && !mitArm) dreh += -.154 + .299 * pb;
     pf.y += land * sh * 0.018 * pb;
-    var m = pfanneZeichnen(lc, pf, laenge, -Math.cos(pb * Math.PI), dreh), r = o.h * 0.085 * laenge / oL;
+    var m = mitArm ? punkt(stK, kv.pose ? [897,710] : gelenkPunkt([887,602], kevinRig.meta.gelenk, kv.armWinkel)) : pfanneZeichnen(lc, pf, laenge, -Math.cos(pb * Math.PI), dreh), r = o.h * 0.085 * laenge / oL;
     // "Seid bereit!": hoch mit dem Pfannekuchen – dreifacher Salto – und die Kerze kommt
     var fliegt = t >= 5.95 && t <= 7.35;
     if (!fliegt) kuchen(lc, m.x, m.y, r, LIEGT, dreh, t > 7.35 ? 0.45 * Math.exp(-(t - 7.35) * 7) : 0);
@@ -1121,7 +1343,11 @@
     kv.x -= ab * (L.kX - L.sx + 0.35 * sh); o.x += ab * (L.sx + L.sw - L.oX + 0.3 * sh);
     if (f > 2.3 && f < 3.9) { gehen(kv, f * 6.5, 0.8); gehen(o, f * 6.5 + 1, 0.7); }
     atmen(kv, 0); atmen(o, 1);
-    var stK = figur(lc, kv), kHand = punkt(stK, SPR.gross.hand);
+    if (bow > .5) {
+      pose(kv, "kevin-gross-verbeugung"); pose(o, "omsi-verbeugung");
+      kv.neig *= .2; o.neig *= .2;
+    }
+    var stK = figur(lc, kv), kHand = punkt(stK, stK.f.sp.hand);
     figur(lc, o);
     // Kevins Pfanne mit Pfannekuchen und Kerze bleibt waagerecht
     var kL = kv.h * 0.3, dreh = kv.neig * 0.15 - 0.1 * (1 - glatt(0, 0.5, f)), m = pfanneZeichnen(lc, kHand, kL, kv.flip, dreh), r = 0.085 * kL / 0.36;
@@ -1132,6 +1358,8 @@
     if (herz > 0.001) {
       var hoch = f < 3.0 ? zurueck(herz) : herz, schlag = RUHIG ? 0 : Math.max(0, Math.sin(f * 7)) * 0.06;
       stabfigur(lc, L, prop("herz"), L.mitte + 0.06 * A, L.sy + sh * 0.3 + (1 - hoch) * sh * 0.95, sh * 0.2 * (1 + schlag), 0, 1, 0.06);
+      if (TEILE["requisit-pfannekuchenstapel"] && TEILE["requisit-pfannekuchenstapel"].vorlage)
+        stabfigur(lc, L, prop("stapel"), L.mitte + .04 * A, L.gy + (1 - hoch) * sh * .5, sh * .19, 0, 1, 0);
     }
     // „Ende“ in Schattenschrift: kommt groß und weich von der Lampe und wird scharf
     if (f > 3.3) {
@@ -1282,6 +1510,7 @@
   function stueck(ctx, spr, rand) { ctx.drawImage(rand ? spr.rand : spr.dunkel, -spr.ox, -spr.oy, spr.b, spr.h); }
 
   function publikum(ctx, L, Z, licht) {
+    if (papierPublikum(ctx, L, Z, licht)) return;
     var P = L.pub, p = Z.pub, cb = P.cb, kb = P.kb;
     var rimA = Math.min(1, 0.12 + licht * 0.85) * (1 - Z.schwarz);
     var dy = (RUHIG ? 0 : Math.sin(uhr * 1.25) * kb * 0.012) - p.lach * kb * 0.06 + p.staun * kb * 0.03;
@@ -1310,6 +1539,39 @@
       ctx.translate(0, P.kopfM.y - P.hals.y); stueck(ctx, P.kopf, rand); ctx.restore();
     }
     ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+  }
+
+  function papierPublikum(ctx, L, Z, licht) {
+    var namen = ["omsi-schultern", "omsi-kopf", "katze-koerper", "katze-schwanz", "katze-ohr-links", "katze-ohr-rechts"], i;
+    for (i = 0; i < namen.length; i++) if (!TEILE["publikum-" + namen[i]] || !TEILE["publikum-" + namen[i]].farbig) return false;
+    var P = L.pub, p = Z.pub, kb = P.kb, s = kb * 1.5 / 389, ks = P.cb * 1.7 / 331;
+    var dy = (RUHIG ? 0 : Math.sin(uhr * 1.25) * kb * .012) - p.lach * kb * .06 + p.staun * kb * .03;
+    var rand = Math.min(1, .12 + licht * .85) * (1 - Z.schwarz);
+    // Querformat: genug Platz neben den Versen, auch wenn die Katze wedelt.
+    ctx.save();
+    if (!L.hoch) { ctx.translate(0, L.omsiY); ctx.scale(.82, .82); ctx.translate(0, -L.omsiY); }
+    function teil(name, ox, oy, winkel) {
+      var sp = TEILE["publikum-" + name], g = sp.meta.gelenk;
+      ctx.save();
+      if (winkel) { ctx.translate(g[0] - ox, g[1] - oy); ctx.rotate(winkel); ctx.translate(ox - g[0], oy - g[1]); }
+      ctx.globalAlpha = 1; ctx.drawImage(sp.dunkel, -ox, -oy, sp.b, sp.h);
+      ctx.globalAlpha = rand; ctx.drawImage(sp.farbig, -ox, -oy, sp.b, sp.h);
+      ctx.restore();
+    }
+    ctx.save(); ctx.globalCompositeOperation = "source-over";
+    ctx.translate(P.hals.x, P.hals.y + dy); ctx.scale(s, s);
+    teil("omsi-schultern", 510, 465, 0);
+    ctx.translate(0, p.nick * 18 + p.staun * 8); ctx.scale(1, 1 - p.nick * .06);
+    teil("omsi-kopf", 510, 465, (RUHIG ? 0 : Math.sin(uhr * .45) * .02)); ctx.restore();
+    var blick = p.blick === null || p.blick === undefined ? 0 : B.klemme((p.blick - P.kx) / (L.W * .45), -1, 1) * .055;
+    ctx.save(); ctx.translate(P.kx, P.ky + dy + P.cb * 1.4); ctx.scale(ks, ks); ctx.rotate(blick);
+    teil("katze-koerper", 1220, 768, 0);
+    teil("katze-schwanz", 1220, 768, (RUHIG ? 0 : Math.sin(uhr * 1.1) * .08 + Math.sin(uhr * 7.5) * .25 * p.schwanz));
+    teil("katze-ohr-links", 1220, 768, -p.ohrL * .45 + p.spitz * .12);
+    teil("katze-ohr-rechts", 1220, 768, p.ohrR * .45 - p.spitz * .12);
+    ctx.restore(); ctx.globalAlpha = 1;
+    ctx.restore();
+    return true;
   }
 
   // ───────────────── Ein Bild zusammensetzen ─────────────────
