@@ -490,7 +490,8 @@
 
   var ANIM_DAUER = { wackeln: 2.4, schweben: 3.2, atmen: 3.5, huepfen: 1.4, drehen: 30, zittern: 0.6, hereinkleben: 0.9, puff: 1.2, pendeln: 2.8,
                      sanftdrehen: 7, steigen: 4.5, paddeln: 3.2, flackern: 0.9, wenden: 4.2, nicken: 3.6,
-                     kraehen: 7, picken: 4, drohen: 3.6, gabel: 4.5, kraehen1: 2.6, ohrzucken: 5.5, loeffel: 3.4, winken: 3.4 };
+                     kraehen: 7, picken: 4, drohen: 3.6, gabel: 4.5, kraehen1: 2.6, ohrzucken: 5.5, loeffel: 3.4, winken: 3.4,
+                     besen: 0.55, lampe: 4.6, vogelkopf: 3.2 };
   var ANIM_DREHPUNKT = { nicken: [0.55, 1], flackern: [0.5, 1], wackeln: [0.5, 0.9], paddeln: [0.5, 0.85], wenden: [0.5, 0.5], sanftdrehen: [0.5, 0.5], steigen: [0.5, 0.8] };
 
   // Ein Teil auf die Ebenen-Schicht setzen (x/y/b/h relativ; versatz/faktor für Seitenhälften)
@@ -577,7 +578,6 @@
     (S.tonTimer || []).forEach(clearTimeout);             // noch nicht gespielte Computer-Töne verwerfen
     S.tonTimer = [];
     if (KLANG.orgelStille) KLANG.orgelStille(0.3);          // laufende Orgel weich ausblenden
-    spaziergangStopp();
   }
   function taktStarten(ds) {
     taktStoppen();
@@ -695,6 +695,7 @@
     S.beschaeftigt = true;
     vorlesenStoppen(true);
     taktStoppen();
+    spaziergangStopp();
     FLUG.stoppen();
     EFFEKTE.stoppen();
     S.dom.ebenen.style.opacity = "0";
@@ -940,6 +941,7 @@
     if (!S) return;
     vorlesenStoppen();
     taktStoppen();
+    spaziergangStopp();
     KULISSE.buchZu();
     FLUG.stoppen();
     EFFEKTE.stoppen();

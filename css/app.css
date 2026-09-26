@@ -236,10 +236,13 @@ button { font: inherit; }
 @keyframes kf-blinzeln { 0%, 92% { opacity: 0; } 93%, 97% { opacity: 1; } 98%, 100% { opacity: 0; } }
 
 /* ─────────────── Schattentheater ─────────────── */
-.schatten-bildschirm { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50; background: #0b1230; cursor: pointer; }
+.schatten-bildschirm { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50; background: #0b1230; cursor: pointer; -webkit-transition: opacity .9s; transition: opacity .9s; }
+.schatten-bildschirm.schatten-weg { opacity: 0; }
 .schatten-canvas { position: absolute; top: 0; left: 0; }
 .schatten-text { position: absolute; left: 6%; right: 6%; top: 71%; bottom: 2%; text-align: center; color: #f7ecd0; font-family: var(--buchschrift); font-style: italic;
-  font-size: 3.4vh; line-height: 1.38; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-justify-content: center; justify-content: center; }
+  font-size: 3.4vh; line-height: 1.38; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-justify-content: center; justify-content: center;
+  text-shadow: 0 1px 4px rgba(0,0,0,.8), 0 0 14px rgba(5,7,15,.9); pointer-events: none; }
+@media (orientation: portrait) { .schatten-text { font-size: 4.1vw; } }
 .schatten-zeile { opacity: 0; -webkit-transition: opacity .9s; transition: opacity .9s; }
 .schatten-zu { position: absolute; top: 14px; right: 14px; }
 .schatten-hinweis { position: absolute; top: 18px; left: 18px; color: rgba(247,236,208,.7); font-family: var(--rund); font-size: 15px; -webkit-transition: opacity 1s; transition: opacity 1s; }
@@ -333,6 +336,14 @@ button { font: inherit; }
 @keyframes kf-picken { 0%, 45%, 82%, 100% { transform: rotate(0); } 53% { transform: rotate(-15deg); } 59% { transform: rotate(-9deg); } 66% { transform: rotate(-15deg); } 73% { transform: rotate(-10deg); } }
 @-webkit-keyframes kf-drohen { 0%, 38%, 76%, 100% { -webkit-transform: rotate(0); } 45% { -webkit-transform: rotate(6deg); } 52% { -webkit-transform: rotate(-4deg); } 59% { -webkit-transform: rotate(6deg); } 66% { -webkit-transform: rotate(-4deg); } }
 @keyframes kf-drohen { 0%, 38%, 76%, 100% { transform: rotate(0); } 45% { transform: rotate(6deg); } 52% { transform: rotate(-4deg); } 59% { transform: rotate(6deg); } 66% { transform: rotate(-4deg); } }
+/* Vogel am Fenster (s20): schneller Kopfruck, dann still */
+@-webkit-keyframes kf-vogelkopf { 0%, 30%, 52%, 100% { -webkit-transform: rotate(0); } 34%, 40% { -webkit-transform: rotate(-9deg); } 44%, 48% { -webkit-transform: rotate(4deg); } }
+@keyframes kf-vogelkopf { 0%, 30%, 52%, 100% { transform: rotate(0); } 34%, 40% { transform: rotate(-9deg); } 44%, 48% { transform: rotate(4deg); } }
+/* Schneebesen schlägt im Teig (s13), Lampe schwingt sacht (s17) */
+@-webkit-keyframes kf-besen { 0%, 100% { -webkit-transform: rotate(-3.5deg); } 50% { -webkit-transform: rotate(3.5deg); } }
+@keyframes kf-besen { 0%, 100% { transform: rotate(-3.5deg); } 50% { transform: rotate(3.5deg); } }
+@-webkit-keyframes kf-lampe { 0%, 100% { -webkit-transform: rotate(-2.2deg); } 50% { -webkit-transform: rotate(2.2deg); } }
+@keyframes kf-lampe { 0%, 100% { transform: rotate(-2.2deg); } 50% { transform: rotate(2.2deg); } }
 /* Der Hahn kräht einmal (ausgelöst vom Takt in buch.js, zusammen mit Ton und Schallwellen) */
 @-webkit-keyframes kf-kraehen1 { 0%, 94%, 100% { -webkit-transform: rotate(0); } 12% { -webkit-transform: rotate(-9deg); } 22% { -webkit-transform: rotate(-7.5deg); } 32% { -webkit-transform: rotate(-9deg); } 62% { -webkit-transform: rotate(-8.5deg); } 78% { -webkit-transform: rotate(-9deg); } }
 @keyframes kf-kraehen1 { 0%, 94%, 100% { transform: rotate(0); } 12% { transform: rotate(-9deg); } 22% { transform: rotate(-7.5deg); } 32% { transform: rotate(-9deg); } 62% { transform: rotate(-8.5deg); } 78% { transform: rotate(-9deg); } }

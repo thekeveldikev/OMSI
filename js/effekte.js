@@ -33,7 +33,19 @@
       zustand.id = B.frame(schritt);
     }
     zustand.id = B.frame(schritt);
-    laufend = { zustand: zustand, ctx: ctx, W: W, H: H };
+    laufend = { zustand: zustand, ctx: ctx, W: W, H: H, aktive: aktive, t0: t0 };
+  };
+
+  // Testhilfe: die laufenden Effekte um "sekunden" vorspulen und das Bild dann zeichnen
+  F.vorspulen = function (sekunden) {
+    if (!laufend) return false;
+    var n = Math.round(sekunden / 0.04), t = (B.jetzt() - laufend.t0) / 1000;
+    for (var k = 0; k < n; k++) {
+      t += 0.04;
+      laufend.ctx.clearRect(0, 0, laufend.W, laufend.H);
+      for (var i = 0; i < laufend.aktive.length; i++) laufend.aktive[i](laufend.ctx, t, 0.04);
+    }
+    return true;
   };
 
   F.stoppen = function () {
@@ -92,9 +104,9 @@
         e.rate || 1.4, 12, function (ctx, p, dt) {
           p.x += p.vx * dt; p.y += p.vy * dt; p.r += s * 0.38 * dt;
           var a = p.alter / p.leben;
-          ctx.save(); ctx.globalAlpha = 0.55 * Math.min(1, a * 5) * (1 - a);
+          ctx.save(); ctx.globalAlpha = (e.deckkraft || 0.55) * Math.min(1, a * 5) * (1 - a);
           PAPIER.risspfad(ctx, p.x, p.y, p.r * 1.2, p.r, 10, p.seed);
-          ctx.fillStyle = PAPIER.muster(ctx, "#b8c4d6"); ctx.fill(); ctx.restore();
+          ctx.fillStyle = PAPIER.muster(ctx, e.farbe || "#b8c4d6"); ctx.fill(); ctx.restore();
         });
       if (!e.sichtbar) return teile;
       return function (ctx, t, dt) {
@@ -108,7 +120,7 @@
 
     // Schlafen: kleine Papier-"Z", die aus dem Kissen aufsteigen und verblassen
     zzz: function (e, r) {
-      var q = px(r, e.x, e.y), s = r.h * 0.022, richtung = e.links ? -1 : 1;
+      var q = px(r, e.x, e.y), s = r.h * 0.022 * (e.groesse || 1), richtung = e.links ? -1 : 1;
       return teilchenSystem(function () { return { x: q.x, y: q.y, alter: 0, leben: 4.2, ph: Z(0, 6), g: Z(0.8, 1.25) }; },
         e.rate || 0.55, 5, function (ctx, p, dt, t) {
           var a = p.alter / p.leben, k = s * p.g * (0.55 + a * 0.9);
@@ -121,9 +133,10 @@
         });
     },
 
+    // Dampf; e.schmal: aus einer schmalen Öffnung (Tülle), e.groesse: Faktor
     dampf: function (e, r) {
-      var q = px(r, e.x, e.y), s = r.h * 0.03;
-      return teilchenSystem(function () { return { x: q.x + Z(-s * 2, s * 2), y: q.y, alter: 0, leben: Z(2, 3), ph: Z(0, 6), r: s * Z(0.5, 1) }; },
+      var q = px(r, e.x, e.y), s = r.h * 0.03 * (e.groesse || 1), streu = e.schmal ? 0.35 : 2;
+      return teilchenSystem(function () { return { x: q.x + Z(-s * streu, s * streu), y: q.y, alter: 0, leben: Z(2, 3), ph: Z(0, 6), r: s * Z(0.5, 1) }; },
         2.2, 10, function (ctx, p, dt, t) {
           p.y -= s * 1.6 * dt * 10;
           var x = p.x + Math.sin(t * 2 + p.ph) * s;
