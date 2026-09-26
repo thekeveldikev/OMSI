@@ -36,12 +36,18 @@
   }
 
   // Datei laden und entpacken (einmal je Name)
-  function holen(name, fertig) {
+  var fehltWarten = {};
+  function holen(name, fertig, fehlt) {
     if (puffer[name]) { if (fertig) fertig(puffer[name]); return; }
-    if (puffer[name] === false) return;
+    if (puffer[name] === false) { if (fehlt) fehlt(); return; }
+    if (fehlt) (fehltWarten[name] = fehltWarten[name] || []).push(fehlt);
     if (laden[name]) { if (fertig) laden[name].push(fertig); return; }
     laden[name] = fertig ? [fertig] : [];
-    function fehl() { puffer[name] = false; delete laden[name]; }
+    function fehl() {
+      puffer[name] = false; delete laden[name];
+      var w = fehltWarten[name] || []; delete fehltWarten[name];
+      w.forEach(function (f) { f(); });
+    }
     var x = new XMLHttpRequest();
     x.open("GET", P.ordner + name + P.endung, true);
     x.responseType = "arraybuffer";
@@ -49,7 +55,7 @@
       if (x.status && x.status !== 200) { fehl(); return; }
       try {
         var p = ctx.decodeAudioData(x.response, function (b) {
-          puffer[name] = b;
+          puffer[name] = b; delete fehltWarten[name];
           var w = laden[name] || []; delete laden[name];
           w.forEach(function (f) { f(b); });
         }, fehl);
@@ -101,7 +107,7 @@
   }
 
   // ── Einzelgeräusche ──
-  function einzel(name, laut) {
+  function einzel(name, laut, ersatz) {
     holen(name, function (b) {
       if (!buchOffen || !eingeschaltet()) return;
       var q = ctx.createBufferSource(), g = ctx.createGain();
@@ -110,7 +116,7 @@
       var k = { q: q, g: g, ende: jetzt() + b.duration + 0.1 };
       klaenge.push(k);
       klaenge = klaenge.filter(function (e) { return e.ende > jetzt(); });
-    });
+    }, ersatz);
   }
   function einzelAus(dauer) {
     klaenge.forEach(function (k) { if (k.ende > jetzt()) { rampe(k.g.gain, 0.0001, dauer); halte(k.q, jetzt() + dauer + 0.05); } });
@@ -196,9 +202,10 @@
   };
 
   // Ein Einzelgeräusch genau jetzt (z. B. der Hahn kräht, wenn er den Kopf zurücklegt)
-  KU.spiele = function (name, laut) {
-    if (!buchOffen || !eingeschaltet() || !bereit()) return false;
-    einzel(name, laut == null ? 0.8 : laut);
+  // ersatz: wird aufgerufen, wenn es die Datei nicht gibt (dann klingt z. B. das eingebaute Geräusch)
+  KU.spiele = function (name, laut, ersatz) {
+    if (!buchOffen || !eingeschaltet() || !bereit()) { if (ersatz) ersatz(); return false; }
+    einzel(name, laut == null ? 0.8 : laut, ersatz);
     return true;
   };
 

@@ -193,15 +193,62 @@
   };
 
   // Orgelpfeife: Summe von Obertönen (wie Register)
+  // ── Orgel: alle Orgeltöne laufen über einen eigenen Kanal, der beim Umblättern in 0,3 s ausblendet –
+  //    so überlappen sich Orgelstücke nie, auch wenn schnell geblättert wird.
+  var orgelKanal = null, kirchenhall = null;
+  function orgelBus() {
+    if (orgelKanal) return orgelKanal;
+    orgelKanal = ctx.createGain(); orgelKanal.gain.value = 1;
+    // eigener, längerer Kirchenhall (3,4 s), etwas dunkler als der normale Raum
+    if (!kirchenhall) {
+      kirchenhall = ctx.createConvolver();
+      var len = Math.round(ctx.sampleRate * 3.4), imp = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (var k = 0; k < 2; k++) {
+        var d = imp.getChannelData(k), tief = 0;
+        for (var i = 0; i < len; i++) { tief = tief * 0.6 + (Math.random() * 2 - 1) * 0.4; d[i] = tief * Math.pow(1 - i / len, 2.2); }
+      }
+      kirchenhall.buffer = imp;
+      var hg = ctx.createGain(); hg.gain.value = 0.55; kirchenhall.connect(hg); hg.connect(haupt);
+    }
+    orgelKanal.connect(haupt); orgelKanal.connect(kirchenhall);
+    return orgelKanal;
+  }
+  // alle laufenden Orgel-/Tastentöne weich beenden
+  K.orgelStille = function (dauer) {
+    if (!ctx || !orgelKanal) return;
+    var alt = orgelKanal, t = ctx.currentTime, d = dauer || 0.3;
+    orgelKanal = null;
+    alt.gain.cancelScheduledValues(t); alt.gain.setValueAtTime(alt.gain.value, t); alt.gain.linearRampToValueAtTime(0.0001, t + d);
+    setTimeout(function () { try { alt.disconnect(); } catch (e) {} }, (d + 0.2) * 1000);
+  };
+  // Pfeifen-Register (Fußlagen 8', 4', 2 2/3', 2', 1 3/5', 1') mit leichter Schwebung,
+  // kurzem "Anblasen" (Chiff) und zartem Tremulanten
   function orgelton(t, n, dauer, laut) {
-    var teile = [[1, 1], [2, 0.55], [3, 0.3], [4, 0.28], [6, 0.12], [8, 0.1]];
+    var bus = orgelBus(), f = midi(n), L = laut || 0.07;
+    var teile = [[1, 1, 0], [2, 0.6, 1.5], [3, 0.28, -1], [4, 0.3, 0.8], [5, 0.1, 0], [8, 0.12, -0.6]];
+    var trem = ctx.createOscillator(), tg = ctx.createGain();
+    trem.frequency.value = 5.2; tg.gain.value = L * 0.06; trem.connect(tg);
+    var summe = ctx.createGain(); summe.gain.value = 1; summe.connect(bus);
+    tg.connect(summe.gain);
+    start(trem, t, t + dauer + 0.5);
     teile.forEach(function (p) {
-      var x = ton(t, midi(n) * p[0], dauer, "sine", 0, true);
-      huelle(x.g, t, 0.025, Math.max(0.01, dauer - 0.05), 0.25, (laut || 0.07) * p[1]);
+      var o = ctx.createOscillator(); o.type = "sine"; o.frequency.setValueAtTime(f * p[0], t); o.detune.value = p[2] * 2;
+      var g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+      o.connect(g); g.connect(summe);
+      huelle(g, t, 0.035, Math.max(0.01, dauer - 0.04), 0.35, L * p[1]);
+      start(o, t, t + dauer + 0.5);
     });
+    // Anblasgeräusch der Pfeife
+    var r = ctx.createBufferSource(); r.buffer = rauschen;
+    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = Math.min(9000, f * 4); bp.Q.value = 2;
+    var rg = ctx.createGain(); rg.gain.setValueAtTime(0.0001, t);
+    r.connect(bp); bp.connect(rg); rg.connect(bus);
+    rg.gain.exponentialRampToValueAtTime(L * 0.25, t + 0.015); rg.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    start(r, t, t + 0.12);
   }
   K.orgel = function () {
     if (!ctx || !an()) return;
+    K.orgelStille(0.15);
     var t = t0();
     // Bach, Toccata d-Moll BWV 565 – Anfang (gemeinfrei)
     function phrase(start, okt) {
@@ -222,6 +269,7 @@
   // Die Katze spaziert über die Tasten
   K.katzenorgel = function () {
     if (!ctx || !an()) return;
+    K.orgelStille(0.15);
     var t = t0(), n = 48, z = t;
     for (var i = 0; i < 14; i++) { n += [1, 2, 3, 1, 4][i % 5]; orgelton(z, n, 0.2, 0.05); z += 0.2 + Math.random() * 0.08; }
     z += 0.3;
@@ -295,6 +343,11 @@
     for (var i = 0; i < 3; i++) { var r = rausch(t + i * 0.28, 0.15, "bandpass", 500, 1.5); huelle(r.g, t + i * 0.28, 0.01, 0.05, 0.08, 0.3); }
   };
 
+  // ein einzelner Orgel-/Keyboardton (z. B. die Pfote der Katze auf einer Taste); n = MIDI-Nummer
+  K.taste = function (n, dauer, laut) {
+    if (!ctx || !an()) return;
+    orgelton(t0(), n, dauer || 0.35, laut || 0.045);
+  };
   K.abspielen = function (name) { if (K[name] && typeof K[name] === "function") K[name](); };
 
   // Eingebaute Computerstimme (Vorlese-Notlösung)

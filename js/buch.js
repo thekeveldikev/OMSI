@@ -392,11 +392,24 @@
     var ds = S.doppelseiten[S.index], irgendwas = false;
     if (S.typ === "fortsetzung") {
       var eb = window.EBENEN && window.EBENEN[ds.seite.id];
-      if (eb) {
+      if (eb && bildStatus(bildQuelleFortsetzung(ds.seite)) === true) {
         if (eb.hintergrund) { var bg = B.el("img", "ebene-hintergrund", schicht); bg.src = eb.hintergrund; }
-        (eb.teile || []).forEach(function (t) { ebeneSetzen(schicht, t, 0, 1); });
+        (eb.teile || []).forEach(function (t) {
+          var h = ebeneSetzen(schicht, t, 0, 1);
+          if (t.anim === "spaziergang") spaziergangStart(h, t);
+        });
         irgendwas = true;
       }
+      // ausgeschnittene Figuren der Fortsetzung (daten/original_figuren.js, Schlüssel = Seiten-id)
+      var figs = (window.ORIGINAL_FIGUREN || {})[ds.seite.id] || [];
+      if (ds.seite.teile && figs.length && bildStatus(bildQuelleFortsetzung(ds.seite)) === true) ds.seite.teile.forEach(function (c) {
+        var t = figs.filter(function (a) { return a.nr === c.nr; })[0];
+        if (!t) return;
+        var halter = ebeneSetzen(schicht, { bild: t.bild, loch: t.loch, x: t.x, y: t.y, b: t.b, h: t.h, anim: c.anim, dauer: c.dauer,
+                                            verzoegerung: c.verzoegerung, drehpunkt: c.drehpunkt || t.drehpunkt, takt: c.takt, z: 2 }, 0, 1);
+        if (c.takt) S.taktTeile[c.nr] = halter;
+        irgendwas = true;
+      });
       // Blinzeln auch in der Fortsetzung (Augen relativ zur ganzen Doppelseite, nur wenn das Bild da ist)
       if (bildStatus(bildQuelleFortsetzung(ds.seite)) === true) {
         ((window.ORIGINAL_AUGEN || {})[ds.seite.id] || []).forEach(function (auge) {
@@ -504,6 +517,51 @@
     return halter;
   }
 
+  // ───────────────────── Katzen-Spaziergang über die Tasten ─────────────────────
+  // Die Katze geht gemütlich von den tiefen zu den hohen Tasten und wieder zurück; bei jedem Schritt
+  // klingt die Taste unter ihrer Pfote (eigene Aufnahmen audio/klang/f_taste_01…12, sonst eingebaut).
+  var spazier = null;
+  var TASTEN_MIDI = [48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67];
+  function spaziergangStopp() {
+    if (spazier) { spazier.aus = true; if (spazier.id) B.frameStopp(spazier.id); if (spazier.uhr) clearInterval(spazier.uhr); }
+    spazier = null;
+  }
+  function spaziergangStart(el, t) {
+    spaziergangStopp();
+    var weg = t.weg || 0.14, tempo = t.tempo || 1, schrittDauer = 0.42 / tempo, pause = 1.6;
+    var z = { aus: false, t0: B.jetzt(), letzterSchritt: -1, el: el };
+    spazier = z;
+    // Ablauf in Sekunden: hin (Schritte), kurz stehen und umdrehen, zurück, stehen
+    var schritte = t.schritte || 11, lauf = schritte * schrittDauer, runde = 2 * (lauf + pause);
+    function lage(sek) {
+      var u = sek % runde, x, richtung, schritt = -1, stehen = false;
+      if (u < lauf) { x = -weg + 2 * weg * (u / lauf); richtung = 1; schritt = Math.floor(u / schrittDauer); }
+      else if (u < lauf + pause) { x = weg; richtung = (u - lauf) < pause * 0.55 ? 1 : -1; stehen = true; }
+      else if (u < 2 * lauf + pause) { var v = u - lauf - pause; x = weg - 2 * weg * (v / lauf); richtung = -1; schritt = schritte + Math.floor(v / schrittDauer); }
+      else { x = -weg; richtung = (u - 2 * lauf - pause) < pause * 0.55 ? -1 : 1; stehen = true; }
+      var phase = stehen ? 0 : ((u % schrittDauer) / schrittDauer);
+      return { x: x, richtung: richtung, schritt: schritt, phase: phase, stehen: stehen, runde: Math.floor(sek / runde) };
+    }
+    function zeichne() {
+      if (z.aus) return;
+      var sek = (B.jetzt() - z.t0) / 1000, l = lage(sek);
+      var hub = l.stehen ? Math.sin(sek * 2) * 0.004 : -Math.abs(Math.sin(l.phase * Math.PI)) * 0.022;
+      var neig = l.stehen ? 0 : Math.sin(l.phase * Math.PI * 2) * 1.2;
+      // Spiegeln um die eigene Mitte beim Umdrehen (weich über scaleX)
+      B.transform(el, "translate(" + (l.x * 100).toFixed(2) + "%," + (hub * 100).toFixed(2) + "%) rotate(" + neig.toFixed(2) + "deg) scaleX(" + l.richtung + ")");
+      var schrittNr = l.runde * 1000 + l.schritt;
+      if (l.schritt >= 0 && schrittNr !== z.letzterSchritt) {
+        z.letzterSchritt = schrittNr;
+        var pos = (l.x + weg) / (2 * weg), i = Math.max(0, Math.min(11, Math.round(pos * 11)));
+        var name = "f_taste_" + (i + 1 < 10 ? "0" : "") + (i + 1);
+        KULISSE.spiele(name, 0.55, function () { KLANG.taste(TASTEN_MIDI[i], 0.38, 0.04); });
+      }
+    }
+    // rAF für die Bewegung, dazu ein ruhiger Taktgeber, falls rAF gedrosselt wird (Töne bleiben pünktlich)
+    (function schleife() { if (z.aus) return; zeichne(); z.id = B.frame(schleife); })();
+    z.uhr = setInterval(zeichne, 90);
+  }
+
   // ───────────────────── Takt: Bewegung + Ton + Effekt im selben Augenblick ─────────────────────
   // z. B. der Hahn legt den Kopf zurück, kräht – und nur dann kommen die Schallwellen.
   // Seite: takt: [{ teil, anim, dauer, ton, laut, effekt, erstes (s), alle: [von, bis] (s) }]
@@ -516,13 +574,16 @@
     if (!S) return;
     (S.taktTimer || []).forEach(clearTimeout);
     S.taktTimer = [];
+    (S.tonTimer || []).forEach(clearTimeout);             // noch nicht gespielte Computer-Töne verwerfen
+    S.tonTimer = [];
+    if (KLANG.orgelStille) KLANG.orgelStille(0.3);          // laufende Orgel weich ausblenden
+    spaziergangStopp();
   }
   function taktStarten(ds) {
     taktStoppen();
-    if (S.typ !== "original") return;
     var indexBeiStart = S.index;
-    [ds.links, ds.rechts].forEach(function (nr) {
-      var seite = nr && S.daten.seiten[nr];
+    var seiten = S.typ === "original" ? [ds.links, ds.rechts].map(function (nr) { return nr && S.daten.seiten[nr]; }) : [ds.seite];
+    seiten.forEach(function (seite) {
       ((seite && seite.takt) || []).forEach(function (tk) {
         function feuern() {
           if (!S || S.index !== indexBeiStart || S.beschaeftigt) return;
@@ -581,7 +642,9 @@
     if (S.typ === "original") {
       [ds.links, ds.rechts].forEach(function (nr) { if (nr && S.daten.seiten[nr] && S.daten.seiten[nr].ton) toene.push(S.daten.seiten[nr].ton); });
     } else if (ds.seite.ton) toene.push(ds.seite.ton);
-    if (!ohneTon) toene.forEach(function (t, i) { setTimeout(function () { KLANG.abspielen(t); }, 350 + i * 900); });
+    (S.tonTimer || []).forEach(clearTimeout);
+    S.tonTimer = [];
+    if (!ohneTon) toene.forEach(function (t, i) { S.tonTimer.push(setTimeout(function () { KLANG.abspielen(t); }, 350 + i * 900)); });
     // Nächste Bilder schon laden
     for (var k = 1; k <= 2; k++) {
       var n = S.doppelseiten[S.index + k];
@@ -763,9 +826,9 @@
       el.className += " laut-knall";
     }
     var w = (e.wort || "").toUpperCase();
-    if (/PUFF|PUFF/.test(w)) KLANG.puff();
-    else if (/D[ÖO]+M|BUMM|RUMMS/.test(w)) KLANG.orgel();
-    else if (/HOPP|HUI/.test(w)) { if (!KULISSE.spiele("ev_wenden", 0.9)) KLANG.hopp(); }
+    if (/PUFF/.test(w)) KULISSE.spiele("f_puff", 1, KLANG.puff);
+    else if (/D[ÖO]+M|BUMM|RUMMS/.test(w)) KULISSE.spiele("f_doeoem", 1, function () { KLANG.taste(38, 2.6, 0.09); KLANG.taste(50, 2.6, 0.07); KLANG.taste(57, 2.6, 0.05); });
+    else if (/HOPP|HUI/.test(w)) KULISSE.spiele("f_hopp", 1, function () { if (!KULISSE.spiele("ev_wenden", 0.9)) KLANG.hopp(); });
     else KLANG.plopp();
   }
 
