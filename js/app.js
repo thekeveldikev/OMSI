@@ -330,6 +330,7 @@
     var endungen = [".m4a", ".mp3", ".wav"];
     d.push("css/radio.css", "js/radio.js", "daten/radio.js", "bilder/radio/radio-waldgruen.png", "audio/radio/erinnerung.m4a");
     d.push("bilder/radio/extrafach-front.png");
+    d.push("bilder/radio/extrafach-symbole.png");
     window.ORIGINAL.doppelseiten.forEach(function (ds) {
       ds.forEach(function (n) {
         var s = window.ORIGINAL.seiten[n] || {};

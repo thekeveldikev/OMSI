@@ -32,16 +32,24 @@
   function schubladenKlang(auf, laut) {
     if (B.E.toene === false || !laut) return;
     var c = KLANG.kontext(); if (!c) return;
-    var dauer = auf ? 0.42 : 0.32, n = Math.ceil(c.sampleRate * dauer);
+    var dauer = auf ? 0.58 : 0.48, n = Math.ceil(c.sampleRate * dauer);
     var p = c.createBuffer(1, n, c.sampleRate), d = p.getChannelData(0);
+    var weich = 0;
     for (var i = 0; i < n; i++) {
-      var t = i / c.sampleRate, h = Math.sin(Math.PI * i / n);
-      d[i] = (Math.random() * 2 - 1) * h * (0.4 + 0.6 * Math.pow(Math.sin(t * 90), 2)) * 0.065 * laut;
-      var anschlag = t - (dauer - 0.055);
-      if (anschlag >= 0) d[i] += Math.sin(anschlag * 1100) * Math.exp(-anschlag * 95) * 0.16 * laut;
+      var t = i / c.sampleRate, h = Math.pow(Math.sin(Math.PI * i / n), 1.8);
+      // Filz auf Holz: ruhiges, weiches Reiben statt sägendem Rattern.
+      weich = weich * 0.91 + (Math.random() * 2 - 1) * 0.09;
+      var v = weich * h * (0.72 + 0.28 * Math.sin(t * 25)) * 0.10;
+      var anschlag = t - (dauer - 0.105);
+      if (anschlag >= 0) {
+        var huelle = Math.min(1, anschlag / 0.009) * Math.exp(-anschlag * 47);
+        v += (Math.sin(anschlag * 2 * Math.PI * 330) + Math.sin(anschlag * 2 * Math.PI * 570) * 0.32 +
+          Math.sin(anschlag * 2 * Math.PI * 870) * 0.14) * huelle * (auf ? 0.065 : 0.08);
+      }
+      d[i] = v * laut;
     }
     var q = c.createBufferSource(), f = c.createBiquadFilter();
-    q.buffer = p; f.type = 'lowpass'; f.frequency.value = auf ? 1600 : 1100;
+    q.buffer = p; f.type = 'lowpass'; f.frequency.value = auf ? 1100 : 900;
     q.connect(f); f.connect(c.destination);
     q.onended = function () { q.disconnect(); f.disconnect(); }; q.start(0);
   }
@@ -108,7 +116,8 @@
     var rad = B.el('span', 'radio-laut-rad', regler);
     PAPIER.hinterlegen(rad, 'gelb', { seed: 54 }); B.el('i', 'radio-laut-marke', rad);
     var lautText = B.el('span', 'radio-laut-text', buehne);
-    B.el('span', 'radio-drehen-hinweis', buehne, '↶ DREHEN ↷');
+    var lautZahl = B.el('span', 'radio-laut-zahl', regler); lautZahl.setAttribute('aria-hidden', 'true');
+    B.el('span', 'radio-drehen-hinweis', buehne, 'Lautstärke');
 
     var bedienung = B.el('div', 'radio-bedienung', inhalt);
     var zeitzeile = B.el('div', 'radio-zeitzeile', bedienung);
@@ -153,8 +162,17 @@
       }
     });
     var bonusZeile = B.el('div', 'radio-bonuszeile', innen);
+    var objektTitel = { back: 'Zurück', forward: 'Weiter', repeat: 'Noch einmal', night: 'Abendlicht', bookmark: 'Lieblingsstelle', mute: 'Der Ton' };
+    var objektHinweis = { back: '10 Sekunden', forward: '10 Sekunden', repeat: 'Immer wieder', night: 'An / aus', bookmark: 'Hier merken', mute: 'An / aus' };
     function bonus(name, text, fn) {
-      var b = B.el('button', 'radio-bonus', bonusZeile, text); b.type = 'button'; b.setAttribute('data-radio', name);
+      var b = B.el('button', 'radio-bonus radio-objekt radio-objekt-' + name, bonusZeile); b.type = 'button'; b.setAttribute('data-radio', name);
+      b.setAttribute('aria-label', objektTitel[name] + ': ' + text);
+      var icon = B.el('span', 'radio-objekt-bild', b); icon.setAttribute('aria-hidden', 'true'); icon.style.backgroundImage = 'url("' + D.symbole + '")';
+      var zettel = B.el('span', 'radio-objekt-zettel', b);
+      PAPIER.hinterlegen(zettel, 'weiss', { seed: 81 + bonusZeile.children.length, kachel: 130 });
+      B.el('span', 'radio-objekt-titel', zettel, name === 'bookmark' ? 'Lieblings\u00adstelle' : objektTitel[name]);
+      B.el('span', 'radio-objekt-hinweis', zettel, objektHinweis[name]);
+      var marke = B.el('span', 'radio-objekt-marke', b, 'an'); marke.setAttribute('aria-hidden', 'true');
       B.tippen(b, fn); return b;
     }
     bonus('back', '↶ 10 Sekunden', function () { springen(pos - 10); });
@@ -174,15 +192,38 @@
       stellen.push(t); stellen.sort(function (a, b) { return a - b; }); B.merken('radio.stellen', stellen); lieblingsstellen();
       anzeigen('Lieblingsstelle bei ' + zeit(t) + ' gemerkt.');
     });
-    bonus('mute', '♪ Ton aus / an', function () {
+    var stummTaste = bonus('mute', '♪ Ton aus / an', function () {
       if (laut) { B.merken('radio.vorStumm', laut); lautSetzen(0); }
       else lautSetzen(B.klemme(zahl(B.erinnern('radio.vorStumm', 75), 75), 5, 100));
     });
-    var timerZeile = B.el('label', 'radio-schlummer', innen, 'Schlummer-Radio ');
-    var timerWahl = B.el('select', '', timerZeile); timerWahl.setAttribute('data-radio', 'sleep'); timerWahl.setAttribute('aria-label', 'Schlummer-Timer');
-    [0, 5, 10, 15].forEach(function (n) { var o = B.el('option', '', timerWahl, n ? 'In ' + n + ' Minuten aus' : 'Kein Timer'); o.value = String(n); });
+    var timerZeile = B.el('div', 'radio-schlummer', innen);
+    B.el('div', 'radio-schlaf-titel', timerZeile, 'Wann soll das Radio schlafen?');
+    var timerWahl = B.el('div', 'radio-schlaf-karten', timerZeile);
+    timerWahl.setAttribute('data-radio', 'sleep'); timerWahl.setAttribute('role', 'radiogroup'); timerWahl.setAttribute('aria-label', 'Schlummer-Timer');
+    var timerTasten = [], minuten = [0, 5, 10, 15];
+    function timerWaehlen(n) {
+      schlummer = n ? Date.now() + n * 60000 : 0; letzteSekunde = -1;
+      timerTasten.forEach(function (b, i) { b.setAttribute('aria-checked', String(minuten[i] === n)); b.tabIndex = minuten[i] === n ? 0 : -1; });
+    }
+    minuten.forEach(function (n, index) {
+      var b = B.el('button', 'radio-schlaf-karte', timerWahl); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('data-minuten', String(n));
+      b.setAttribute('aria-label', n ? 'In ' + n + ' Minuten ausschalten' : 'Kein Schlummer-Timer');
+      PAPIER.hinterlegen(b, n ? 'ocker' : 'weiss', { seed: 90 + index, kachel: 100 });
+      B.el('span', 'radio-schlaf-zahl', b, n ? String(n) : 'Aus'); B.el('span', 'radio-schlaf-einheit', b, n ? 'Minuten' : 'Ganz in Ruhe');
+      var stern = B.el('span', 'radio-schlaf-stern', b, '✦'); stern.setAttribute('aria-hidden', 'true');
+      timerTasten.push(b); B.tippen(b, function () { timerWaehlen(n); });
+      b.addEventListener('keydown', function (ev) {
+        var ziel = index;
+        if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') ziel = (index + 1) % 4;
+        else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') ziel = (index + 3) % 4;
+        else if (ev.key === 'Home') ziel = 0;
+        else if (ev.key === 'End') ziel = 3;
+        else return;
+        ev.preventDefault(); timerWaehlen(minuten[ziel]); timerTasten[ziel].focus();
+      });
+    });
+    timerWaehlen(0);
     var timerInfo = B.el('span', 'radio-timer-info', timerZeile);
-    timerWahl.addEventListener('change', function () { schlummer = Number(timerWahl.value) ? Date.now() + Number(timerWahl.value) * 60000 : 0; letzteSekunde = -1; });
     var lieblinge = B.el('div', 'radio-lieblinge', innen);
     function lieblingsstellen() {
       B.leeren(lieblinge);
@@ -224,7 +265,10 @@
     function lautSetzen(wert) {
       laut = Math.round(B.klemme(wert, 0, 100)); B.merken('radio.laut', laut);
       regler.setAttribute('aria-valuenow', String(laut)); regler.setAttribute('aria-valuetext', laut ? laut + ' Prozent' : 'Stumm');
-      lautText.textContent = laut ? 'LAUTSTÄRKE ' + laut + '%' : 'STUMM';
+      lautText.textContent = 'leise · laut';
+      lautZahl.textContent = laut ? String(laut) : '–';
+      stummTaste.setAttribute('aria-pressed', String(laut === 0));
+      stummTaste.querySelector('.radio-objekt-marke').textContent = 'aus';
       B.transform(rad, 'rotate(' + (-135 + laut * 2.7) + 'deg)');
       if (gain) {
         gain.gain.cancelScheduledValues(ctx.currentTime);
@@ -366,7 +410,7 @@
       if (schlummer) {
         var rest = Math.max(0, Math.ceil((schlummer - Date.now()) / 1000));
         if (rest !== letzteSekunde) { timerInfo.textContent = 'Noch ' + zeit(rest); letzteSekunde = rest; }
-        if (!rest) { schlummer = 0; timerWahl.value = '0'; timerInfo.textContent = ''; pause(true); anzeigen('Schlummer-Radio aus. Deine Stelle ist gemerkt.'); }
+        if (!rest) { timerWaehlen(0); timerInfo.textContent = ''; pause(true); anzeigen('Schlummer-Radio aus. Deine Stelle ist gemerkt.'); }
       } else if (timerInfo.textContent) timerInfo.textContent = '';
       if (!weniger || !weniger.matches) {
         var e = D.pegel || [], idx = Math.floor(a.currentTime * (D.pegelHz || 10));

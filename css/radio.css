@@ -98,7 +98,6 @@
 .radio-bonus { min-height:44px; border:1px solid #c1c6a5; background:#fffdf3; border-radius:5px; padding:9px 13px; margin:4px; font:14px var(--rund); color:#375140; cursor:pointer; }
 .radio-bonus[aria-pressed=true] { background:#d9e2b9; border-color:#6c864d; box-shadow:inset 0 -3px #819966; }
 .radio-schlummer { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; margin:12px 0 0; font:14px var(--rund); }
-.radio-schlummer select { min-height:44px; margin:0 8px; padding:8px; border:1px solid #b6bd99; background:#fffdf3; color:#375140; border-radius:4px; font:inherit; }
 .radio-timer-info { font:13px var(--maschine); margin:8px; }
 .radio-lieblinge { font:13px/1.5 var(--rund); color:#707451; }.radio-lieblinge p { margin:15px 0 7px; }
 .radio-merke { display:inline-flex; margin:4px; background:#fffdf3; border-radius:6px; border:1px solid #d9ceab; }
@@ -139,3 +138,48 @@
 @media (min-width:900px) and (max-height:800px) { .radio-schublade { width:550px; margin-top:20px; } }
 @media (max-width:599px) { .radio-fach-text { font-size:15px; }.radio-fach-hinweis { font-size:10px; }.radio-schublade-innen { padding:14px 6px; border-width:6px; }.radio-schublade { margin-top:22px; } }
 @media (prefers-reduced-motion:reduce) { .radio-schublade .radio-extrafach,.radio-schublade .radio-fach-taste { transition:none; }.radio-schublade.offen .radio-fach-taste { transform:none; } }
+
+/* Sechs gemalte Fundstücke statt eines Einstellungsformulars. */
+.radio-seite button { -webkit-appearance:none; appearance:none; -webkit-tap-highlight-color:transparent; }
+.radio-bonus.radio-objekt { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; width:30%; min-height:145px; margin:3px 1%; padding:3px 0 8px; border:0; border-radius:0; background:transparent; box-shadow:none; color:#334d38; }
+.radio-objekt-bild { display:block; width:88px; height:88px; background-size:300% 200%; background-repeat:no-repeat; transition:transform .18s; pointer-events:none; }
+.radio-objekt-back .radio-objekt-bild { background-position:0 0; }
+.radio-objekt-forward .radio-objekt-bild { background-position:50% 0; }
+.radio-objekt-repeat .radio-objekt-bild { background-position:100% 0; }
+.radio-objekt-night .radio-objekt-bild { background-position:0 100%; }
+.radio-objekt-bookmark .radio-objekt-bild { background-position:50% 100%; }
+.radio-objekt-mute .radio-objekt-bild { background-position:100% 100%; }
+.radio-objekt-zettel { display:block; max-width:100%; padding:6px 10px 8px; background-color:#fff6d9; clip-path:polygon(1% 5%,32% 1%,65% 4%,97% 0,100% 92%,69% 98%,35% 94%,0 100%); transform:rotate(-2deg); }
+.radio-objekt:nth-child(even) .radio-objekt-zettel { transform:rotate(2deg); }
+.radio-objekt-titel { display:block; font:700 18px/1.2 var(--handschrift); overflow-wrap:break-word; hyphens:auto; }
+.radio-objekt-hinweis { display:block; margin-top:2px; font:12px/1.3 var(--buchschrift); color:#706341; }
+.radio-objekt-marke { display:none; position:absolute; top:7px; right:13%; padding:3px 9px; background:#385c3c; color:#fff4ca; font:700 13px var(--handschrift); transform:rotate(9deg); clip-path:polygon(3% 0,97% 5%,100% 94%,0 100%); }
+.radio-objekt[aria-pressed=true] .radio-objekt-marke { display:block; }
+.radio-objekt:active .radio-objekt-bild { transform:translateY(3px) rotate(-5deg) scale(.94); }
+.radio-schlummer { display:block; margin:17px 0 0; padding-top:13px; border-top:2px dashed #c0a76a; }
+.radio-schlaf-titel { font:700 20px/1.3 var(--handschrift); color:#505934; }
+.radio-schlaf-karten { display:flex; justify-content:center; margin:12px 0 0; }
+.radio-schlaf-karte { position:relative; width:23%; min-height:77px; margin:0 1%; padding:8px 3px; border:0; color:#4b492d; background-color:#ecd089; cursor:pointer; transform:rotate(-3deg); clip-path:polygon(2% 0,48% 3%,96% 0,100% 94%,51% 100%,0 95%); }
+.radio-schlaf-karte:nth-child(even) { transform:rotate(3deg); }
+.radio-schlaf-zahl { display:block; font:700 28px/1 var(--handschrift); }
+.radio-schlaf-einheit { display:block; margin-top:6px; font:12px/1.2 var(--buchschrift); }
+.radio-schlaf-stern { position:absolute; top:1px; right:5px; color:#305038; font-size:18px; visibility:hidden; }
+.radio-schlaf-karte[aria-checked=true] { color:#244a32; box-shadow:inset 0 -5px #66834b; }
+.radio-schlaf-karte[aria-checked=true] .radio-schlaf-stern { visibility:visible; }
+.radio-schlaf-karte:focus-visible { outline:none; box-shadow:inset 0 0 0 3px #48633a; }
+.radio-timer-info { display:block; margin:9px 0 0; }
+.radio-timer-info:empty { display:none; }
+.radio-lieblinge { font:15px/1.5 var(--handschrift); }
+.radio-merke { border:0; border-radius:1px 5px 2px 0; background:#fff5d4; transform:rotate(-1deg); }
+.radio-laut-zahl { position:absolute; left:0; top:57%; width:100%; color:#3b4a29; font:700 12px/1 var(--handschrift); text-align:center; pointer-events:none; }
+.radio-laut-text { top:81%; font:10px var(--handschrift); letter-spacing:.03em; }
+.radio-drehen-hinweis { top:55%; font:700 11px var(--handschrift); letter-spacing:0; }
+.radio-seite button:focus:not(:focus-visible) { outline:none; }
+@media (hover:hover) { .radio-objekt:hover .radio-objekt-bild { transform:translateY(-3px) rotate(4deg); }.radio-schlaf-karte:hover { filter:brightness(1.05); } }
+@media (max-width:599px) {
+  .radio-bonus.radio-objekt { min-height:126px; }.radio-objekt-bild { width:72px; height:72px; }.radio-objekt-zettel { padding:5px 3px 7px; }
+  .radio-objekt-titel { font-size:14px; min-height:34px; display:flex; align-items:center; justify-content:center; }.radio-objekt-hinweis { font-size:11px; }.radio-objekt-marke { font-size:11px; right:0; }
+  .radio-schlaf-titel { font-size:18px; }.radio-schlaf-zahl { font-size:24px; }.radio-schlaf-einheit { font-size:10px; }.radio-schlaf-karte { min-height:70px; }
+  .radio-laut-text { top:82%; font-size:7px; }.radio-drehen-hinweis { font-size:7px; }.radio-laut-zahl { font-size:9px; }
+}
+@media (prefers-reduced-motion:reduce) { .radio-objekt-bild { transition:none; }.radio-objekt:hover .radio-objekt-bild,.radio-objekt:active .radio-objekt-bild { transform:none; } }
