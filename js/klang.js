@@ -44,6 +44,45 @@
   };
   K.kontext = function () { return ctx; };
 
+  // Regen vor dem Küchenfenster: gefiltertes Rauschen in Schleife, sehr leise unter der Musik (laut 0 = aus)
+  var regenKnoten = null;
+  K.regen = function (laut) {
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    if (!laut || !an()) {
+      if (regenKnoten) {
+        var r = regenKnoten; regenKnoten = null;
+        r.g.gain.cancelScheduledValues(t); r.g.gain.setValueAtTime(Math.max(0.0001, r.g.gain.value), t); r.g.gain.linearRampToValueAtTime(0.0001, t + 1.2);
+        setTimeout(function () { try { r.src.stop(); r.src.disconnect(); r.g.disconnect(); } catch (e) {} }, 1400);
+      }
+      return;
+    }
+    if (!regenKnoten) {
+      var src = ctx.createBufferSource(); src.buffer = rauschen; src.loop = true;
+      var hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 650;
+      var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5200;
+      var g = ctx.createGain(); g.gain.value = 0.0001;
+      src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(haupt);
+      start(src, t); regenKnoten = { src: src, g: g };
+    }
+    regenKnoten.g.gain.cancelScheduledValues(t); regenKnoten.g.gain.setValueAtTime(Math.max(0.0001, regenKnoten.g.gain.value), t);
+    regenKnoten.g.gain.linearRampToValueAtTime(laut, t + 1.8);
+  };
+  // Donner: Krachen, dann langes, tiefes Grollen
+  K.donner = function (staerke) {
+    if (!ctx || !an()) return;
+    var t = t0(), s = staerke || 1;
+    var src = ctx.createBufferSource(); src.buffer = rauschen; src.loop = true;
+    var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.setValueAtTime(1100, t); lp.frequency.exponentialRampToValueAtTime(110, t + 2.6);
+    var g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.42 * s, t + 0.07);
+    g.gain.exponentialRampToValueAtTime(0.14 * s, t + 0.55);
+    g.gain.linearRampToValueAtTime(0.22 * s, t + 1.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 3.8);
+    src.connect(lp); lp.connect(g); g.connect(haupt); g.connect(hall);
+    start(src, t, t + 4);
+  };
+
   // Hintergrund/Sperre: Klangmaschine anhalten (als "Wiedergabe" liefe sie sonst weiter), danach wieder an
   document.addEventListener("visibilitychange", function () {
     if (!ctx) return;

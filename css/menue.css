@@ -37,7 +37,9 @@
 .mk-lid { position:absolute; width:100%; height:100%; border-radius:50%; border-bottom:.18em solid; opacity:0; background-image:linear-gradient(135deg,rgba(255,233,176,.3) 0%,transparent 48%,rgba(230,119,52,.1) 50%,transparent 75%); transform-origin:50% 0; -webkit-transform-origin:50% 0; -webkit-animation:mk-blinzeln 6s linear infinite; animation:mk-blinzeln 6s linear infinite; }
 .mk-lid:after { content:''; position:absolute; left:12%; top:32%; width:76%; height:25%; border-bottom:.22em solid rgba(64,43,25,.6); border-radius:0 0 50% 50%; }
 .mk-flamme { position:absolute; z-index:4; border-radius:70% 30% 60% 40%; background:radial-gradient(ellipse at 50% 85%,#fffbc8 12%,#ffe651 45%,#efa521 70%,transparent 76%); box-shadow:0 0 1em rgba(255,187,40,.15); transform-origin:50% 100%; -webkit-transform-origin:50% 100%; -webkit-animation:mk-flamme .8s ease-in-out infinite alternate; animation:mk-flamme .8s ease-in-out infinite alternate; }
-.mk-gas { background:radial-gradient(ellipse at 50% 85%,#effcfa 4%,#69e9ff 20%,#167adc 57%,transparent 72%); box-shadow:none; }
+/* Gasflammen hinter der Pfanne: 6 Stop-Motion-Bilder untereinander, ruckweise weitergeschoben (~7 Bilder/s) */
+.mk-gasflammen { position:absolute; z-index:3; overflow:hidden; pointer-events:none; }
+.mk-dekor .mk-gasstreifen { left:0; top:0; width:100%; height:600%; -webkit-animation:mk-gas 0.84s steps(6) infinite; animation:mk-gas 0.84s steps(6) infinite; }
 .mk-skala { position:absolute; z-index:4; display:flex; align-items:center; justify-content:space-between; }
 .mk-skala i { width:1px; height:50%; background:#364826; }
 .mk-skala i:nth-child(3n) { height:75%; }
@@ -68,6 +70,8 @@
 @keyframes mk-pfanne { 0%,70%,100% { transform:translateY(0) rotate(-1deg); } 77% { transform:translateY(9%) rotate(-4deg); } 85% { transform:translateY(-21%) rotate(8deg) scaleY(.76); } 93% { transform:translateY(3%) rotate(-3deg); } }
 @-webkit-keyframes mk-dampf { 0% { opacity:0; -webkit-transform:translateY(8px); } 35% { opacity:.5; } 100% { opacity:0; -webkit-transform:translate(7px,-23px); } }
 @keyframes mk-dampf { 0% { opacity:0; transform:translateY(8px); } 35% { opacity:.5; } 100% { opacity:0; transform:translate(7px,-23px); } }
+@-webkit-keyframes mk-gas { from { -webkit-transform:translateY(0); } to { -webkit-transform:translateY(-100%); } }
+@keyframes mk-gas { from { transform:translateY(0); } to { transform:translateY(-100%); } }
 @-webkit-keyframes mk-flamme { from { -webkit-transform:rotate(-6deg) scale(.95,1.05); opacity:.85; } to { -webkit-transform:rotate(6deg) scale(1.1,.9); opacity:1; } }
 @keyframes mk-flamme { from { transform:rotate(-6deg) scale(.95,1.05); opacity:.85; } to { transform:rotate(6deg) scale(1.1,.9); opacity:1; } }
 @-webkit-keyframes mk-blinzeln { 0%,92%,100% { opacity:0; -webkit-transform:scaleY(.01); } 93% { opacity:1; -webkit-transform:scaleY(.3); } 94%,95% { opacity:1; -webkit-transform:scaleY(1); } 96% { opacity:0; -webkit-transform:scaleY(.01); } }

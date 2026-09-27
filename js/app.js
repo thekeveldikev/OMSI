@@ -28,6 +28,7 @@
     if (window.AKTE) AKTE.stoppen();
     if (window.BRIEF) BRIEF.stoppen();
     if (window.MENUE_KUECHE) MENUE_KUECHE.stoppen();
+    if (window.KUECHE_LEBEN) KUECHE_LEBEN.aus();
     if (window.RADIO) RADIO.stoppen();
     if (window.MAKINGOF) MAKINGOF.stoppen();
     if (window.BUCH) BUCH.schliessen();
@@ -93,6 +94,7 @@
       var fussleiste = wurzel.querySelector(".mk-fuss");
       if (fussleiste && window.MUSIK) MUSIK.schalter(fussleiste);    // "Musik aus/an" neben "Bewegung anhalten"
       if (window.KULISSE && KULISSE.raum) KULISSE.raum("kueche", wurzel);   // Küchenklang + Vogel/Pfannkuchen im Takt
+      if (window.KUECHE_LEBEN) KUECHE_LEBEN.an(wurzel);                     // Fenster nach Tages-/Jahreszeit, Antippen
       return neueKueche;
     }
     var k = B.el("div", "kueche mit-willkommen", wurzel);
@@ -329,11 +331,60 @@
     if (B.E.entwurf !== false && R.hinweis) B.el("div", "rezept-hinweis", seite, R.hinweis);
   }
 
+  // ───────────────────── Radio-Extrafach: die Seite fährt mit ─────────────────────
+  // Das Fach klappt NACH OBEN auf und schiebt die Schubladenfront nach unten aus dem Bild. Darum fährt die Seite
+  // mit: beim Öffnen nach unten – die Front bleibt fast stehen, der Inhalt erscheint darüber –, beim Schließen
+  // zurück an die alte Stelle. Jedes Bild richtet sich nach der TATSÄCHLICHEN Höhe des Fachs (nicht nach der Uhr),
+  // so bleibt es auch auf einem ruckelnden iPad im Gleichtakt. Ein Finger hält die Fahrt sofort an.
+  // radio.js (Codex) bleibt unberührt: gehört wird auf .radio-fach-taste und ihr aria-expanded.
+  var fahrt = { nr: 0, vorher: null };
+  function seiteFahren(seite, von, nach, fach, h0, h1) {
+    var meine = ++fahrt.nr, t0 = B.jetzt();
+    if (h0 === h1) { seite.scrollTop = nach; return; }
+    B.frame(function schritt() {
+      if (meine !== fahrt.nr || !document.body.contains(seite)) return;
+      var p = (fach.offsetHeight - h0) / (h1 - h0);       // wie weit ist die Schublade wirklich?
+      if (B.jetzt() - t0 > 1200) p = 1;                    // Sicherheitsnetz, falls keine Bewegung kommt
+      p = Math.max(0, Math.min(1, p));
+      seite.scrollTop = Math.round(von + (nach - von) * p);
+      if (p < 1) B.frame(schritt);
+    });
+  }
+  function schubladeMitfahren(ev) {
+    var taste = ev.target && ev.target.closest ? ev.target.closest(".radio-fach-taste") : null;
+    var seite = taste && taste.closest(".radio-seite");
+    var fach = taste && taste.parentNode.querySelector(".radio-extrafach");
+    if (!seite || !fach) return;
+    var offen = taste.getAttribute("aria-expanded") === "true";
+    var sicht = seite.clientHeight, rand = 18, start = seite.scrollTop, ziel;
+    var voll = fach.scrollHeight, jetzt = fach.offsetHeight, front = taste.offsetHeight;
+    var fachOben = fach.getBoundingClientRect().top - seite.getBoundingClientRect().top + start;
+    if (offen) {
+      fahrt.vorher = start;
+      // passt alles ins Bild: Front unten mit etwas Luft; sonst den Anfang des Inhalts zeigen
+      ziel = voll + front + 2 * rand <= sicht ? fachOben + voll + front + rand - sicht : fachOben - rand;
+      ziel = Math.max(0, Math.min(ziel, seite.scrollHeight - jetzt + voll - sicht));
+      if (ziel <= start) return;                          // ist schon zu sehen
+      seiteFahren(seite, start, ziel, fach, jetzt, voll);
+    } else {
+      ziel = fahrt.vorher === null ? start : fahrt.vorher;
+      ziel = Math.max(fachOben + front + rand - sicht, Math.min(ziel, fachOben - rand));   // Front bleibt im Bild
+      ziel = Math.max(0, Math.min(ziel, seite.scrollHeight - jetzt - sicht));
+      fahrt.vorher = null;
+      if (ziel >= start) return;
+      seiteFahren(seite, start, ziel, fach, jetzt, 0);
+    }
+  }
+  document.addEventListener("click", schubladeMitfahren, false);   // nach dem Radio-Klick (dann ist der neue Zustand gesetzt)
+  ["touchstart", "wheel", "mousedown"].forEach(function (art) {
+    document.addEventListener(art, function () { fahrt.nr++; }, true);   // Finger/Rad übernimmt
+  });
+
   // ───────────────────── Offline-Speichern (iPad, wenn gehostet) ─────────────────────
   function alleDateien() {
     // Veröffentlichte Fassung: das Veröffentlichen-Werkzeug hat die genaue Liste mitgegeben
     if (window.TRESOR_INFO && window.TRESOR_INFO.dateien) return window.TRESOR_INFO.dateien.slice();
-    var d = ["index.html", "css/app.css", "js/basis.js", "js/papier.js", "js/klang.js", "js/klangkulisse.js", "js/effekte.js", "js/buch.js", "js/schatten.js", "js/finale.js", "js/spiel.js", "js/app.js",
+    var d = ["index.html", "css/app.css", "js/basis.js", "js/papier.js", "js/klang.js", "js/klangkulisse.js", "js/effekte.js", "js/buch.js", "js/schatten.js", "js/finale.js", "js/spiel.js", "js/kueche-leben.js", "js/app.js",
              "daten/einstellungen.js", "daten/textfelder.js", "daten/original.js", "daten/text_de.js", "daten/fortsetzung.js", "daten/ebenen.js", "daten/extras.js", "daten/klang.js",
              "bilder/extras/haus.jpg", "bilder/extras/omsi.jpg",
              "bilder/extras/kueche-willkommen.jpg", "bilder/extras/geheimakte-omsi.jpg", "bilder/extras/rezeptkarte-rahmen.png",

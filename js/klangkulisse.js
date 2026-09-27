@@ -272,7 +272,11 @@
   // ───────────── Räume außerhalb der Bücher ─────────────
   // Unter der Musik: leise Raumklänge (Pläne in KLANGPLAN.raeume); in der Küche zusätzlich
   // Geräusche genau zu den Animationen (Vogel hüpft, Pfannkuchen hüpft in der Pfanne).
-  function raumPlan(name) { return P && P.raeume ? P.raeume[name] || null : null; }
+  function raumPlan(name) {
+    if (!P || !P.raeume) return null;
+    if (name === "kueche" && P.raeume.kuecheNacht && window.KUECHE_LEBEN && KUECHE_LEBEN.tageszeit() === "nacht") return P.raeume.kuecheNacht;
+    return P.raeume[name] || null;
+  }
   KU.raum = function (name, wurzel) {
     kuecheLos();
     var plan = raumPlan(name);
@@ -301,6 +305,7 @@
     var K = kueche = { timer: [], weg: [], sprung: 0, letztesLied: -99 };
     var seite = wurzel.querySelector(".mk-seite") || wurzel;
     function ruhig() { return kueche !== K || document.hidden || /\bmk-ruhig\b/.test(seite.className); }
+    function vogelSchlaeft() { return !!(window.KUECHE_LEBEN && KUECHE_LEBEN.tageszeit() === "nacht"); }   // nachts: Kauz statt Rotkehlchen
     // Der Vogel: Flügelschlag beim Absprung, leises Tapsen beim Landen, manchmal ein Zwitschern
     var vogel = wurzel.querySelector(".mk-vogel");
     if (vogel && window.MutationObserver) {
@@ -308,7 +313,7 @@
       K.beob = new MutationObserver(function () {
         var neu = vogel.getAttribute("data-frame");
         if (neu === alt) return;
-        if (!ruhig()) {
+        if (!ruhig() && !vogelSchlaeft()) {
           if (neu === "2") {
             K.sprung++;
             flattern(B.zufall(0.1, 0.14)); merke("Vogel springt");
@@ -328,7 +333,7 @@
     (function singen() {
       K.timer.push(setTimeout(function () {
         if (kueche !== K) return;
-        if (!ruhig() && vogel && vogel.getAttribute("data-frame") === "0") { schnipsel("f_ev_rotkehlchen", 0.26, 0.634, 1.7); K.letztesLied = Date.now() / 1000; merke("Vogel singt"); }
+        if (!ruhig() && !vogelSchlaeft() && vogel && vogel.getAttribute("data-frame") === "0") { schnipsel("f_ev_rotkehlchen", 0.26, 0.634, 1.7); K.letztesLied = Date.now() / 1000; merke("Vogel singt"); }
         singen();
       }, B.zufall(18, 32) * 1000));
     })();

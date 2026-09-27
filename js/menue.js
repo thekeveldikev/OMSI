@@ -2,7 +2,7 @@
    ES5 und WebKit-Präfixe für ältere iPads; alle Listener werden wieder entfernt. */
 (function () {
   var M = window.MENUE_KUECHE = {}, lauf = null, anschluesse = {};
-  var dateien = ['kueche.png', 'originalcover.png', 'wolke.png', 'pfannkuchen-v2.png', 'efeu.png', 'titel-papier-v2.png', 'briefpapier-v1.png', 'vogel-v2-0.png', 'vogel-v2-1.png', 'vogel-v2-2.png', 'vogel-v2-3.png'];
+  var dateien = ['kueche.png', 'originalcover.png', 'wolke.png', 'pfannkuchen-v2.png', 'efeu.png', 'titel-papier-v2.png', 'briefpapier-v1.png', 'vogel-v2-0.png', 'vogel-v2-1.png', 'vogel-v2-2.png', 'vogel-v2-3.png', 'gasflammen-papier.png'];
   function position(el, box, bezug) {
     var b = bezug || [0, 0, 1536, 1024];
     el.style.left = (box[0] - b[0]) / b[2] * 100 + '%';
@@ -97,7 +97,10 @@
     lid(dekor, [733, 545, 26, 26], '#d5d0b9', '#454740', -12, 7.7, -.7);
     lid(dekor, [774, 532, 23, 24], '#c5c5b2', '#454740', -12, 7.7, -.7);
     [[1276,392],[1300,403],[1321,390],[1345,381],[1359,413],[1381,394]].forEach(function (xy, i) { flamme(dekor, xy[0]-5, xy[1]-27, 10, 24, false, i); });
-    for (var g = 0; g < 9; g++) flamme(dekor, 715 + g * 23, 849 + Math.sin(g * .7) * 4, 11, 17, true, g);
+    // Gasflammen: blaue Seidenpapier-Zungen HINTER der Pfanne (Stop-Motion-Streifen mit ausgesparter Pfanne,
+    // geschnitten aus dem Papier der Küchen-Illustration – Werkzeuge/gasflammen_papier.py)
+    var gas = B.el('span', 'mk-gasflammen', dekor); position(gas, [640, 800, 330, 90]);
+    bild(gas, 'gasflammen-papier.png', 'mk-gasstreifen');
     var kopf = B.el('h1', 'mk-kopf', s.buehne); position(kopf, [349, 31, 350, 198]);
     kopf.setAttribute('aria-label', B.ersetzen(MENUE_DATEN.titel));
     var titel = bild(kopf, 'titel-papier-v2.png', 'mk-titelgrafik');

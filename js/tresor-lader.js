@@ -206,9 +206,12 @@
     LADE.feuer(ziel.querySelector(".lade-feuer"));
     LADE.balken(ziel.querySelector(".lade-balken"));
     var text = ziel.querySelector(".lade-text");
+    var h = new Date().getHours();                       // kleiner Gruß nach Tageszeit, bevor gebacken wird
+    var gruss = h < 5 ? "So spät noch Hunger, Omsi?" : h < 11 ? "Guten Morgen, Omsi!" : h < 14 ? "Mahlzeit, Omsi!" : h < 18 ? "Schön, dass du da bist!" : h < 22 ? "Guten Abend, Omsi!" : "Noch ein Pfannkuchen vorm Schlafen?";
+    text.textContent = gruss;
     return function (anteil) {
       LADE.setzen(0.08 + 0.92 * anteil);
-      var t = anteil < 0.35 ? "Die Pfanne wird heiß …" : (anteil < 0.75 ? "Der Teig kommt hinein …" : "Gleich wird gewendet …");
+      var t = anteil < 0.2 ? gruss : anteil < 0.45 ? "Die Pfanne wird heiß …" : (anteil < 0.78 ? "Der Teig kommt hinein …" : "Gleich wird gewendet …");
       if (text.textContent !== t) text.textContent = t;
     };
   };

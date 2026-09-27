@@ -768,9 +768,11 @@
   }
 
   // ───────────────────── Umblättern ─────────────────────
-  function umblaettern(richtung) {
+  function umblaettern(richtung, ziel) {
     if (!S || S.beschaeftigt) return;
-    var neu = S.index + richtung;
+    var neu = ziel === undefined ? S.index + richtung : ziel;   // "ziel": in EINER Drehung dorthin (Lesezeichen → Anfang)
+    if (neu === S.index) return;
+    lesezeichenWeg();
     if (neu < 0 || neu >= S.doppelseiten.length) return;
     S.beschaeftigt = true;
     vorlesenStoppen(true);
@@ -842,6 +844,41 @@
       setTimeout(ende, halb + 150);
     }, halb + 20);
   }
+  // Lesezeichen: Öffnet das Buch auf der gemerkten Seite (nicht am Anfang), sagt ein Papierzettel kurz,
+  // warum – mit "Von vorn", das in einer einzigen Blattdrehung zum Anfang zurückblättert.
+  function lesezeichenZeigen() {
+    if (!S || S.index === 0 || S.lesezeichen) return;
+    var dieses = S;
+    var z = B.el("div", "lesezeichen", S.dom.wurzel);
+    PAPIER.hinterlegen(z, "creme", { kachel: 220, seed: "lesezeichen" });
+    PAPIER.hinterlegen(B.el("span", "lesezeichen-band", z), "rot", { kachel: 90, seed: "band" });
+    B.el("span", "lesezeichen-text", z, "Hier warst du stehen geblieben.");
+    var vorn = B.knopf(B.el("button", "knopf klein lesezeichen-vorn", z), "nochmal", "Von vorn");
+    B.tippen(z, function (ev) { ev.stopPropagation(); lesezeichenWeg(); });
+    B.tippen(vorn, function (ev) {
+      ev.stopPropagation(); lesezeichenWeg();
+      if (S === dieses) vonVorn();
+    });
+    S.lesezeichen = z;
+    B.frame(function () { B.frame(function () { z.className += " da"; }); });
+    S.lesezeichenTimer = setTimeout(function () { if (S === dieses) lesezeichenWeg(); }, 9000);
+  }
+  function lesezeichenWeg() {
+    if (!S || !S.lesezeichen) return;
+    var z = S.lesezeichen;
+    S.lesezeichen = null; clearTimeout(S.lesezeichenTimer);
+    z.className = "lesezeichen weg";
+    setTimeout(function () { if (z.parentNode) z.parentNode.removeChild(z); }, 500);
+  }
+  function vonVorn() {
+    if (!S || S.index === 0) return;
+    var dieses = S, ds0 = S.doppelseiten[0], quellen = [];
+    if (S.typ === "original") { if (ds0.links) quellen.push(bildQuelleOriginal(ds0.links)); if (ds0.rechts) quellen.push(bildQuelleOriginal(ds0.rechts)); }
+    var offen = quellen.length;
+    function los() { if (S === dieses) umblaettern(-1, 0); }    // erst die Anfangsbilder, dann blättern
+    if (!offen) los(); else quellen.forEach(function (q) { vorladen(q, function () { if (--offen === 0) los(); }); });
+  }
+
   BUCH.weiter = function () { if (!abschnittSchritt(1)) umblaettern(1); };
   BUCH.zurueck = function () { if (!abschnittSchritt(-1)) umblaettern(-1); };
 
@@ -1057,6 +1094,7 @@
       if (S !== meinBuch || gestartet) return;   // Buch schon wieder zu (oder neu geöffnet) – oder schon aufgebaut
       gestartet = true;
       groesseAnpassen(); zeigeDoppelseite();
+      setTimeout(function () { if (S === meinBuch) lesezeichenZeigen(); }, 900);
       // Buchschrift beim ersten Öffnen noch nicht geladen? Dann wurde mit der Ersatzschrift eingepasst –
       // sobald die echte Schrift da ist, einmal neu setzen (sonst falsche Umbrüche/Überlauf)
       var diesesBuch = S;
@@ -1085,6 +1123,7 @@
     window.removeEventListener("orientationchange", S.groesse, false);
     document.removeEventListener("visibilitychange", S.sichtbarVorlesen, false);
     hochkantAus();
+    clearTimeout(S.lesezeichenTimer);
     S = null;
   };
 
@@ -1264,7 +1303,11 @@
         z.gefangen = { zeit: B.jetzt(), x: j.x, y: j.y, r: j.r, phase: j.phase, phaseZiel: ziel, dreh: j.dreh };
         return true;
       },
-      stoppen: function () { gelandetEntfernen(); if (z) { B.frameStopp(z.id); z = null; } }
+      stoppen: function () {
+        gelandetEntfernen(); if (z) { B.frameStopp(z.id); z = null; }
+        var m = S && S.dom.buch.querySelector(".flug-meldung");   // Meldung nicht auf die nächste Seite mitnehmen
+        if (m && m.parentNode) m.parentNode.removeChild(m);
+      }
     };
   })();
 })();
