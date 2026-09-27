@@ -3,10 +3,68 @@
 .brief-zurueck { min-height:44px; cursor:pointer; padding:9px 16px; border:1px solid #c6b58f; border-radius:4px; background:#fffbf0; color:#28475b; font:17px Georgia,serif; }
 .brief-zurueck:focus-visible { outline:2px solid #285c73; outline-offset:3px; }
 .brief-titel { margin:0 0 0 12px; font:italic 25px Georgia,serif; }
-.brief-papier { position:relative; width:100%; max-width:820px; margin:0 auto; box-shadow:0 7px 25px rgba(91,53,23,.15); }
-.brief-papierbild { position:absolute; display:block; width:100%; height:100%; top:0; left:0; }
-.brief-inhalt { position:relative; padding:28% 14% 35%; font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif; line-height:1.58; white-space:pre-wrap; overflow-wrap:break-word; word-wrap:break-word; -webkit-user-select:text; user-select:text; }
-.brief-inhalt p { margin:0 0 1.05em; }
-.brief-anrede,.brief-unterschrift { font-style:italic; }
-.brief-unterschrift { margin-top:1.8em!important; }
-@media (max-width:550px) { .brief-seite { padding:0 8px 18px; } .brief-titel { font-size:19px; } .brief-zurueck { padding:8px 10px; font-size:15px; } .brief-leiste { min-height:64px; } .brief-inhalt { padding-left:12%; padding-right:12%; } }
+
+/* Tisch mit Briefbogen; darüber die noch ungelesenen Bögen (leicht verdreht) und das oberste Blatt */
+.brief-stapel { position:relative; width:100%; max-width:820px; margin:0 auto; box-shadow:0 7px 25px rgba(91,53,23,.15); }
+.brief-tisch,.brief-unterlage,.brief-papierbild { position:absolute; display:block; width:100%; height:100%; top:0; left:0; -webkit-user-select:none; user-select:none; }
+.brief-unterlage { opacity:0; -webkit-transition:opacity .45s ease; transition:opacity .45s ease; -webkit-filter:drop-shadow(0 1px 2px rgba(58,30,8,.3)); filter:drop-shadow(0 1px 2px rgba(58,30,8,.3)); }
+.brief-unterlage-1 { -webkit-transform:rotate(.9deg) translate(.5%,.35%); transform:rotate(.9deg) translate(.5%,.35%); }
+.brief-unterlage-2 { -webkit-transform:rotate(-1.2deg) translate(-.6%,.7%); transform:rotate(-1.2deg) translate(-.6%,.7%); }
+.brief-papier { position:absolute; top:0; left:0; width:100%; height:100%; }
+
+/* Schreibfläche: eine Spalte je Bogen, die Spalten liegen nebeneinander und werden weitergeschoben */
+.brief-fenster { position:absolute; left:14%; right:14%; top:18.2%; bottom:25%; overflow:hidden; }
+.brief-fluss { position:relative; font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif; line-height:1.52; text-align:left;
+  white-space:pre-wrap; overflow-wrap:break-word; word-wrap:break-word; -webkit-hyphens:auto; -ms-hyphens:auto; hyphens:auto;
+  -webkit-column-fill:auto; column-fill:auto; orphans:2; widows:2; -webkit-user-select:text; user-select:text; }
+.brief-fluss p { margin:0 0 .42em; }
+.brief-fluss p.brief-nach-pause { margin-top:1.25em; }
+.brief-anrede { font-style:italic; font-size:1.07em; margin-bottom:.8em!important; }
+.brief-schluss { margin-top:1.5em; -webkit-column-break-inside:avoid; page-break-inside:avoid; break-inside:avoid; }
+.brief-gruss { margin-bottom:.55em!important; }
+.brief-unterschrift { font-style:italic; margin:0!important; -webkit-hyphens:manual; hyphens:manual; }
+.brief-name { font-style:italic; font-size:1.42em; color:#1f4f80; margin:.12em 0 0 1.1em!important; white-space:nowrap; -webkit-hyphens:manual; hyphens:manual; }
+.brief-herz { display:inline-block; width:1em; height:auto; margin-left:.3em; vertical-align:-.1em; }
+.brief-ende { display:inline-block; width:0; height:1em; vertical-align:bottom; }
+.am-ende .brief-herz { -webkit-animation:brief-herz .8s cubic-bezier(.3,1.7,.5,1) .45s both; animation:brief-herz .8s cubic-bezier(.3,1.7,.5,1) .45s both; }
+@-webkit-keyframes brief-herz { 0% { -webkit-transform:scale(0) rotate(-25deg); opacity:0; } 100% { -webkit-transform:scale(1) rotate(-6deg); opacity:1; } }
+@keyframes brief-herz { 0% { transform:scale(0) rotate(-25deg); opacity:0; } 100% { transform:scale(1) rotate(-6deg); opacity:1; } }
+
+/* Blätter-Pfeile aus Papiermosaik zwischen Tasse und Umschlag, darunter die Seitenzahl */
+.brief-nav { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
+.brief-pfeil { position:absolute; top:78.6%; width:15.2%; padding:.9% .7%; margin:0; border:0; background:transparent; cursor:pointer; pointer-events:auto;
+  -webkit-tap-highlight-color:transparent; -webkit-transition:-webkit-transform .18s ease; transition:transform .18s ease; }
+.brief-pfeil img { display:block; width:100%; height:auto; pointer-events:none; }
+.brief-pfeil-zurueck { left:34%; -webkit-transform:rotate(1.6deg); transform:rotate(1.6deg); }
+.brief-pfeil-weiter { left:50.8%; -webkit-transform:rotate(-1.6deg); transform:rotate(-1.6deg); }
+.brief-pfeil[disabled] { visibility:hidden; }
+.brief-pfeil-zurueck:hover { -webkit-transform:rotate(1.6deg) scale(1.07); transform:rotate(1.6deg) scale(1.07); }
+.brief-pfeil-weiter:hover { -webkit-transform:rotate(-1.6deg) scale(1.07); transform:rotate(-1.6deg) scale(1.07); }
+.brief-pfeil:active { -webkit-transform:scale(.93); transform:scale(.93); }
+.brief-pfeil:focus { outline:none; }
+.brief-pfeil:focus-visible { outline:2px dashed #285c73; outline-offset:2px; border-radius:6px; }
+.brief-pfeil-weiter.schubs { -webkit-animation:brief-schubs .75s ease-in-out 4s 2; animation:brief-schubs .75s ease-in-out 4s 2; }
+@-webkit-keyframes brief-schubs { 0%,100% { -webkit-transform:rotate(-1.6deg) translateX(0); } 45% { -webkit-transform:rotate(-1.6deg) translateX(11%); } }
+@keyframes brief-schubs { 0%,100% { transform:rotate(-1.6deg) translateX(0); } 45% { transform:rotate(-1.6deg) translateX(11%); } }
+.brief-seitenzahl { position:absolute; left:40%; width:20%; top:85.3%; text-align:center; font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+  font-style:italic; color:#6b5536; white-space:nowrap; letter-spacing:.02em; }
+
+/* Blättern: das obere Blatt gleitet nach links vom Tisch – oder kommt von dort zurück */
+.brief-kopie { z-index:3; will-change:transform,opacity; }
+.brief-kopie .brief-papierbild { -webkit-filter:drop-shadow(0 8px 14px rgba(58,30,8,.3)); filter:drop-shadow(0 8px 14px rgba(58,30,8,.3)); }
+.brief-geht { -webkit-transition:-webkit-transform .64s cubic-bezier(.45,.05,.35,1),opacity .34s ease-in .3s; transition:transform .64s cubic-bezier(.45,.05,.35,1),opacity .34s ease-in .3s; }
+.brief-kommt { -webkit-transition:-webkit-transform .64s cubic-bezier(.2,.7,.3,1),opacity .26s ease-out; transition:transform .64s cubic-bezier(.2,.7,.3,1),opacity .26s ease-out; }
+.brief-kopie.brief-weg { opacity:0; -webkit-transform:translate(-74%,-2.5%) rotate(-8deg); transform:translate(-74%,-2.5%) rotate(-8deg); }
+.brief-ankunft { -webkit-animation:brief-ankunft .7s cubic-bezier(.2,.7,.3,1) both; animation:brief-ankunft .7s cubic-bezier(.2,.7,.3,1) both; }
+@-webkit-keyframes brief-ankunft { 0% { opacity:0; -webkit-transform:translateY(3.5%) rotate(-1.4deg); } 100% { opacity:1; -webkit-transform:none; } }
+@keyframes brief-ankunft { 0% { opacity:0; transform:translateY(3.5%) rotate(-1.4deg); } 100% { opacity:1; transform:none; } }
+
+@media (max-width:550px) {
+  .brief-seite { padding:0 8px 18px; } .brief-titel { font-size:19px; } .brief-zurueck { padding:8px 10px; font-size:15px; } .brief-leiste { min-height:64px; }
+  .brief-fenster { left:11%; right:11%; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .brief-geht,.brief-kommt { -webkit-transition:opacity .25s ease; transition:opacity .25s ease; }
+  .brief-kopie.brief-weg { -webkit-transform:none; transform:none; }
+  .brief-ankunft,.brief-pfeil-weiter.schubs,.am-ende .brief-herz { -webkit-animation:none; animation:none; }
+}
