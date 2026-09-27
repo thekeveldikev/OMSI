@@ -1039,9 +1039,13 @@
     };
     window.addEventListener("resize", S.groesse, false);
     window.addEventListener("orientationchange", S.groesse, false);
-    // Nach Sperrbildschirm/Hintergrund: Vorlesen weiterlaufen lassen – klappt das nicht, den Knopf ehrlich zurücksetzen
+    // Nach Sperrbildschirm/Hintergrund: angehaltenes Vorlesen weiterlaufen lassen – klappt das nicht, den Knopf ehrlich zurücksetzen
     S.sichtbarVorlesen = function () {
-      if (document.hidden || !S || !S.vorlesen || !audio || !audio.paused || audio.ended || !(audio.currentTime > 0) || audio.readyState < 2) return;
+      if (document.hidden) {                              // im Hintergrund anhalten (iOS spielte sonst weiter)
+        if (S && S.vorlesen && audio && !audio.paused) { try { audio.pause(); } catch (e) {} }
+        return;
+      }
+      if (!S || !S.vorlesen || !audio || !audio.paused || audio.ended || !(audio.currentTime > 0) || audio.readyState < 2) return;
       var p = audio.play();
       if (p && p["catch"]) p["catch"](function () { if (S && S.vorlesen) vorlesenStoppen(); });
     };

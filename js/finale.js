@@ -215,9 +215,10 @@
       try { actx = new AC(); } catch (e) { APP.meldung("Das Mikrofon geht hier leider nicht – einfach die Kerzen antippen!"); return; }   // in der Berührung anlegen (iOS)
       var meinZ = z;
       anfrage = true;
+      KLANG.sitzung("play-and-record");                     // iOS: Aufnahme + Wiedergabe (danach zurück)
       navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
         anfrage = false;
-        if (!z || z !== meinZ) { s.getTracks().forEach(function (tr) { tr.stop(); }); try { actx.close(); } catch (e) {} return; }   // inzwischen verlassen
+        if (!z || z !== meinZ) { s.getTracks().forEach(function (tr) { tr.stop(); }); try { actx.close(); } catch (e) {} KLANG.sitzung("playback"); return; }   // inzwischen verlassen
         strom = s;
         if (actx.state === "suspended" && actx.resume) actx.resume();
         var quelle = actx.createMediaStreamSource(s), an = actx.createAnalyser();
@@ -233,12 +234,14 @@
         B.knopf(mikro, "wind", "Jetzt kräftig pusten!");
       })["catch"](function () {
         anfrage = false; try { actx.close(); } catch (e) {}
+        KLANG.sitzung("playback");
         if (z && z === meinZ) APP.meldung("Kein Mikrofon erlaubt – einfach die Kerzen antippen!");
       });
     }
     function mikroAus() {
       if (strom) { strom.getTracks().forEach(function (tr) { tr.stop(); }); strom = null; }
       if (z && z.mikroCtx && z.mikroCtx.close) z.mikroCtx.close();
+      if (!anfrage) KLANG.sitzung("playback");
       if (z) { delete z.mikroPegel; z.mikroCtx = null; }
       B.knopf(mikro, "mikro", "Kerzen auspusten");
     }

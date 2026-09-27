@@ -7,6 +7,13 @@
 
   function an() { return B.E.toene !== false; }
 
+  // iOS 17+: als "Wiedergabe" anmelden. Sonst gilt die Seite wegen Web Audio als "ambient" – dann schaltet der
+  // Stummmodus ALLES stumm, auch Musik und Vorlesestimme. Das Mikrofon (Torte) schaltet kurz auf Aufnahme um.
+  K.sitzung = function (art) {
+    try { if (navigator.audioSession && navigator.audioSession.type !== art) navigator.audioSession.type = art; } catch (e) {}
+  };
+  K.sitzung("playback");
+
   K.entsperren = function () {
     if (!ctx) {
       var AC = window.AudioContext || window.webkitAudioContext;
@@ -36,6 +43,17 @@
     if (window.KULISSE) KULISSE.wecken();
   };
   K.kontext = function () { return ctx; };
+
+  // Hintergrund/Sperre: Klangmaschine anhalten (als "Wiedergabe" liefe sie sonst weiter), danach wieder an
+  document.addEventListener("visibilitychange", function () {
+    if (!ctx) return;
+    try {
+      var p = null;
+      if (document.hidden) { if (ctx.state === "running" && ctx.suspend) p = ctx.suspend(); }
+      else if (ctx.state !== "running" && ctx.resume) p = ctx.resume();
+      if (p && p["catch"]) p["catch"](function () {});
+    } catch (e) {}
+  }, false);
 
   function t0() { return ctx.currentTime + 0.02; }
   function start(node, t, ende) { if (node.start) node.start(t); else node.noteOn(t); if (ende) { if (node.stop) node.stop(ende); else node.noteOff(ende); } }
