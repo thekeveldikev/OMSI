@@ -4,7 +4,7 @@
    und reicht sie an die App weiter – als wäre nichts gewesen. Alles, was einmal
    geladen wurde, bleibt im Speicher (offline lesbar).
    Wird von Werkzeuge/veroeffentlichen.py als sw.js ins Veröffentlichungs-Verzeichnis kopiert. */
-var VERSION = "omsi-20260927-133326";
+var VERSION = "omsi-20260927-134423";
 var GESCHUETZT = /\/(daten|bilder|audio)\//;
 var OEFFENTLICH = /\/bilder\/extras\/icon-[^/]+\.png$/;
 var schluesselPromise = null;
