@@ -4,7 +4,7 @@
    und reicht sie an die App weiter – als wäre nichts gewesen. Alles, was einmal
    geladen wurde, bleibt im Speicher (offline lesbar).
    Wird von Werkzeuge/veroeffentlichen.py als sw.js ins Veröffentlichungs-Verzeichnis kopiert. */
-var VERSION = "omsi-20260927-144054";
+var VERSION = "omsi-20260927-145900";
 var GESCHUETZT = /\/(daten|bilder|audio)\//;
 var OEFFENTLICH = /\/bilder\/extras\/icon-[^/]+\.png$/;
 var schluesselPromise = null;
@@ -66,10 +66,19 @@ function entschluesselt(anfrage) {
   var endung = (url.pathname.split(".").pop() || "").toLowerCase();
   return schluessel().then(function (k) {
     if (!k) return new Response("gesperrt", { status: 403 });
-    return holeVerschluesselt(url.origin + url.pathname + ".enc").then(function (antwort) {
-      if (!antwort.ok) return new Response("nicht da", { status: 404 });
+    var encUrl = url.origin + url.pathname + ".enc";
+    function auf(antwort) {
+      if (!antwort.ok) throw new Error("nicht da");
       return antwort.arrayBuffer().then(function (buf) {
         return crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, k, buf.slice(12));
+      });
+    }
+    return holeVerschluesselt(encUrl).then(function (antwort) {
+      if (!antwort.ok) return new Response("nicht da", { status: 404 });
+      // passt die gespeicherte Fassung nicht (mehr) zum Schlüssel – z. B. nach neuem Geheimwort –, einmal frisch aus dem Netz
+      return auf(antwort)["catch"](function () {
+        return caches.open(VERSION).then(function (c) { return c["delete"](encUrl); })
+          .then(function () { return holeVerschluesselt(encUrl); }).then(auf);
       }).then(function (klar) {
         var typ = TYPEN[endung] || "application/octet-stream", ganz = klar.byteLength;
         var bereich = anfrage.headers.get("range");

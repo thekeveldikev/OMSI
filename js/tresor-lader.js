@@ -17,10 +17,12 @@
     return;
   }
 
-  // Geheimwort → Schlüssel (PBKDF2) → prüfen
+  // Geheimwort → Schlüssel (PBKDF2) → prüfen. Groß-/Kleinschreibung und Leerzeichen sind egal
+  // (die Werkzeuge leiten den Schlüssel ebenso aus dem kleingeschriebenen Wort ab).
+  function normal(wort) { return String(wort || "").replace(/^\s+|\s+$/g, "").toLowerCase(); }
   function ableiten(wort) {
     var enc = new TextEncoder();
-    return crypto.subtle.importKey("raw", enc.encode(wort), { name: "PBKDF2" }, false, ["deriveKey"]).then(function (basis) {
+    return crypto.subtle.importKey("raw", enc.encode(normal(wort)), { name: "PBKDF2" }, false, ["deriveKey"]).then(function (basis) {
       return crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64zuPuffer(INFO.salz), iterations: INFO.runden, hash: "SHA-256" },
         basis, { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
     }).then(function (k) {
@@ -29,6 +31,14 @@
         return crypto.subtle.exportKey("raw", k);
       });
     }).then(pufferZuB64);
+  }
+
+  // Passt ein gespeicherter Schlüssel noch? Nach einem neuen Geheimwort nicht mehr → dann neu fragen
+  function pruefen(roh) {
+    return crypto.subtle.importKey("raw", b64zuPuffer(roh), { name: "AES-GCM" }, false, ["decrypt"]).then(function (k) {
+      var p = b64zuPuffer(INFO.pruefung);
+      return crypto.subtle.decrypt({ name: "AES-GCM", iv: p.slice(0, 12) }, k, p.slice(12));
+    });
   }
 
   function schluesselAnWorker(roh) {
@@ -245,7 +255,7 @@
       if (gesendet) return;
       gesendet = true;
       document.getElementById("auf").disabled = true;
-      ableiten(feld.value.trim()).then(function (roh) {
+      ableiten(feld.value).then(function (roh) {
         try { localStorage.setItem("omsi.schluessel", roh); } catch (e) {}
         return schluesselAnWorker(roh).then(appLaden);
       })["catch"](function () { sperre(true); });
@@ -279,7 +289,10 @@
     }
     var gemerkt = null;
     try { gemerkt = localStorage.getItem("omsi.schluessel"); } catch (e) {}
-    if (gemerkt) return schluesselAnWorker(gemerkt).then(appLaden);
+    if (gemerkt) return pruefen(gemerkt).then(function () { return schluesselAnWorker(gemerkt).then(appLaden); }, function () {
+      try { localStorage.removeItem("omsi.schluessel"); } catch (e) {}
+      sperre(false);
+    });
     sperre(false);
   })["catch"](function (e) {
     bildschirm("<h1>Hoppla</h1><p>Der Offline-Speicher ließ sich nicht starten (" + (e && e.message) + ").</p>");
