@@ -626,6 +626,7 @@
 
   SP.stoppen = function () {
     if (!z) return;
+    if (window.KLANG && KLANG.spieluhrStille) KLANG.spieluhrStille(0.2);
     B.frameStopp(z.id);
     window.removeEventListener("resize", z.groesse, false);
     z = null;

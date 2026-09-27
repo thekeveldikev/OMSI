@@ -46,7 +46,9 @@
 
   SCH.test = { zeit: function () { return "Erst SCHATTEN.starten(…) aufrufen"; } };
 
-  SCH.starten = function (verse, fertig) {
+  // audioFrei (optional): ein Audio-Element, das schon durch eine Berührung freigeschaltet wurde –
+  // nötig, wenn das Theater ohne Antippen startet (automatisch aus dem Vorlesen)
+  SCH.starten = function (verse, fertig, audioFrei) {
     if (lauf) return;
     SCH.stoppen();
     cutoutsLaden();
@@ -88,8 +90,8 @@
     // EIN Audio-Element für alle Strophen, gleich hier im Antippen freigeschaltet: iOS erlaubt play() ohne
     // Berührung nur Elementen, die schon einmal durch eine Berührung gestartet wurden
     var STIMME_PFAD = ((window.FORTSETZUNG && window.FORTSETZUNG.audioPfad) || "audio/fortsetzung/") + "schatten-";
-    var stimmeEl = new Audio();
-    try {
+    var stimmeEl = audioFrei || new Audio();
+    if (!audioFrei) try {
       stimmeEl.muted = true; stimmeEl.src = STIMME_PFAD + "1.m4a";
       var frei = stimmeEl.play();
       if (frei && frei.then) frei.then(function () { if (stimme !== stimmeEl) stimmeEl.pause(); stimmeEl.muted = false; }, function () { stimmeEl.muted = false; });
@@ -141,6 +143,7 @@
       if (!geschlossen) {
         geschlossen = true;
         stimmeStopp();
+        if (!sanft && window.KLANG && KLANG.spieluhrStille) KLANG.spieluhrStille(0.2);   // beim Schließen nichts nachklingen lassen
         if (window.KULISSE) { var bz = window.BUCH && BUCH.zustand(); KULISSE.leiser(!!(bz && bz.vorlesen)); }
         if (lauf) B.frameStopp(lauf.id); lauf = null;
         window.removeEventListener("resize", groesse, false);
@@ -169,7 +172,7 @@
       } else {
         var delta = B.jetzt() - lauf.pauseZeit;
         lauf.t0 += delta; lauf.start += delta; lauf.pause = false; lauf.letztes = 0;
-        if (stimme) { var p = stimme.play(); if (p && p["catch"]) p["catch"](function () {}); }
+        if (stimme && !stimme.ended) { var p = stimme.play(); if (p && p["catch"]) p["catch"](function () {}); }
         lauf.id = B.frame(schritt);
       }
       if (lauf.pause) B.knopf(pause, "abspielen", "Weiter"); else B.knopf(pause, "pause", "Pause");

@@ -151,7 +151,7 @@
                   glanz: [[42, 962], [150, 972], [205, 900], [1470, 470], [1500, 540], [60, 330]] },
     advent:     { zonen: [["kranz", [115, 845, 115, 72]]], kerzen: [[73, 813], [155, 814], [212, 790], [120, 845]],
                   glanz: [[860, 30], [1040, 20], [1180, 30], [1320, 20], [1480, 40], [1510, 170], [1525, 320], [1515, 470]] },
-    geburtstag: { zonen: [["ballons", [1488, 250, 55, 220]], ["geschenke", [1478, 610, 55, 45]]], torte: true, tier: "konfetti" },
+    geburtstag: { zonen: [["ballons", [1504, 250, 39, 116]], ["ballons", [1488, 366, 55, 104]], ["geschenke", [1478, 610, 55, 45]]], torte: true, tier: "konfetti" },
     silvester:  { zonen: [["knallbonbons", [1460, 955, 80, 45]], ["klee", [55, 905, 50, 65]]], feuerwerk: true,
                   glanz: [[540, 900], [700, 870], [1020, 860], [1100, 840], [1250, 880]] },
     nacht:      { zonen: [["omsi", [495, 445, 150, 115]], ["omsi", [470, 590, 180, 70]], ["katze", [790, 590, 95, 60]]], schlaf: true }
@@ -344,7 +344,7 @@
   function neuAnwenden(s) {
     var f = s.fenster;
     s.einst = einst();
-    s.zeit = KL.tageszeit(); s.jahr = KL.jahreszeit(); s.wetter = KL.wetter(s.zeit, s.jahr); s.fest = KL.fest();
+    s.zeit = s.zeitRoh = KL.tageszeit(); s.jahr = KL.jahreszeit(); s.wetter = KL.wetter(s.zeit, s.jahr); s.fest = KL.fest();
     s.kerzenZahl = adventKerzen();
     bildWechseln(s, kuechenBild(s), s.bildAktiv === undefined);   // beim Betreten sofort, danach mit Überblendung
     if (!s.zeit && s.fest === "silvester") s.zeit = "nacht";   // Silvester: Nachthimmel mit Feuerwerk im Fenster
@@ -1032,7 +1032,7 @@
       if (jetzt - s.stundeGeprueft > 60000) {             // Uhr/Kalender/Wetter wechseln, während die Küche offen ist
         s.stundeGeprueft = jetzt;
         var zt = KL.tageszeit(), jz = KL.jahreszeit();
-        if (zt !== s.zeit || jz !== s.jahr || KL.wetter(zt, jz) !== s.wetter) neuAnwenden(s);
+        if (zt !== s.zeitRoh || jz !== s.jahr || KL.wetter(zt, jz) !== s.wetter) neuAnwenden(s);   // zeitRoh: ohne Silvester-Nacht
       }
       var still = ruhig();
       if (!still && jetzt - s.letzt < 45) { s.frame = B.frame(s.schritt); return; }   // ~22 Bilder/s genügen für Papier

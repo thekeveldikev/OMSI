@@ -477,6 +477,7 @@
             var alles = !fehler && !fehlend;
             if (knopf) B.knopf(knopf, alles ? "haken" : "laden", alles ? "Alles gespeichert – geht jetzt auch ohne Internet"
                                                                     : "Noch nicht alles gespeichert – bitte später mit WLAN nochmal");
+            if (knopf && !alles) knopf.disabled = false;             // mit WLAN gleich nochmal versuchen
             if (fertigMeldung) fertigMeldung(fehler + fehlend);
           });
         } else eine();

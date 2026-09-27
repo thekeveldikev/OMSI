@@ -257,7 +257,7 @@
         PAPIER.hinterlegen(fleck, info.nr === "kuh-r" ? "ocker" : "braun", { seed: String(info.nr) });
         var hinweis = B.el("div", "platzhalter-text", el);
         B.el("div", "platzhalter-titel", hinweis, "Seite aus der deutschen Ausgabe: " + seite.szene);
-        B.el("div", "platzhalter-szene", hinweis, "Foto einsetzen: python Werkzeuge/zusatzseite_aus_foto.py <foto> kuh");
+        B.el("div", "platzhalter-szene", hinweis, "Foto einsetzen: python Werkzeuge/zusatzseite_erzeugen.py <foto> kuh");
       } else {
         el.style.backgroundImage = "url(\"" + src + "\")";
         el.style.backgroundSize = "100% 100%";
@@ -927,8 +927,13 @@
           if (!aktuell()) return;
           if (document.hidden) { S.nachHintergrund = weiter; return; }
           var ds2 = S.doppelseiten[S.index];
-          if (S.typ === "fortsetzung" && ds2.seite.art === "schattentheater") { SCHATTEN.starten(ds2.seite.schattenVerse, function () { if (S && S.vorlesen) BUCH.weiter(); }); return; }
-          if (S.index < S.doppelseiten.length - 1) BUCH.weiter(); else vorlesenStoppen();
+          if (S.typ === "fortsetzung" && ds2.seite.art === "schattentheater") {
+            // ohne Berührung gestartet: das schon freigeschaltete Vorlese-Audio mitgeben, sonst blockt iOS Kevins Stimme
+            if (audio) { try { audio.pause(); } catch (e) {} audio.onended = audio.onerror = audio.ontimeupdate = null; }
+            SCHATTEN.starten(ds2.seite.schattenVerse, function () { if (S && S.vorlesen) BUCH.weiter(); }, audio);
+            return;
+          }
+          if (S.index < S.doppelseiten.length - 1) umblaettern(1); else vorlesenStoppen();   // gelesen ist gelesen: direkt blättern
         }, S.typ === "fortsetzung" && ds.seite.art === "flug" ? 5200 : 1400);
         return;
       }

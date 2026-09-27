@@ -381,7 +381,8 @@ body.ohne-falz .buch > .seite-rechts { -webkit-clip-path: inset(-60px -60px -60p
 .schatten-zeile { opacity: 0; -webkit-transition: opacity .9s; transition: opacity .9s; }
 .schatten-zu { position: absolute; top: 14px; right: 14px; }
 .schatten-hinweis { position: absolute; top: 18px; left: 18px; color: rgba(247,236,208,.7); font-family: var(--rund); font-size: 15px; -webkit-transition: opacity 1s; transition: opacity 1s; }
-.schatten-bedienung { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; pointer-events: none; }
+.schatten-bedienung { position: absolute; bottom: 10px; left: 0; right: 0; display: -webkit-flex; display: flex; -webkit-justify-content: center; justify-content: center; pointer-events: none; }
+.schatten-bedienung > .knopf { margin: 0 6px; }
 .schatten-bedienung button { pointer-events: auto; min-height: 44px; padding: 8px 16px; font-size: 16px; color: #f7ecd0; background: #25304b; border: 1px solid #8c826b; box-shadow: none; }
 .schatten-bedienung button + button { margin-left: 8px; }
 .schatten-bedienung button:focus, .schatten-zu:focus { outline: 3px solid #e8a55a; outline-offset: 3px; }

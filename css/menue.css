@@ -54,8 +54,8 @@
 .mk-bildfehler .mk-schnell { display:flex; }
 @media (orientation:portrait) {
   .mk-rahmen { margin:0; }
-  .mk-schnell { display:flex; flex-wrap:wrap; padding:14px 12px 8px; gap:9px; max-width:800px; margin:auto; }
-  .mk-listenziel { position:relative; flex:1 0 44%; min-height:58px; border:1px solid #d8c7a6; border-radius:5px; background:#fffbef; color:#3c3120; padding:10px 8px; font:18px/1.2 Georgia,serif; box-shadow:0 2px 0 #e3d5ba; cursor:pointer; }
+  .mk-schnell { display:-webkit-flex; display:flex; -webkit-flex-wrap:wrap; flex-wrap:wrap; padding:10px 8px 4px; max-width:800px; margin:auto; }
+  .mk-listenziel { position:relative; -webkit-flex:1 0 44%; flex:1 0 44%; margin:4.5px; min-height:58px; border:1px solid #d8c7a6; border-radius:5px; background:#fffbef; color:#3c3120; padding:10px 8px; font:18px/1.2 Georgia,serif; box-shadow:0 2px 0 #e3d5ba; cursor:pointer; }
   .mk-listenziel[aria-disabled=true] { color:#8b806d; cursor:help; }
   .mk-listenziel small { display:block; font:11px/1.6 Arial,sans-serif; letter-spacing:.06em; text-transform:uppercase; }
   .mk-fuss { padding-top:10px; }
