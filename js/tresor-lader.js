@@ -108,19 +108,20 @@
           var d = Math.abs(xr - z.x) / z.b;
           if (d < 1) { var hz = z.h * Math.pow(1 - d, 1.7) * (0.35 + 0.65 * huelle); if (hz > oben) { oben = hz; schief = z.neig; } }
         });
-        pkt.push([mitte + x + schief * oben + (Math.random() - 0.5) * 1.6, basis - oben + (Math.random() - 0.5) * 1.4]);
+        pkt.push([x + schief * oben + (Math.random() - 0.5) * 1.6, oben + (Math.random() - 0.5) * 1.4]);
       }
-      c.beginPath(); c.moveTo(mitte - W, basis);
-      for (var i = 0; i < pkt.length; i++) c.lineTo(pkt[i][0], pkt[i][1]);
-      c.lineTo(mitte + W, basis);
-      c.quadraticCurveTo(mitte, basis + 16, mitte - W, basis);                            // unten rund
+      // keine "Pfütze": unten läuft das Feuer schmal zusammen (wie aus dem Brenner), oben fächert es auf
+      function eng(px, hoehe) { return mitte + px * (0.32 + 0.68 * Math.min(1, hoehe / (lg.h[1] * 0.55))); }
+      c.beginPath(); c.moveTo(eng(-W * 0.9, 0), basis);
+      for (var i = 0; i < pkt.length; i++) c.lineTo(eng(pkt[i][0], pkt[i][1]), basis - pkt[i][1]);
+      c.lineTo(eng(W * 0.9, 0), basis);
       c.closePath();
     }
     function bild() {
       if (!document.body.contains(cv)) return;
       c.clearRect(0, 0, B0, H0);
-      var g = c.createRadialGradient(mitte, basis, 4, mitte, basis, breit * 1.5);          // Glut am Brenner
-      g.addColorStop(0, "rgba(255,170,50,0.5)"); g.addColorStop(1, "rgba(255,170,50,0)");
+      var g = c.createRadialGradient(mitte, basis - 34, 4, mitte, basis - 34, breit * 1.2);   // warmer Schein im Feuer
+      g.addColorStop(0, "rgba(255,170,50,0.4)"); g.addColorStop(1, "rgba(255,170,50,0)");
       c.fillStyle = g; c.fillRect(0, 0, B0, H0);
       LAGEN.forEach(function (lg, n) {
         lg.sp.forEach(function (z) {                         // atmen, wandern, neigen – halb vom alten Wert
@@ -138,6 +139,9 @@
         ver.addColorStop(0, lg.unten); ver.addColorStop(1, lg.oben);
         c.save(); c.globalAlpha = 0.5; c.fillStyle = ver; c.fill(); c.restore();
       });
+      var fuss = c.createLinearGradient(0, basis - 30, 0, basis + 2);                     // unten weich auslaufen, keine harte Kante
+      fuss.addColorStop(0, "rgba(0,0,0,0)"); fuss.addColorStop(1, "rgba(0,0,0,1)");
+      c.save(); c.globalCompositeOperation = "destination-out"; c.fillStyle = fuss; c.fillRect(0, basis - 30, B0, H0 - basis + 30); c.restore();
       lose.forEach(function (f) {                            // lose Flämmchen: kleine Papierspitze, steigt und verlischt
         f.leben--; f.y -= 9;
         c.save(); c.globalAlpha = 0.9; c.translate(f.x, f.y);
