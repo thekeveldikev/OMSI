@@ -235,6 +235,9 @@
     // ── Teller mit dem Stapel ──
     function tellerZeichnen(c, T, stapel) {
       var TB = BILD.teller;
+      // Schatten aus grauem Papier (wie unter der Pfanne), nach rechts unten versetzt
+      c.save(); c.beginPath(); c.ellipse(T.x + T.R * 0.09, T.y + T.R * 0.16, T.R * 1.0, T.R * 0.35, 0, 0, Math.PI * 2);
+      c.fillStyle = PAPIER.muster(c, "grau"); c.fill(); c.restore();
       if (TB.img) {
         var tm = 2 * T.R / TB.breite;
         c.drawImage(TB.img, T.x - TB.mitte[0] * tm, T.y + T.R * 0.06 - TB.mitte[1] * tm, TB.img.width * tm, TB.img.height * tm);
@@ -334,17 +337,22 @@
       c.restore();
     }
 
-    // Bläschen im Teig (werden mehr, je länger er bäckt – wie echt)
+    // Bläschen im Teig (werden mehr, je länger er bäckt – wie echt). Stil wie Codex' Pfannkuchenbild (spiel-v2):
+    // flache, weiche goldockerfarbene Tupfen in verschiedenen Größen – kein Glanz, kein Rand; zwei Papierlagen
+    // (außen blass, innen kräftiger) lassen die Kante weich auslaufen
     function blasen(c, x, y, r, t, seed) {
-      var zf = zufallsFolge(seed * 97 + 5), n = Math.min(14, Math.floor(t * 2.6));
+      var zf = zufallsFolge(seed * 97 + 5), n = Math.min(18, Math.floor(t * 3));
       c.save();
-      for (var i = 0; i < 14; i++) {
-        var a = zf() * Math.PI * 2, d = Math.sqrt(zf()) * r * 0.7, br = r * (0.022 + zf() * 0.03);
+      for (var i = 0; i < 18; i++) {
+        var a = zf() * Math.PI * 2, d = Math.sqrt(zf()) * r * 0.74, gross = zf() < 0.25;
+        var br = r * (gross ? 0.03 + zf() * 0.014 : 0.013 + zf() * 0.013), form = Math.floor(zf() * 900);
         if (i >= n) continue;
-        var bx = x + Math.cos(a) * d, by = y + Math.sin(a) * d * 0.65 * FLACH;
-        c.beginPath(); c.ellipse(bx, by, br, br * FLACH, 0, 0, Math.PI * 2);
-        c.fillStyle = "rgba(196,160,96,0.38)"; c.fill();
-        c.lineWidth = 1.2; c.strokeStyle = "rgba(140,98,50,0.35)"; c.stroke();
+        var bx = x + Math.cos(a) * d, by = y + Math.sin(a) * d * 0.65 * FLACH, ry = br * FLACH * 1.25;
+        var neu = n - i <= 2 ? 0.7 : 1;                     // frisch aufgestiegen: noch kleiner (Stop-Motion)
+        PAPIER.risspfad(c, bx, by, br * 1.35 * neu, ry * 1.35 * neu, 9, form);
+        c.globalAlpha = 0.22; c.fillStyle = PAPIER.muster(c, "ocker", { akzent: "gelb" }); c.fill();
+        PAPIER.risspfad(c, bx, by, br * neu, ry * neu, 9, form + 1);
+        c.globalAlpha = 0.5; c.fill();
       }
       c.restore();
     }
