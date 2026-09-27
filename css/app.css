@@ -393,6 +393,13 @@ body.ohne-falz .buch > .seite-rechts { -webkit-clip-path: inset(-60px -60px -60p
 
 /* ─────────────── Finale ─────────────── */
 .finale-bildschirm { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; }
+.finale-bildschirm.mit-bild { background-size: cover !important; background-position: center !important; background-repeat: no-repeat !important; }
+/* auf der Festtafel: weicher Papierschein hinter der Überschrift (Wimpel) und ein Papierstreifen unter dem Hinweis (Tischtuch) */
+.finale-bildschirm.mit-bild .finale-kopf { left: 12%; right: 12%; padding: 1.2vh 0 2.4vh; border-radius: 50%;
+  background: -webkit-radial-gradient(center, ellipse, rgba(250,244,230,.92) 0%, rgba(250,244,230,.78) 48%, rgba(250,244,230,0) 72%);
+  background: radial-gradient(ellipse at center, rgba(250,244,230,.92) 0%, rgba(250,244,230,.78) 48%, rgba(250,244,230,0) 72%); }
+.finale-bildschirm.mit-bild .finale-oder { display: table; margin-left: auto; margin-right: auto; padding: .2em .8em .25em; border-radius: .4em; background: rgba(250,244,230,.9);
+  box-shadow: 0 1px 4px rgba(90,60,30,.25); -webkit-transform: rotate(-.8deg); transform: rotate(-.8deg); }
 .finale-canvas { position: absolute; top: 0; left: 0; }
 .finale-kopf { position: absolute; top: 3%; left: 0; right: 0; text-align: center; pointer-events: none; }
 .finale-titel { font-family: var(--rund); font-weight: 900; font-size: 8vh; line-height: 1; }
@@ -519,6 +526,8 @@ body.ohne-falz .buch > .seite-rechts { -webkit-clip-path: inset(-60px -60px -60p
 .tresor-fehler { color: #b0453a; font-family: var(--rund); font-size: 16px; }
 /* Papier statt dunklem Braun: dieselbe Collage-Welt wie im Buch (Bilder in lader/, s. js/tresor-lader.js) */
 .tresor { background: #efe4cc url("../lader/papier.jpg") center / cover no-repeat; }
+.tresor.tresor-tuer { background: #2f5a34 url("../lader/tresor-hintergrund.jpg") center / cover no-repeat; }   /* Codex: Geheimtür mit Pfannkuchen-Guckloch */
+.tresor-hoppla-bild { display: block; width: 300px; max-width: 64vw; height: auto; margin: -6px auto 4px; }
 .tresor-karte { -webkit-transform: rotate(-.6deg); transform: rotate(-.6deg); box-shadow: 0 3px 0 rgba(120,90,50,.18), 0 14px 34px rgba(90,60,30,.25); }
 /* Ladeanzeige: der Pfannkuchen fliegt hoch, dreht sich einmal ganz und landet wieder in der Pfanne */
 .tresor-laden { -webkit-flex-direction: column; flex-direction: column; }
@@ -593,6 +602,10 @@ body.ohne-falz .buch > .seite-rechts { -webkit-clip-path: inset(-60px -60px -60p
   .akte-blatt-text { position: relative; left: auto; top: auto; width: auto; height: auto; overflow: visible; -webkit-transform: none; transform: none; padding: 1vh 6vw 5vh; }
   .akte-dossier .akte-stempel { left: auto; top: auto; right: 8%; bottom: 5%; }
 }
+
+/* Codex' Symbolbogen im Einstellungsblatt (Sonne, Mond, Tulpe, Blitz, Kauz …) */
+.kl-sym { display: inline-block; width: 2em; height: 2em; margin: -.55em .3em -.55em -.2em; vertical-align: middle;
+  background: url("../bilder/extras/symbole-einstellungen.png") no-repeat; background-size: 600% 300%; }
 
 /* ─────────────── Omsis Rezept: gemalter Zutatenrahmen (extras/rezeptkarte-rahmen) ─────────────── */
 /* helles Papier unter dem durchsichtigen Rahmen; Zutaten links, Zubereitung rechts, Fußnote unten Mitte */
@@ -685,6 +698,18 @@ body.ohne-falz .buch > .seite-rechts { -webkit-clip-path: inset(-60px -60px -60p
   -webkit-flex-direction: column; flex-direction: column; -webkit-justify-content: space-between; justify-content: space-between; text-align: center; }
 .spiel-ende.sichtbar { display: -webkit-flex; display: flex; -webkit-animation: kf-einblenden .9s both; animation: kf-einblenden .9s both; }
 .spiel-ende-titel { display: inline-block; font-family: var(--rund); font-weight: 900; font-size: 6.6vh; line-height: 1.08; }
+/* Codex' Küchenwand: Titel, Hinweis und Skalen-Beschriftung auf weichem Papierschein, damit sie vor Efeu und Holz lesbar bleiben */
+.spiel-bildschirm.mit-bild .spiel-kopf { left: 17%; right: 17%; padding: .6vh 0 1.8vh; border-radius: 50%;
+  background: -webkit-radial-gradient(center, ellipse, rgba(250,244,230,.94) 0%, rgba(250,244,230,.84) 50%, rgba(250,244,230,0) 72%);
+  background: radial-gradient(ellipse at center, rgba(250,244,230,.94) 0%, rgba(250,244,230,.84) 50%, rgba(250,244,230,0) 72%); }
+.spiel-bildschirm.mit-bild .spiel-skala-titel { display: table; margin-left: auto; margin-right: auto; padding: .12em .8em .18em; border-radius: .45em; background: rgba(250,244,230,.9); }
+.spiel-bildschirm.mit-bild .spiel-ende-kopf { -webkit-align-self: center; align-self: center; max-width: 90vw; padding: 1vh 2.6vw 1.5vh; border-radius: 1.1em; background: rgba(250,244,230,.93);
+  box-shadow: 0 3px 0 rgba(120,90,50,.16), 0 12px 30px rgba(60,40,20,.28); -webkit-transform: rotate(-1deg); transform: rotate(-1deg); }
+.spiel-ende-kopf .spiel-ende-titel { font-size: 5.2vh; white-space: nowrap; }
+.spiel-ende-kopf .spiel-ende-unter { font-size: 2.8vh; margin-top: .25em; }
+.spiel-medaille { display: block; width: 13vh; height: 13vh; margin: -.4vh auto .2vh; -webkit-animation: kf-medaille .9s .2s both; animation: kf-medaille .9s .2s both; }
+@-webkit-keyframes kf-medaille { 0% { -webkit-transform: scale(0) rotate(-30deg); } 55% { -webkit-transform: scale(1.18) rotate(8deg); } 75% { -webkit-transform: scale(.94) rotate(-4deg); } 100% { -webkit-transform: none; } }
+@keyframes kf-medaille { 0% { transform: scale(0) rotate(-30deg); } 55% { transform: scale(1.18) rotate(8deg); } 75% { transform: scale(.94) rotate(-4deg); } 100% { transform: none; } }
 .spiel-ende-unter { font-family: var(--buchschrift); font-style: italic; font-size: 3.2vh; color: #4a3a2a; margin-top: .4em; }
 .spiel-ende-knoepfe { pointer-events: auto; }
 /* das Rückweg-Schild (oben links) nicht über die Schluss-Überschrift legen */

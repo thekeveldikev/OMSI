@@ -311,7 +311,7 @@
     var karte = B.el("div", "rezeptkarte mit-rahmen", seite);
     PAPIER.hinterlegen(karte, "creme", { kachel: 260, seed: 9 });
     var rahmen = B.el("img", "rezept-rahmen", karte);
-    rahmen.alt = ""; rahmen.src = "bilder/extras/rezeptkarte-rahmen.png";
+    rahmen.alt = ""; rahmen.src = buch ? "bilder/extras/rezeptkarte-rahmen.png" : "bilder/extras/rezeptkarte-rahmen-omsi.png";
     var titel = B.el("div", "rezept-titel", karte, B.ersetzen(R.titel));
     // an der ersten Leerzeile teilen: davor die Zutaten, danach die Zubereitung (sonst in der Mitte)
     var trenn = R.zeilen.indexOf("");
@@ -400,6 +400,8 @@
              "daten/einstellungen.js", "daten/textfelder.js", "daten/original.js", "daten/text_de.js", "daten/fortsetzung.js", "daten/ebenen.js", "daten/extras.js", "daten/klang.js",
              "bilder/extras/haus.jpg", "bilder/extras/omsi.jpg",
              "bilder/extras/kueche-willkommen.jpg", "bilder/extras/geheimakte-omsi.jpg", "bilder/extras/rezeptkarte-rahmen.png",
+             "bilder/extras/rezeptkarte-rahmen-omsi.png", "bilder/extras/finale-hintergrund.jpg", "bilder/extras/symbole-einstellungen.png",
+             "bilder/menue-v2/jahreszeiten/ebenen/kueken.png",
              "bilder/extras/geburtstagsturm-ohne-kerzen.png", "bilder/extras/pfannekuchen-flug.png",
              "bilder/schatten/omsi-profil.png", "bilder/schatten/kevin-klein-profil.png", "bilder/schatten/kevin-gross-profil.png", "bilder/schatten/pfanne-leer.png"];
     var endungen = [".m4a", ".mp3", ".wav"];

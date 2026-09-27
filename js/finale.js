@@ -12,12 +12,16 @@
   var TURM = { src: "bilder/extras/geburtstagsturm-ohne-kerzen.png", b: 1324, h: 737,
                oben: { x: 665, y: 126, rx: 422, ry: 114, dreh: -0.035 }, img: null };
   B.ladeBild(TURM.src, function (img) { TURM.img = img; });
+  var HINTERGRUND = "bilder/extras/finale-hintergrund.jpg";
 
   FIN.starten = function (ziel, zurueck) {
     KLANG.entsperren();
     B.leeren(ziel);
     var wurzel = B.el("div", "finale-bildschirm", ziel);
     PAPIER.hinterlegen(wurzel, "creme", { kachel: 320 });
+    if (window.KUECHE_LEBEN && KUECHE_LEBEN.hintergrund && KUECHE_LEBEN.hintergrund("Finale")) B.ladeBild(HINTERGRUND, function () {   // Festtafel (Einstellungen, standardmäßig aus)
+      wurzel.style.backgroundImage = "url(\"" + HINTERGRUND + "\")"; wurzel.className += " mit-bild";
+    });
     var cv = B.el("canvas", "finale-canvas", wurzel);
     var kopf = B.el("div", "finale-kopf", wurzel);
     var titel = B.el("div", "finale-titel", kopf, B.ersetzen("{ALTER} Kerzen für {OMA}!"));

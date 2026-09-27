@@ -16,7 +16,7 @@
   function paragraph(parent, text) { var p = el('p', 'mo-text', parent); var c = text.charAt(0); if ('ADEIMW'.indexOf(c) >= 0) { var initial = el('img', 'mo-initial', p); initial.src = src('initial_' + c); initial.alt = c; p.appendChild(document.createTextNode(text.slice(1))); } else p.textContent = text; return p; }
   M.makeSpread = function (n, parent) {
     var d = data().pages[n], s = el('article', 'mo-spread mo-layout-' + d.layout, parent); s.setAttribute('data-page', n); s.setAttribute('aria-label', d.title);
-    if (d.layout === 'thanks') { el('h1', 'mo-thanks', s, d.title); return s; }
+    if (d.layout === 'thanks') { if (d.art) { var bg = el('img', 'mo-thanks-bild', s); bg.alt = ''; bg.src = src(d.art); } el('h1', 'mo-thanks', s, d.title); return s; }
     var r = el('div', 'mo-running', s); el('span', '', r, d.chapter); el('span', '', r, 'Das Atelierbuch');
     var art = el('div', 'mo-art', s); d.art.split('|').forEach(function (a, i) { figure(art, a, d.title + (d.art.indexOf('|') >= 0 ? ' · Ansicht ' + (i + 1) : '')); });
     var copy = el('div', 'mo-copy', s); el('div', 'mo-kicker', copy, n === 0 ? 'Kevin · Für Omsi' : ('Werkstattblatt ' + ('0' + (n + 1)).slice(-2))); el('h1', 'mo-title', copy, d.title); el('p', 'mo-deck', copy, d.deck); if (d.layout === 'cover' || d.layout === 'closing') el('p', 'mo-text', copy, d.text); else paragraph(copy, d.text);

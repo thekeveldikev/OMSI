@@ -6,8 +6,8 @@
   var SKRIPTE = INFO.skripte;
   var app = document.getElementById("app");
 
-  function bildschirm(html) {
-    app.innerHTML = '<div class="tresor"><div class="tresor-karte">' + html + "</div></div>";
+  function bildschirm(html, art) {
+    app.innerHTML = '<div class="tresor' + (art ? " " + art : "") + '"><div class="tresor-karte">' + html + "</div></div>";
   }
   function b64zuPuffer(s) { var bin = atob(s), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
   function pufferZuB64(buf) { var a = new Uint8Array(buf), s = ""; for (var i = 0; i < a.length; i++) s += String.fromCharCode(a[i]); return btoa(s); }
@@ -239,16 +239,18 @@
       s.src = SKRIPTE[i++];
       s.onload = naechstes;
       s.onerror = function () {
-        bildschirm("<h1>Hoppla</h1><p>Da hat etwas nicht geladen. Bitte einmal mit Internet öffnen.</p><button onclick='location.reload()'>Nochmal</button>");
+        bildschirm("<img class='tresor-hoppla-bild' src='lader/hoppla.png' alt=''><h1>Hoppla</h1><p>Da hat etwas nicht geladen. Bitte einmal mit Internet öffnen.</p><button onclick='location.reload()'>Nochmal</button>", "tresor-hoppla");
       };
       document.body.appendChild(s);
     })();
   }
 
+  // Geheimtür (Codex) nur, wenn in den Küchen-Einstellungen eingeschaltet – standardmäßig das ruhige Papier
+  function tuerAn() { try { return !!(JSON.parse(localStorage.getItem("omsi.kueche.zauber") || "{}") || {}).hgTuer; } catch (e) { return false; } }
   function sperre(fehler) {
     bildschirm('<div class="tresor-schild">ZUGANG NUR FÜR 007<br><small>Genehmigung durch M</small></div>' +
       '<p>Bitte das Geheimwort eingeben:</p><input id="wort" type="password" autocomplete="off" autocapitalize="off">' +
-      '<button id="auf">Öffnen</button>' + (fehler ? '<p class="tresor-fehler">Das war nicht das Geheimwort.</p>' : ""));
+      '<button id="auf">Öffnen</button>' + (fehler ? '<p class="tresor-fehler">Das war nicht das Geheimwort.</p>' : ""), tuerAn() ? "tresor-tuer" : "");
     var feld = document.getElementById("wort");
     var gesendet = false;                                   // Enter doppelt gedrückt → trotzdem nur EIN Ladevorgang
     function los() {
@@ -295,6 +297,6 @@
     });
     sperre(false);
   })["catch"](function (e) {
-    bildschirm("<h1>Hoppla</h1><p>Der Offline-Speicher ließ sich nicht starten (" + (e && e.message) + ").</p>");
+    bildschirm("<img class='tresor-hoppla-bild' src='lader/hoppla.png' alt=''><h1>Hoppla</h1><p>Der Offline-Speicher ließ sich nicht starten (" + (e && e.message) + ").</p>", "tresor-hoppla");
   });
 })();

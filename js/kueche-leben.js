@@ -10,13 +10,15 @@
   var FENSTER = [0, 0, 276, 461];                        // wie .mk-himmel (18 % × 45 % der Bühne 1536×1024)
 
   // ───────── Einstellungen ─────────
-  var STANDARD = { zeit: "aus", jahr: "aus", wetter: "aus", fest: "aus", licht: false, nachtKueche: true, kauz: false, schnuppen: false, gluehen: false, antippen: true };
+  var STANDARD = { zeit: "aus", jahr: "aus", wetter: "aus", fest: "aus", licht: false, nachtKueche: true, kauz: false, schnuppen: false, gluehen: false, antippen: true,
+                  hgFinale: false, hgSpiel: false, hgTuer: false };   // Codex' neue Hintergründe: standardmäßig aus
   function einst() {
     var e = B.erinnern("kueche.zauber", null) || {}, o = {};
     for (var k in STANDARD) o[k] = Object.prototype.hasOwnProperty.call(e, k) ? e[k] : STANDARD[k];
     return o;
   }
   KL.einstellungen = einst;
+  KL.hintergrund = function (name) { return !!einst()["hg" + name]; };   // "Finale", "Spiel", "Tuer"
   KL.setzen = function (k, v) {
     var e = einst(); e[k] = v;
     if (k === "zeit" && v === "nacht" && e.wetter === "regenbogen") e.wetter = "aus";   // Regenbogen gibt es nur bei Tag
@@ -143,7 +145,7 @@
 
   // Was in jedem Bild lebt (Bühnenkoordinaten, vermessen an Codex' Bildern)
   var SCHMUCK = {
-    fruehling:  { zonen: [["osterkorb", [60, 745, 64, 72]], ["kresse", [152, 850, 55, 45]]], tier: "schmetterling" },
+    fruehling:  { zonen: [["osterkorb", [60, 745, 64, 72]], ["osterkorb", [82, 680, 72, 65]], ["kresse", [152, 850, 55, 45]]], tier: "schmetterling", kueken: true },
     sommer:     { zonen: [["erdbeeren", [95, 850, 100, 85]], ["limonade", [1445, 612, 45, 40]]], tier: "biene" },
     herbst:     { zonen: [["kuerbis", [1345, 35, 52, 36]], ["aepfel", [95, 815, 100, 65]]], tier: "laub" },
     // Kerzen: Dochtspitzen laut Codex (27.09.), der Kranz steht vorn links neben dem Rezeptheft
@@ -194,7 +196,33 @@
       if (Math.random() < 0.65) funken(s, 520, 330, "zzz", ["hellblau", "weiss", "hellblau"], 2); else funken(s, 770, 520, "zzz", ["weiss", "hellblau"], 1);
     }
     if (sm.tier) tierMalen(s, c, st, sm.tier, dt);
+    if (sm.kueken && s.kueken) kuekenMalen(s, c, dt); else s.kueken = null;
     c.globalAlpha = 1;
+  }
+  // Küken (Codex-Ebene, auf die Bühne 1536×1024 bezogen): wächst ruckweise aus dem Ei, wackelt, piept und duckt sich wieder
+  var KUEKEN = { src: "bilder/menue-v2/jahreszeiten/ebenen/kueken.png", x: 78, y: 671, b: 80, h: 99, img: null, laedt: false };
+  function kuekenSchluepfen(s) {
+    if (!KUEKEN.img && !KUEKEN.laedt) { KUEKEN.laedt = true; B.ladeBild(KUEKEN.src, function (img) { KUEKEN.img = img; }, function () { KUEKEN.laedt = false; }); }
+    if (s.kueken && s.kueken.t < s.kueken.dauer - 0.5) { s.kueken.hopp = 0.5; s.kueken.dauer = Math.max(s.kueken.dauer, s.kueken.t + 4); if (KLANG.piep) KLANG.piep(); return; }
+    s.kueken = { t: 0, dauer: 7, hopp: 0, piep: false };
+  }
+  function kuekenMalen(s, c, dt) {
+    var k = s.kueken, img = KUEKEN.img;
+    k.t += dt; if (k.hopp > 0) k.hopp -= dt;
+    if (!img) { if (k.t > 3) s.kueken = null; return; }
+    if (!k.piep && k.t > 0.35) { k.piep = true; if (KLANG.piep) KLANG.piep(); }
+    var schritt = Math.floor(k.t * 8), rest = k.dauer - k.t, sy;           // Stop-Motion: 8 Bilder/s
+    var AUF = [0.2, 0.55, 0.9, 1.12, 0.96, 1.03, 1];
+    if (rest <= 0) { s.kueken = null; return; }
+    if (schritt < AUF.length) sy = AUF[schritt];
+    else if (rest < 0.5) sy = [0.25, 0.55, 0.85, 1][Math.max(0, Math.floor(rest * 8))];
+    else sy = 1;
+    var wackel = schritt >= AUF.length && rest >= 0.5 ? [0, 0.06, 0, -0.06][Math.floor(k.t * 3) % 4] * (Math.floor(k.t / 2.2) % 2 ? 1 : 0.4) : 0;
+    var hoch = k.hopp > 0 ? [0, 9, 14, 9][Math.floor((0.5 - k.hopp) * 8) % 4] : 0;
+    c.save(); c.translate(KUEKEN.x + KUEKEN.b / 2, KUEKEN.y + KUEKEN.h - 6 - hoch); c.rotate(wackel);
+    c.scale(1 + (1 - sy) * 0.18, sy);
+    c.drawImage(img, -KUEKEN.b / 2, -KUEKEN.h + 6, KUEKEN.b, KUEKEN.h);
+    c.restore();
   }
   function dampfWoelkchen(s, p) {
     s.funken.push({ x: p[0] + (Math.random() - 0.5) * 12, y: p[1], vx: (Math.random() - 0.5) * 10, vy: -(22 + Math.random() * 14), g: 6 + Math.random() * 4,
@@ -679,7 +707,7 @@
     var n = s.zaehler[zone], f = s.fenster, nacht = s.zeit === "nacht";
     if (zone === "osterkorb") {
       klang(n % 2 ? "f_ev_ei" : "f_ev_eierkarton", 0.5); funken(s, x, y - 30, "dampf", ["rosa", "gelb", "hellblau", "hellgruen"], 5);
-      if (n % 4 === 0) { funken(s, x, y - 40, "kueken", ["gelb"], 1); if (KLANG.piep) KLANG.piep(); }   // ab und zu schlüpft ein Küken
+      kuekenSchluepfen(s);                              // Codex' Küken schlüpft aus dem Ei im Korb
     } else if (zone === "kresse") {
       klang("f_ev_glitzer", 0.3); funken(s, x, y - 30, "blatt", ["hellgruen", "gruen"], 4);
     } else if (zone === "erdbeeren" || zone === "aepfel" || zone === "plaetzchen") {
@@ -850,12 +878,12 @@
     S.chip = chip("creme"); S.chipO = chip("orange"); S.chipG = chip("gruen"); S.chipB = chip("blau"); S.chipR = chip("rot");
     var u = function (d) { return "url(" + d + ")"; };
     var css = [
-      ".mk-fuss .kl-fk-haus:before{background-image:" + u(S.haus) + "}",
+      ".mk-fuss .kl-fk-haus:before{background-image:url(" + SYM_BILD + ");background-size:600% 300%;background-position:80% 100%}",
       ".mk-fuss .kl-fk-bewegung:before{background-image:" + u(S.pause) + "}",
       ".mk-fuss .kl-fk-bewegung[aria-pressed=true]:before{background-image:" + u(S.spiel) + "}",
       ".mk-fuss .kl-fk-musik:before{background-image:" + u(S.note) + "}",
       ".mk-fuss .kl-fk-musik[aria-pressed=true]:before{background-image:" + u(S.noteAus) + "}",
-      ".mk-fuss .kl-fk-einst:before{background-image:" + u(S.zauber) + "}",
+      ".mk-fuss .kl-fk-einst:before{background-image:url(" + SYM_BILD + ");background-size:600% 300%;background-position:100% 100%}",
       ".mk-fuss .kl-fk-offline:before{background-image:" + u(S.offline) + "}",
       ".kl-einst .kl-schalter:before{background-image:" + u(S.box) + "}",
       ".kl-einst .kl-schalter[aria-pressed=true]:before{background-image:" + u(S.boxHaken) + "}",
@@ -888,6 +916,18 @@
     B.tippen(e, function (ev) { ev.stopPropagation(); einstellungenOeffnen(s); });
   }
 
+  // Codex' Symbolbogen (6 × 3 Papierschnipsel): Spalte, Zeile je Wahl
+  var SYM_BILD = "bilder/extras/symbole-einstellungen.png";
+  var SYM = { tag: [0, 0], morgen: [1, 0], abend: [2, 0], nacht: [3, 0], fruehling: [4, 0], sommer: [5, 0],
+              herbst: [0, 1], winter: [1, 1], regen: [2, 1], sturm: [3, 1], nebel: [4, 1], regenbogen: [5, 1],
+              advent: [0, 2], geburtstag: [1, 2], silvester: [2, 2], kauz: [3, 2] };
+  function symbol(el, name) {
+    var p = SYM[name]; if (!p) return;
+    var i = document.createElement("span"); i.className = "kl-sym"; i.setAttribute("aria-hidden", "true");
+    i.style.backgroundPosition = (p[0] * 20) + "% " + (p[1] * 50) + "%";
+    el.insertBefore(i, el.firstChild);
+  }
+
   // ───────── Das Blatt "Einstellungen" ─────────
   var GRUPPEN = [
     { titel: "Tageszeit im Fenster", schluessel: "zeit", farbe: "orange", wahl: [["aus", "Wie gemalt"], ["uhr", "Mit der Uhr"], ["morgen", "Morgenrot"], ["tag", "Tag"], ["abend", "Abendrot"], ["nacht", "Nacht"]] },
@@ -898,7 +938,8 @@
   var SCHALTER = [
     { titel: "Stimmung", teile: [["licht", "Licht in der Küche"], ["nachtKueche", "Nachts schläft die Küche"]] },
     { titel: "Nachtgäste", teile: [["kauz", "Waldkauz"], ["schnuppen", "Sternschnuppen"], ["gluehen", "Glühwürmchen"]] },
-    { titel: "Kleine Überraschungen", teile: [["antippen", "Dinge antworten beim Antippen"]] }
+    { titel: "Kleine Überraschungen", teile: [["antippen", "Dinge antworten beim Antippen"]] },
+    { titel: "Neue Hintergründe", teile: [["hgFinale", "Festtafel bei der Torte"], ["hgSpiel", "Küchenwand beim Pfannkuchen-Wenden"], ["hgTuer", "Geheimtür beim Geheimwort"]] }
   ];
   function rissKante(el, seed) {                        // gerissener Papierrand per clip-path (mit -webkit-)
     var p = [], zf = seed, i;
@@ -928,6 +969,7 @@
       var reihe = B.el("div", "kl-chips", box); reihe.setAttribute("role", "radiogroup"); reihe.setAttribute("aria-label", g.titel);
       g.wahl.forEach(function (w) {
         var b = B.el("button", "kl-chip", reihe, w[1]); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("data-farbe", g.farbe);
+        symbol(b, w[0]);
         knoepfe.push({ el: b, k: g.schluessel, v: w[0] });
         B.tippen(b, function (ev) { ev.stopPropagation(); if (b.getAttribute("aria-disabled") === "true") return; KLANG.tippen(); KL.setzen(g.schluessel, w[0]); });
       });
@@ -939,6 +981,7 @@
       var reihe = B.el("div", "kl-chips", box);
       g.teile.forEach(function (t) {
         var b = B.el("button", "kl-chip kl-schalter", reihe, t[1]); b.type = "button"; b.setAttribute("data-farbe", "rot");
+        symbol(b, t[0]);
         knoepfe.push({ el: b, k: t[0], schalter: true });
         B.tippen(b, function (ev) { ev.stopPropagation(); KLANG.tippen(); KL.setzen(t[0], !einst()[t[0]]); });
       });

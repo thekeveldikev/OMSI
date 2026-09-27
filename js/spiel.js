@@ -126,8 +126,11 @@
     SP.stoppen();
     var seite = B.el("div", "spiel-bildschirm", ziel);
     PAPIER.hinterlegen(seite, "creme", { kachel: 320, seed: 4 });
-    B.ladeBild(ORDNER + "papier.jpg", function () {             // ruhiges Collagepapier (Ersatz: gezeichnetes Papier)
-      seite.style.backgroundImage = "url(\"" + ORDNER + "papier.jpg\")"; seite.style.backgroundSize = "cover"; seite.style.backgroundPosition = "center";
+    // Codex' Küchenwand nur, wenn in den Einstellungen eingeschaltet – sonst das ruhige Collagepapier (Ersatz: gezeichnetes Papier)
+    var mitBild = !!(window.KUECHE_LEBEN && KUECHE_LEBEN.hintergrund && KUECHE_LEBEN.hintergrund("Spiel")), hg = mitBild ? "hintergrund.jpg" : "papier.jpg";
+    if (mitBild) seite.className += " mit-bild";
+    B.ladeBild(ORDNER + hg, function () {
+      seite.style.backgroundImage = "url(\"" + ORDNER + hg + "\")"; seite.style.backgroundSize = "cover"; seite.style.backgroundPosition = mitBild ? "center bottom" : "center";
     });
     var cv = B.el("canvas", "spiel-canvas", seite);
     var kopf = B.el("div", "spiel-kopf", seite);
@@ -517,6 +520,7 @@
       konfettiLos();
       B.leeren(ende);
       var oben = B.el("div", "spiel-ende-kopf", ende);
+      var medaille = B.el("img", "spiel-medaille", oben); medaille.alt = "Goldmedaille"; medaille.src = ORDNER + "medaille.png";
       var t = B.el("div", "spiel-ende-titel", oben, "Die leckersten Pfannkuchen der Welt!");
       PAPIER.schriftFuellen(t, "rot", { akzent: "orange" });
       B.el("div", "spiel-ende-unter", oben, zusammenfassung());
@@ -526,13 +530,13 @@
       B.tippen(nochmal, function (ev) { ev.stopPropagation(); KLANG.entsperren(); KLANG.plopp(); vonVorn(); });
       B.tippen(kueche, function (ev) { ev.stopPropagation(); SP.stoppen(); zurueck(); });
       ende.className = "spiel-ende sichtbar";
-      seite.className = "spiel-bildschirm ist-fertig";
+      seite.className = "spiel-bildschirm ist-fertig" + (mitBild ? " mit-bild" : "");
     }
 
     function vonVorn() {
       z.stapel = []; z.konfetti = []; z.goldZahl = 0; z.runde++;
       ende.className = "spiel-ende"; B.leeren(ende);
-      seite.className = "spiel-bildschirm";
+      seite.className = "spiel-bildschirm" + (mitBild ? " mit-bild" : "");
       neuerTeig();
       anzeigen();
     }
@@ -619,7 +623,7 @@
   };
 
   SP.dateien = function () {
-    var d = [ORDNER + "pfannkuchen-stufen.png", ORDNER + "papier.jpg", ORDNER + "knopf-rot.png", ORDNER + "knopf-gold.png", KUCHEN.src];
+    var d = [ORDNER + "pfannkuchen-stufen.png", ORDNER + "papier.jpg", ORDNER + "hintergrund.jpg", ORDNER + "medaille.png", ORDNER + "knopf-rot.png", ORDNER + "knopf-gold.png", KUCHEN.src];
     for (var k in BILD) d.push(ORDNER + BILD[k].datei);
     return d;
   };
