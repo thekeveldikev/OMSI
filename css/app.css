@@ -89,9 +89,12 @@ body .rk-zutat[aria-pressed=true]:after { content: "\2713\FE0E"; }
 .leiste { position: absolute; top: 0; left: 0; right: 0; height: 64px; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
   padding: 0 14px; z-index: 20; }
 .leiste .knopf { margin-right: 10px; }
+/* Home-Bildschirm-App (Statusleiste durchsichtig): Uhr/Akku nicht über die Knöpfe legen */
+.leiste { top: env(safe-area-inset-top, 0px); }
 .leiste-titel { -webkit-flex: 1; flex: 1; text-align: center; color: #f6ead2; font-style: italic; font-size: 20px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .buehne { position: absolute; top: 64px; left: 60px; right: 60px; bottom: 34px; display: -webkit-flex; display: flex;
   -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; cursor: pointer; }
+.buehne { top: calc(64px + env(safe-area-inset-top, 0px)); }
 .buch { position: relative; -webkit-perspective: 2400px; perspective: 2400px;
   -webkit-transition: -webkit-transform .9s cubic-bezier(.45,.05,.3,1); transition: transform .9s cubic-bezier(.45,.05,.3,1); }
 /* geschlossenes Buch (nur Umschlag) liegt mittig */
@@ -383,7 +386,7 @@ body.ohne-falz .buch > .seite-rechts { -webkit-clip-path: inset(-60px -60px -60p
 .schatten-bedienung button + button { margin-left: 8px; }
 .schatten-bedienung button:focus, .schatten-zu:focus { outline: 3px solid #e8a55a; outline-offset: 3px; }
 .schatten-text { bottom: 64px; }
-.schatten-hinweis { top: 65px; font-size: 13px; }
+.schatten-hinweis { top: 24px; left: 50%; font-size: 14px; white-space: nowrap; -webkit-transform: translateX(-50%); transform: translateX(-50%); }   /* mittig: links sitzt das Schild "Zur Küche" */
 @media (max-height: 500px) { .schatten-bedienung { bottom: 4px; } .schatten-bedienung button { font-size: 13px; padding: 4px 10px; } .schatten-text { font-size: 3.1vh; line-height: 1.2; bottom: 50px; } }
 
 /* ─────────────── Finale ─────────────── */
@@ -435,7 +438,9 @@ body.ohne-falz .buch > .seite-rechts { -webkit-clip-path: inset(-60px -60px -60p
 .rezept-zeile, .rezept-fuss { -webkit-animation: kf-einblenden .6s both; animation: kf-einblenden .6s both; }
 .rezept-luecke { height: 2.4vh; }
 .rezept-fuss { margin-top: 2vh; text-align: right; font-size: 3.4vh; }
-.rezept-drucken { position: absolute; top: 14px; right: 14px; z-index: 6; }   /* über der Rezeptkarte (1024×768: sonst verdeckt) */
+.rezept-drucken { position: absolute; top: 14px; right: 14px; z-index: 6; }
+.rezept-fassung { position: absolute; top: 14px; left: 50%; z-index: 6; -webkit-transform: translateX(-50%); transform: translateX(-50%); }
+.rezept-fassung:active { -webkit-transform: translate(-50%, 1px); transform: translate(-50%, 1px); }   /* über der Rezeptkarte (1024×768: sonst verdeckt) */
 .rezept-hinweis { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; font-family: var(--rund); color: #fff; font-size: 14px; opacity: .85; }
 @media print { .knopf, .rezept-hinweis { display: none !important; } .rezeptkarte { box-shadow: none; -webkit-transform: none; transform: none; } }
 .mini-seite { position: absolute; top: 0; left: 50%; height: 100%; background-size: 100% 100%; box-shadow: 0 2px 10px rgba(0,0,0,.2); }

@@ -290,13 +290,24 @@
   // Rezeptkarte im gemalten Zutatenrahmen (Schüssel, Eier, Mehl, Milch, Butter, Marmelade).
   // Darunter helles Papier; der Text steht in der freien Mitte: Zutaten links, Zubereitung rechts.
   function zeigeRezept() {
-    var R = window.EXTRAS.rezept;
+    // Standard: Omsis eigenes Rezept; umschaltbar auf die Fassung aus dem Buch (Wahl wird gemerkt)
+    var buch = B.erinnern("rezept.fassung", "omsi") === "buch" && window.EXTRAS.rezeptBuch;
+    var R = buch ? window.EXTRAS.rezeptBuch : window.EXTRAS.rezept;
     var seite = B.el("div", "rezept-bildschirm", wurzel);
     PAPIER.hinterlegen(seite, "gruen", { kachel: 300, seed: 5 });
     var zurueck = B.knopf(B.el("button", "knopf akte-zurueck", seite), "haus", "Zur Küche");
     B.tippen(zurueck, function () { APP.zeige("kueche"); });
     var drucken = B.knopf(B.el("button", "knopf rezept-drucken", seite), "drucker", "Drucken");
     B.tippen(drucken, function () { window.print(); });
+    if (window.EXTRAS.rezeptBuch) {
+      var fassung = B.knopf(B.el("button", "knopf rezept-fassung", seite), buch ? "herz" : "zurueck", buch ? "Omsis Original" : "Fassung aus dem Buch");
+      fassung.setAttribute("aria-label", buch ? "Zu Omsis eigenem Rezept wechseln" : "Zur Rezept-Fassung aus dem Buch wechseln");
+      B.tippen(fassung, function () {
+        B.merken("rezept.fassung", buch ? "omsi" : "buch");
+        if (window.KLANG) { KLANG.entsperren(); if (KLANG.blaettern) KLANG.blaettern(); }
+        APP.zeige("rezept");
+      });
+    }
     var karte = B.el("div", "rezeptkarte mit-rahmen", seite);
     PAPIER.hinterlegen(karte, "creme", { kachel: 260, seed: 9 });
     var rahmen = B.el("img", "rezept-rahmen", karte);
