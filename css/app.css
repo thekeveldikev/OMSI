@@ -423,23 +423,15 @@ body.ohne-falz .buch > .seite-rechts { -webkit-clip-path: inset(-60px -60px -60p
 .tresor-karte { -webkit-transform: rotate(-.6deg); transform: rotate(-.6deg); box-shadow: 0 3px 0 rgba(120,90,50,.18), 0 14px 34px rgba(90,60,30,.25); }
 /* Ladeanzeige: der Pfannkuchen fliegt hoch, dreht sich einmal ganz und landet wieder in der Pfanne */
 .tresor-laden { -webkit-flex-direction: column; flex-direction: column; }
-.lade-herd { position: relative; width: 380px; height: 318px; -webkit-perspective: 700px; perspective: 700px; }
+.lade-herd { position: relative; width: 380px; height: 340px; -webkit-perspective: 700px; perspective: 700px; }
 .lade-pfanne { position: absolute; left: 0; top: 150px; width: 380px; z-index: 2;
   -webkit-transform-origin: 62% 40%; transform-origin: 62% 40%; -webkit-animation: lade-schwung 2.6s ease-in-out infinite; animation: lade-schwung 2.6s ease-in-out infinite; }
-.lade-flamme { position: absolute; top: 258px; width: 34px; z-index: 1; -webkit-transform-origin: 50% 100%; transform-origin: 50% 100%;
-  -webkit-animation: lade-flackern .8s ease-in-out infinite alternate; animation: lade-flackern .8s ease-in-out infinite alternate; }
-.lade-flamme-0 { left: 166px; -webkit-animation-delay: -.1s; animation-delay: -.1s; }
-.lade-flamme-1 { left: 192px; -webkit-animation-delay: -.5s; animation-delay: -.5s; }
-.lade-flamme-2 { left: 218px; -webkit-animation-delay: -.3s; animation-delay: -.3s; }
-.lade-flamme-3 { left: 244px; -webkit-animation-delay: -.7s; animation-delay: -.7s; }
-.lade-flamme-4 { left: 270px; -webkit-animation-delay: -.2s; animation-delay: -.2s; }
+.lade-feuer { position: absolute; left: 107px; top: 190px; width: 260px; height: 150px; z-index: 1; }
 .lade-wurf { position: absolute; left: 142px; top: 107px; width: 190px; height: 190px; z-index: 3; -webkit-transform-style: preserve-3d; transform-style: preserve-3d;
   -webkit-animation: lade-wenden 2.6s cubic-bezier(.45,0,.35,1) infinite; animation: lade-wenden 2.6s cubic-bezier(.45,0,.35,1) infinite; }
 .lade-kuchen { display: block; width: 100%; height: 100%; }
-.lade-text { margin: 4px 0 12px; font-family: var(--buchschrift); font-style: italic; font-size: 22px; color: #4a3622; text-shadow: 0 1px 0 rgba(255,250,235,.8); }
-.lade-streifen { width: 240px; height: 12px; border-radius: 8px; background: rgba(120,90,50,.16); overflow: hidden; box-shadow: inset 0 1px 2px rgba(80,50,20,.2); }
-.lade-streifen i { display: block; height: 100%; width: 8%; border-radius: 8px; background: #e9b43c linear-gradient(to bottom, #f3c95a, #d99a2b);
-  -webkit-transition: width .35s ease-out; transition: width .35s ease-out; }
+.lade-text { margin: 10px 0 10px; font-family: var(--buchschrift); font-style: italic; font-size: 22px; color: #4a3622; text-shadow: 0 1px 0 rgba(255,250,235,.8); }
+.lade-balken { display: block; width: 320px; height: 56px; }
 @-webkit-keyframes lade-wenden {
   0%, 16% { -webkit-transform: translateY(0) rotateX(69deg); } 22% { -webkit-transform: translateY(6px) rotateX(69deg); }
   52% { -webkit-transform: translateY(-140px) rotateX(249deg); } 82% { -webkit-transform: translateY(0) rotateX(429deg); }
@@ -450,8 +442,6 @@ body.ohne-falz .buch > .seite-rechts { -webkit-clip-path: inset(-60px -60px -60p
   88% { transform: translateY(-7px) rotateX(429deg); } 94%, 100% { transform: translateY(0) rotateX(429deg); } }
 @-webkit-keyframes lade-schwung { 0%, 14%, 34%, 100% { -webkit-transform: none; } 22% { -webkit-transform: translateY(5px) rotate(-2.5deg); } 84% { -webkit-transform: translateY(3px); } }
 @keyframes lade-schwung { 0%, 14%, 34%, 100% { transform: none; } 22% { transform: translateY(5px) rotate(-2.5deg); } 84% { transform: translateY(3px); } }
-@-webkit-keyframes lade-flackern { from { -webkit-transform: scaleY(.84) rotate(-2deg); } to { -webkit-transform: scaleY(1.08) rotate(2deg); } }
-@keyframes lade-flackern { from { transform: scaleY(.84) rotate(-2deg); } to { transform: scaleY(1.08) rotate(2deg); } }
 @media (prefers-reduced-motion: reduce) { .lade-wurf, .lade-pfanne { -webkit-animation: none; animation: none; } .lade-wurf { -webkit-transform: rotateX(69deg); transform: rotateX(69deg); } }
 @media (max-width: 420px) { .lade-herd { -webkit-transform: scale(.8); transform: scale(.8); } }
 

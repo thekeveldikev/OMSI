@@ -43,21 +43,177 @@
     });
   }
 
-  // Ladeanzeige im Stil des Buchs: Codex' Papier-Pfannkuchen fliegt aus der Collage-Pfanne und wird gewendet
-  // (Bilder in lader/ – bewusst unverschlüsselt, weil sie VOR dem Entsperren gebraucht werden; nichts Privates)
-  function appLaden() {
-    var flammen = "";
-    for (var f = 0; f < 5; f++) flammen += '<img class="lade-flamme lade-flamme-' + f + '" src="lader/flamme.png" alt="">';
-    app.innerHTML = '<div class="tresor tresor-laden"><div class="lade-herd" aria-hidden="true">' + flammen +
+  // ───────────── Ladeanzeige im Stil des Buchs ─────────────
+  // Codex' Papier-Pfannkuchen fliegt aus der Collage-Pfanne und wird gewendet. Feuer und Ladebalken werden
+  // live gezeichnet – aus gerissenem, bemaltem Seidenpapier wie der Rauch im Buch (die App-Skripte sind hier
+  // noch nicht geladen, deshalb ist alles Nötige in dieser Datei). Bilder in lader/: bewusst unverschlüsselt,
+  // weil sie VOR dem Entsperren gebraucht werden – nichts Privates.
+  var LADE = window.LADEANZEIGE = {};
+  function zufallsFolge(seed) { var x = seed || 1; return function () { x = (x * 16807) % 2147483647; return (x - 1) / 2147483646; }; }
+  var papierCache = {};
+  function papier(farbe, seed) {                      // kleines Blatt bemaltes Seidenpapier (wie js/papier.js)
+    var key = farbe + seed;
+    if (papierCache[key]) return papierCache[key];
+    var z = zufallsFolge(seed * 131 + farbe.length * 7), g = 128, cv = document.createElement("canvas");
+    cv.width = cv.height = g;
+    var c = cv.getContext("2d");
+    c.fillStyle = farbe; c.fillRect(0, 0, g, g);
+    c.lineCap = "round";
+    var w = z() * Math.PI;
+    for (var i = 0; i < 70; i++) {
+      var hell = z() < 0.5, x = z() * g * 1.3 - g * 0.15, y = z() * g * 1.3 - g * 0.15, l = g * (0.2 + z() * 0.5), ww = w + (z() - 0.5) * 0.7;
+      c.strokeStyle = hell ? "rgba(255,248,220," + (0.08 + z() * 0.22) + ")" : "rgba(90,20,0," + (0.05 + z() * 0.16) + ")";
+      c.lineWidth = 1 + z() * z() * 12;
+      c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + Math.cos(ww) * l * 0.5 + (z() - 0.5) * 20, y + Math.sin(ww) * l * 0.5, x + Math.cos(ww) * l, y + Math.sin(ww) * l); c.stroke();
+    }
+    for (i = 0; i < 380; i++) { c.fillStyle = z() < 0.5 ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)"; c.fillRect(z() * g, z() * g, 1, 1); }
+    papierCache[key] = cv;
+    return cv;
+  }
+  function muster(c, farbe, seed) {
+    var key = "m" + farbe + seed;
+    if (!c.__m) c.__m = {};
+    if (!c.__m[key]) c.__m[key] = c.createPattern(papier(farbe, seed), "repeat");
+    return c.__m[key];
+  }
+  function leinwand(cv) {
+    var d = Math.min(window.devicePixelRatio || 1, 2), b = cv.clientWidth || parseInt(cv.getAttribute("width"), 10), h = cv.clientHeight || parseInt(cv.getAttribute("height"), 10);
+    cv.width = Math.round(b * d); cv.height = Math.round(h * d);
+    var c = cv.getContext("2d"); c.setTransform(d, 0, 0, d, 0, 0);
+    return { c: c, b: b, h: h };
+  }
+  var raf = window.requestAnimationFrame || function (f) { return setTimeout(function () { f(Date.now()); }, 16); };
+
+  // Feuer aus gerissenem Papier: jede Farbschicht ist EINE zusammenhängende Flammenmasse (rot hinten, orange,
+  // gelb, heller Kern vorn), deren Oberkante in unterschiedlich hohe, spitze Zacken ausläuft, die ineinanderfließen.
+  // Gezeichnet wie Stop-Motion (gut 8 Bilder/s): die Zacken atmen, wandern und neigen sich, die Papierkante reißt
+  // bei jedem Bild ein wenig anders; ab und zu löst sich oben ein Flämmchen, Papierfunken steigen auf.
+  LADE.feuer = function (cv) {
+    var L = leinwand(cv), c = L.c, B0 = L.b, H0 = L.h, basis = H0 - 14, mitte = B0 / 2, breit = B0 * 0.33;
+    var LAGEN = [{ w: 1.0, sockel: 26, zacken: 5, h: [40, 82], farbe: "#c8301a", unten: "#f07818", oben: "#8e1a0c" },
+                 { w: 0.8, sockel: 21, zacken: 4, h: [30, 62], farbe: "#e8601a", unten: "#f7a41f", oben: "#d23c18" },
+                 { w: 0.58, sockel: 15, zacken: 4, h: [18, 42], farbe: "#f39a1e", unten: "#fbd24a", oben: "#ee7a16" },
+                 { w: 0.32, sockel: 9, zacken: 2, h: [9, 22], farbe: "#f7c832", unten: "#fff6c2", oben: "#f6b82a" }];
+    LAGEN.forEach(function (lg) {
+      lg.sp = [];
+      for (var k = 0; k < lg.zacken; k++) lg.sp.push({ x: -0.85 + 1.7 * (k + 0.5) / lg.zacken + (Math.random() - 0.5) * 0.12,
+        h: lg.h[0] + Math.random() * (lg.h[1] - lg.h[0]), b: 0.3 + Math.random() * 0.16, neig: 0 });
+    });
+    var funken = [], lose = [];
+    function umriss(lg) {                                    // Oberkante: Sockel + Vereinigung spitzer Zacken, zum Rand hin niedriger
+      var W = breit * lg.w, pkt = [], x;
+      for (x = -W; x <= W + 0.1; x += 3) {
+        var xr = x / W, huelle = Math.pow(Math.max(0, Math.cos(xr * Math.PI / 2)), 0.55), oben = lg.sockel * huelle, schief = 0;
+        lg.sp.forEach(function (z) {
+          var d = Math.abs(xr - z.x) / z.b;
+          if (d < 1) { var hz = z.h * Math.pow(1 - d, 1.7) * (0.35 + 0.65 * huelle); if (hz > oben) { oben = hz; schief = z.neig; } }
+        });
+        pkt.push([mitte + x + schief * oben + (Math.random() - 0.5) * 1.6, basis - oben + (Math.random() - 0.5) * 1.4]);
+      }
+      c.beginPath(); c.moveTo(mitte - W, basis);
+      for (var i = 0; i < pkt.length; i++) c.lineTo(pkt[i][0], pkt[i][1]);
+      c.lineTo(mitte + W, basis);
+      c.quadraticCurveTo(mitte, basis + 16, mitte - W, basis);                            // unten rund
+      c.closePath();
+    }
+    function bild() {
+      if (!document.body.contains(cv)) return;
+      c.clearRect(0, 0, B0, H0);
+      var g = c.createRadialGradient(mitte, basis, 4, mitte, basis, breit * 1.5);          // Glut am Brenner
+      g.addColorStop(0, "rgba(255,170,50,0.5)"); g.addColorStop(1, "rgba(255,170,50,0)");
+      c.fillStyle = g; c.fillRect(0, 0, B0, H0);
+      LAGEN.forEach(function (lg, n) {
+        lg.sp.forEach(function (z) {                         // atmen, wandern, neigen – halb vom alten Wert
+          z.h = z.h * 0.5 + (lg.h[0] + Math.random() * (lg.h[1] - lg.h[0])) * 0.5;
+          z.x = Math.max(-0.9, Math.min(0.9, z.x + (Math.random() - 0.5) * 0.08));
+          z.neig = z.neig * 0.5 + (Math.random() - 0.5) * 0.35;
+        });
+        if (n === 0 && Math.random() < 0.3) {               // ein Flämmchen löst sich von der höchsten Spitze
+          var top = lg.sp.reduce(function (a, b) { return b.h > a.h ? b : a; });
+          lose.push({ x: mitte + top.x * breit, y: basis - top.h - 6, g: 5 + Math.random() * 4, leben: 2 });
+        }
+        umriss(lg);
+        c.fillStyle = muster(c, lg.farbe, n + 1); c.fill();
+        var ver = c.createLinearGradient(0, basis, 0, basis - lg.h[1]);
+        ver.addColorStop(0, lg.unten); ver.addColorStop(1, lg.oben);
+        c.save(); c.globalAlpha = 0.5; c.fillStyle = ver; c.fill(); c.restore();
+      });
+      lose.forEach(function (f) {                            // lose Flämmchen: kleine Papierspitze, steigt und verlischt
+        f.leben--; f.y -= 9;
+        c.save(); c.globalAlpha = 0.9; c.translate(f.x, f.y);
+        c.beginPath(); c.moveTo(-f.g * 0.5, 0); c.quadraticCurveTo(-f.g * 0.5, -f.g, 0, -f.g * 1.8); c.quadraticCurveTo(f.g * 0.5, -f.g, f.g * 0.5, 0);
+        c.quadraticCurveTo(0, f.g * 0.4, -f.g * 0.5, 0); c.closePath();
+        c.fillStyle = muster(c, "#e8601a", 2); c.fill(); c.restore();
+      });
+      lose = lose.filter(function (f) { return f.leben > 0; });
+      if (Math.random() < 0.35) funken.push({ x: mitte + (Math.random() - 0.5) * breit * 1.4, y: basis - 45 - Math.random() * 20, dreh: Math.random() * 6, leben: 5 + Math.floor(Math.random() * 4) });
+      funken.forEach(function (f) {                          // Papierfunken, ebenfalls stufig
+        f.leben--; f.y -= 7 + Math.random() * 5; f.x += (Math.random() - 0.5) * 6; f.dreh += 0.9;
+        c.save(); c.globalAlpha = Math.min(1, f.leben / 3); c.translate(f.x, f.y); c.rotate(f.dreh);
+        c.beginPath(); c.moveTo(-2.8, -1.2); c.lineTo(1.8, -2.4); c.lineTo(3, 1.4); c.lineTo(-1.2, 2.4); c.closePath();
+        c.fillStyle = muster(c, "#f7c832", 9); c.fill(); c.restore();
+      });
+      funken = funken.filter(function (f) { return f.leben > 0; });
+      setTimeout(bild, 115 + Math.random() * 30);
+    }
+    bild();
+  };
+
+  // Ladebalken: gerissener Papierstreifen mit zwei Klebestreifen; goldenes Papier füllt ihn von links
+  LADE.balken = function (cv) {
+    var L = leinwand(cv), c = L.c, B0 = L.b, H0 = L.h, ziel = 0.08, jetzt = 0.08, zuletzt = 0;
+    var x0 = 18, x1 = B0 - 18, y0 = H0 / 2 - 11, y1 = H0 / 2 + 11, kanteO = [], kanteU = [], z = zufallsFolge(77);
+    for (var i = 0; i <= 40; i++) { kanteO.push((z() - 0.5) * 2.4); kanteU.push((z() - 0.5) * 2.4); }
+    function streifen(xa, xb, ya, yb, zacken) {
+      var n = 40, i;
+      c.beginPath();
+      for (i = 0; i <= n; i++) { var x = xa + (xb - xa) * i / n; c[i ? "lineTo" : "moveTo"](x, ya + kanteO[i]); }
+      for (i = 0; i <= 6; i++) c.lineTo(xb + (zacken ? (i % 2 ? 2.5 : -1.5) : (i % 2 ? 1 : -1)), ya + (yb - ya) * i / 6);   // gerissenes Ende
+      for (i = n; i >= 0; i--) { var x2 = xa + (xb - xa) * i / n; c.lineTo(x2, yb + kanteU[i]); }
+      c.closePath();
+    }
+    function klebe(x, dreh) {
+      c.save(); c.translate(x, H0 / 2 - 9); c.rotate(dreh);
+      c.fillStyle = "rgba(236,226,190,0.85)"; c.fillRect(-15, -6, 30, 12);
+      c.fillStyle = "rgba(255,255,255,0.28)"; c.fillRect(-15, -6, 30, 2.5); c.restore();
+    }
+    LADE.setzen = function (anteil) { ziel = Math.max(ziel, Math.min(1, anteil)); };
+    function bild(zeit) {
+      if (!document.body.contains(cv)) return;
+      var dt = zuletzt ? Math.min(0.05, (zeit - zuletzt) / 1000) : 0.016; zuletzt = zeit;
+      jetzt += (ziel - jetzt) * Math.min(1, dt * 5);
+      c.clearRect(0, 0, B0, H0);
+      c.save(); c.translate(1.5, 2.5); streifen(x0, x1, y0, y1, false); c.fillStyle = "rgba(90,60,30,0.18)"; c.fill(); c.restore();   // Schatten
+      streifen(x0, x1, y0, y1, false); c.fillStyle = muster(c, "#efdcb0", 3); c.fill();                                                // Papierbahn
+      c.lineWidth = 1; c.strokeStyle = "rgba(140,100,50,0.35)"; c.stroke();
+      var xe = x0 + (x1 - x0) * jetzt;
+      streifen(x0, xe, y0 + 2.5, y1 - 2.5, true); c.fillStyle = muster(c, "#e59a1c", 5); c.fill();                                          // goldenes Papier
+      c.fillStyle = "rgba(255,240,190,0.35)"; c.fillRect(x0 + 2, y0 + 3, Math.max(0, xe - x0 - 6), 2);
+      klebe(x0 + 4, -0.35); klebe(x1 - 4, 0.3);
+      raf(bild);
+    }
+    raf(bild);
+  };
+
+  LADE.zeigen = function (ziel) {
+    ziel.innerHTML = '<div class="tresor tresor-laden"><div class="lade-herd" aria-hidden="true"><canvas class="lade-feuer" width="260" height="150"></canvas>' +
       '<img class="lade-pfanne" src="lader/pfanne.png" alt=""><div class="lade-wurf"><img class="lade-kuchen" src="lader/pfannkuchen.png" alt=""></div></div>' +
-      '<p class="lade-text" role="status">Die Pfanne wird heiß …</p><div class="lade-streifen"><i></i></div></div>';
-    var text = app.querySelector(".lade-text"), balken = app.querySelector(".lade-streifen i");
-    var i = 0;
-    (function naechstes() {
-      var anteil = i / SKRIPTE.length;
-      balken.style.width = Math.round(8 + 92 * anteil) + "%";
+      '<p class="lade-text" role="status">Die Pfanne wird heiß …</p><canvas class="lade-balken" width="320" height="56" aria-hidden="true"></canvas></div>';
+    LADE.feuer(ziel.querySelector(".lade-feuer"));
+    LADE.balken(ziel.querySelector(".lade-balken"));
+    var text = ziel.querySelector(".lade-text");
+    return function (anteil) {
+      LADE.setzen(0.08 + 0.92 * anteil);
       var t = anteil < 0.35 ? "Die Pfanne wird heiß …" : (anteil < 0.75 ? "Der Teig kommt hinein …" : "Gleich wird gewendet …");
       if (text.textContent !== t) text.textContent = t;
+    };
+  };
+
+  function appLaden() {
+    var fortschritt = LADE.zeigen(app);
+    var i = 0;
+    (function naechstes() {
+      fortschritt(i / SKRIPTE.length);
       if (i >= SKRIPTE.length) return;
       var s = document.createElement("script");
       s.src = SKRIPTE[i++];
