@@ -22,8 +22,24 @@
   ];
   var LOB = ["Goldgelb! Wie bei {OMA}!", "Wunderbar goldgelb!", "Goldgelb – genau richtig!"];
 
-  // Der gemalte Papier-Pfannkuchen – einmal als roher Teig (Oberseite) und in vier Bräunungsstufen
-  var KUCHEN = { src: "bilder/extras/pfannekuchen-flug.png", roh: null, seiten: null };
+  // Papiercollage-Bilder (Codex, 27.09.2026; spielfertig gemacht mit Werkzeuge/spiel_bilder_vorbereiten.py).
+  // Anker und Maße in Bildpixeln. Fehlt ein Bild, zeichnet das Spiel das Teil wie bisher selbst.
+  var ORDNER = "bilder/spiel-v2/";
+  var BILD = {
+    pfanne:    { datei: "pfanne.png", mitte: [686.2, 151.2], oeffnung: 816.9 },          // Mitte/Breite der Pfannenöffnung
+    teller:    { datei: "teller.png", mitte: [209.6, 82.7], breite: 407.6 },            // sichtbare Tellerellipse
+    kelle:     { datei: "kelle.png", mitte: [102.4, 224.4], lippe: [7.8, 215], breite: 190,
+                 teig: [107.4, 239.5, 78.6, 33.3, 0.03] },                              // Teig im Schöpfer: x, y, rx, ry, Drehung
+    flamme:    { datei: "flamme.png", fuss: [89.5, 232] },
+    marmelade: { datei: "marmelade.png", klecks: [170.8, 81.2], breite: 326.5, klecksUnten: 157.3 },
+    stern:     { datei: "stern.png", mitte: [84.8, 85.2] }
+  };
+  function bildLaden(b) { B.ladeBild(ORDNER + b.datei, function (img) { b.img = img; }); }
+  for (var bn in BILD) bildLaden(BILD[bn]);
+
+  // Der Papier-Pfannkuchen – roher Teig (Oberseite) und vier echte Bräunungsstufen (Draufsicht, alle gleich
+  // zentriert; die Schräglage entsteht über FLACH). Ersatz: das alte Flugbild, eingefärbt.
+  var KUCHEN = { src: "bilder/extras/pfannekuchen-flug.png", roh: null, seiten: null, neu: false, radius: 186.1, aspekt: 0.65 };
   function toenen(img, farbe) {
     var b = img.naturalWidth || img.width, h = img.naturalHeight || img.height, c = document.createElement("canvas");
     c.width = b; c.height = h;
@@ -32,13 +48,28 @@
     if (farbe) { x.globalCompositeOperation = "source-atop"; x.fillStyle = farbe; x.fillRect(0, 0, b, h); }
     return c;
   }
-  B.ladeBild(KUCHEN.src, function (img) {
+  function altesKuchenbild() {
+    B.ladeBild(KUCHEN.src, function (img) {
+      try {
+        KUCHEN.roh = toenen(img, "rgba(250,241,212,0.8)");
+        KUCHEN.seiten = [toenen(img, "rgba(250,236,192,0.6)"), toenen(img, null),
+                         toenen(img, "rgba(118,56,14,0.52)"), toenen(img, "rgba(58,28,10,0.74)")];
+        KUCHEN.neu = false;
+      } catch (e) { KUCHEN.roh = KUCHEN.seiten = null; }
+    });
+  }
+  B.ladeBild(ORDNER + "pfannkuchen-stufen.png", function (img) {
     try {
-      KUCHEN.roh = toenen(img, "rgba(250,241,212,0.8)");
-      KUCHEN.seiten = [toenen(img, "rgba(250,236,192,0.6)"), toenen(img, null),
-                       toenen(img, "rgba(118,56,14,0.52)"), toenen(img, "rgba(58,28,10,0.74)")];
-    } catch (e) { KUCHEN.roh = KUCHEN.seiten = null; }
-  });
+      var z = 400, zellen = [0, 1, 2, 3].map(function (i) {
+        var c = document.createElement("canvas"); c.width = c.height = z;
+        c.getContext("2d").drawImage(img, (i % 2) * z, Math.floor(i / 2) * z, z, z, 0, 0, z, z);
+        return c;
+      });
+      KUCHEN.seiten = zellen;
+      KUCHEN.roh = toenen(zellen[0], "rgba(252,244,220,0.55)");   // roher Teig: die helle Seite, noch cremiger
+      KUCHEN.neu = true;
+    } catch (e) { altesKuchenbild(); }
+  }, altesKuchenbild);
 
   // ── kleine Rechenhelfer ──
   function klemme(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
@@ -69,8 +100,8 @@
       c.fillStyle = roh ? PAPIER.muster(c, "creme") : farbeBei(s); c.fill();
       c.restore(); return;
     }
-    var bild = KUCHEN.seiten[0], b = bild.width, h = bild.height, m = 2 * r / b;
-    c.scale(m, m * sk);
+    var bild = KUCHEN.seiten[0], b = bild.width, h = bild.height, m = KUCHEN.neu ? r / KUCHEN.radius : 2 * r / b;
+    c.scale(m, m * sk * (KUCHEN.neu ? KUCHEN.aspekt : 1));
     if (roh) c.drawImage(KUCHEN.roh, -b / 2, -h / 2, b, h);
     else {
       var i = Math.min(3, Math.floor(s)), f = s - i;
@@ -95,6 +126,9 @@
     SP.stoppen();
     var seite = B.el("div", "spiel-bildschirm", ziel);
     PAPIER.hinterlegen(seite, "creme", { kachel: 320, seed: 4 });
+    B.ladeBild(ORDNER + "papier.jpg", function () {             // ruhiges Collagepapier (Ersatz: gezeichnetes Papier)
+      seite.style.backgroundImage = "url(\"" + ORDNER + "papier.jpg\")"; seite.style.backgroundSize = "cover"; seite.style.backgroundPosition = "center";
+    });
     var cv = B.el("canvas", "spiel-canvas", seite);
     var kopf = B.el("div", "spiel-kopf", seite);
     var titel = B.el("div", "spiel-titel", kopf, "Pfannkuchen wenden");
@@ -119,6 +153,8 @@
     });
     var zeiger = B.el("div", "spiel-zeiger", bahn);
     var wendenKnopf = B.el("button", "knopf gross spiel-wenden", fuss, "Wenden!");
+    var papierKnopf = "";                                      // rotes/goldenes Knopfpapier, sobald beide geladen sind
+    B.ladeBild(ORDNER + "knopf-rot.png", function () { B.ladeBild(ORDNER + "knopf-gold.png", function () { papierKnopf = " mit-papier"; if (z) { z.anz.knopf = null; anzeigen(); } }); });
     var ende = B.el("div", "spiel-ende", seite);
 
     var W = 0, H = 0, ctx = null, G = null;
@@ -150,13 +186,28 @@
       c.save(); c.globalAlpha = alpha;
       c.beginPath(); c.ellipse(pf.cx, fussY + R * 0.03, R * 0.8, R * 0.09, 0, 0, Math.PI * 2);
       c.fillStyle = PAPIER.muster(c, "grau"); c.fill();
+      var FL = BILD.flamme;
       for (var i = 0; i < 7; i++) {
         var fx = pf.cx + (i - 3) * R * 0.21, wackel = Math.sin(uhr * (4.2 + i * 0.7) + i * 1.9);
         var fh = R * (0.4 + (i % 2) * 0.07 + 0.05 * wackel);
+        if (FL.img) {                             // Papierflamme: züngelt (Höhe), neigt sich leicht (Drehung um den Fuß)
+          var fb = R * (0.3 + 0.03 * Math.sin(uhr * 3.1 + i)) / FL.img.width, fhm = fh * 1.3 / FL.fuss[1];
+          c.save(); c.translate(fx, fussY); c.rotate(wackel * 0.07);
+          c.drawImage(FL.img, -FL.fuss[0] * fb, -FL.fuss[1] * fhm, FL.img.width * fb, FL.img.height * fhm);
+          c.restore();
+          continue;
+        }
         PAPIER.flammenpfad(c, fx, fussY, R * 0.18, fh, wackel * R * 0.035);
         c.fillStyle = PAPIER.muster(c, "orange", { akzent: "rot" }); c.fill();
         PAPIER.flammenpfad(c, fx, fussY, R * 0.09, fh * 0.55, wackel * R * 0.02);
         c.fillStyle = PAPIER.muster(c, "gelb"); c.fill();
+      }
+      var PF = BILD.pfanne;
+      if (PF.img) {                                // Papierpfanne: Öffnung genau auf die Spielgeometrie gelegt
+        var pm = 2 * R / PF.oeffnung;
+        c.drawImage(PF.img, cx - PF.mitte[0] * pm, cy - PF.mitte[1] * pm, PF.img.width * pm, PF.img.height * pm);
+        c.restore();
+        return;
       }
       // Stiel nach links hinten (Metall, dann Holzgriff)
       c.save(); c.translate(cx - R * 0.94, cy + ry * 0.05); c.rotate(0.36);
@@ -183,11 +234,17 @@
 
     // ── Teller mit dem Stapel ──
     function tellerZeichnen(c, T, stapel) {
-      c.beginPath(); c.ellipse(T.x, T.y + T.R * 0.06, T.R, T.R * 0.36, 0, 0, Math.PI * 2);
-      c.fillStyle = PAPIER.muster(c, "weiss"); c.fill();
-      c.lineWidth = T.R * 0.07; c.strokeStyle = PAPIER.muster(c, "blau"); c.stroke();
-      c.beginPath(); c.ellipse(T.x, T.y + T.R * 0.06, T.R * 0.7, T.R * 0.24, 0, 0, Math.PI * 2);
-      c.lineWidth = Math.max(1.5, T.R * 0.02); c.strokeStyle = "rgba(27,47,110,0.28)"; c.stroke();
+      var TB = BILD.teller;
+      if (TB.img) {
+        var tm = 2 * T.R / TB.breite;
+        c.drawImage(TB.img, T.x - TB.mitte[0] * tm, T.y + T.R * 0.06 - TB.mitte[1] * tm, TB.img.width * tm, TB.img.height * tm);
+      } else {
+        c.beginPath(); c.ellipse(T.x, T.y + T.R * 0.06, T.R, T.R * 0.36, 0, 0, Math.PI * 2);
+        c.fillStyle = PAPIER.muster(c, "weiss"); c.fill();
+        c.lineWidth = T.R * 0.07; c.strokeStyle = PAPIER.muster(c, "blau"); c.stroke();
+        c.beginPath(); c.ellipse(T.x, T.y + T.R * 0.06, T.R * 0.7, T.R * 0.24, 0, 0, Math.PI * 2);
+        c.lineWidth = Math.max(1.5, T.R * 0.02); c.strokeStyle = "rgba(27,47,110,0.28)"; c.stroke();
+      }
       var r = T.R * 0.78, tp = T.R * 0.1;
       stapel.forEach(function (k, i) {
         var y = T.y - i * tp - tp * 0.3, x = T.x + VERSATZ[i % 4] * r;
@@ -202,6 +259,22 @@
     function marmelade(c, T, tm) {
       if (tm < 0) return;
       var o = stapelOben(T, z.stapel.length - 1), r = o.r;
+      var MB = BILD.marmelade;
+      if (MB.img) {                                // Papier-Marmelade: plumpst, breitet sich aus, läuft in Tropfen herunter
+        var mm = r * 1.02 / MB.breite, img = MB.img, fallen = tm < DAUER.marmelade;
+        var p = fallen ? tm / DAUER.marmelade : 0, q = fallen ? 0 : tm - DAUER.marmelade;
+        var gr = fallen ? 0.3 : (q < 0.3 ? 0.35 + 0.75 * raus(q / 0.3) : 1.1 - 0.1 * klemme((q - 0.3) / 0.2));
+        var laufen = fallen ? 0 : raus(q / 1.4);          // wie weit die Tropfen schon heruntergelaufen sind
+        var ky = fallen ? mix(o.y - T.R * 1.6, o.y, p * p) : o.y - r * 0.02;
+        c.save();
+        c.translate(o.x, ky); c.scale(mm * gr, mm * gr * (fallen ? 1 : 0.82));
+        c.beginPath();                            // nur der Klecks – die Tropfen erscheinen, während sie laufen
+        c.rect(-MB.klecks[0], -MB.klecks[1], img.width, MB.klecksUnten + (img.height - MB.klecksUnten) * laufen);
+        c.clip();
+        c.drawImage(img, -MB.klecks[0], -MB.klecks[1]);
+        c.restore();
+        return;
+      }
       if (tm < DAUER.marmelade) {   // fällt
         var p = tm / DAUER.marmelade, fy = mix(o.y - T.R * 1.6, o.y, p * p);
         c.beginPath(); c.ellipse(o.x, fy, r * 0.16, r * 0.2, 0, 0, Math.PI * 2);
@@ -226,6 +299,11 @@
       var a = p < 0.12 ? p / 0.12 : (p > 0.8 ? klemme((1 - p) / 0.2) : 1);
       var kx = P.cx + P.R * 0.12, ky = P.cy - P.R * 0.98, kipp = 0.15 + 0.75 * sanft(p / 0.3);
       var lippeX = kx - Math.cos(kipp) * P.R * 0.2, lippeY = ky + Math.sin(kipp) * P.R * 0.2;
+      var KB = BILD.kelle, km = P.R * 0.42 / KB.breite;
+      if (KB.img) {                                // Lippe der Papierkelle (links am Schöpfer), mit der Kelle gekippt
+        var lx = (KB.lippe[0] - KB.mitte[0]) * km, ly = (KB.lippe[1] - KB.mitte[1]) * km;
+        lippeX = kx + lx * Math.cos(kipp) + ly * Math.sin(kipp); lippeY = ky - lx * Math.sin(kipp) + ly * Math.cos(kipp);
+      }
       c.save(); c.globalAlpha = a;
       if (p > 0.18 && p < 0.78) {   // Teigstrahl
         var b = P.R * 0.05 * Math.sin(klemme((p - 0.18) / 0.6) * Math.PI);
@@ -233,6 +311,19 @@
         c.quadraticCurveTo(mitte.x + b * 0.4, mitte.y - P.R * 0.3, mitte.x + b, mitte.y);
         c.lineTo(mitte.x - b, mitte.y); c.quadraticCurveTo(mitte.x - b, mitte.y - P.R * 0.3, lippeX - b, lippeY);
         c.fillStyle = PAPIER.muster(c, "creme"); c.fill();
+      }
+      if (KB.img) {
+        c.translate(kx, ky); c.rotate(-kipp);
+        c.drawImage(KB.img, -KB.mitte[0] * km, -KB.mitte[1] * km, KB.img.width * km, KB.img.height * km);
+        var leer = klemme((p - 0.3) / 0.4), tg = KB.teig;
+        if (leer > 0) {                            // der Teig im Schöpfer wird weniger: Innenseite (blaues Papier) kommt durch
+          c.globalAlpha = a * leer;
+          c.beginPath(); c.ellipse((tg[0] - KB.mitte[0]) * km, (tg[1] - KB.mitte[1]) * km, tg[2] * km * 1.04, tg[3] * km * 1.1, tg[4], 0, Math.PI * 2);
+          c.fillStyle = PAPIER.muster(c, "tiefblau", { akzent: "blau" }); c.fill();
+          c.fillStyle = "rgba(10,20,40,0.35)"; c.fill();
+        }
+        c.restore();
+        return;
       }
       c.beginPath(); c.moveTo(kx + P.R * 0.14, ky - P.R * 0.04); c.lineTo(kx + P.R * 0.75, ky - P.R * 0.6);
       c.lineWidth = P.R * 0.05; c.lineCap = "round"; c.strokeStyle = PAPIER.muster(c, "grau"); c.stroke();
@@ -323,7 +414,15 @@
       for (var i = 0; i < 9; i++) {
         var a = -Math.PI / 2 + (i - 4) * 0.36, weit = G.P.R * (0.45 + raus(t / 1.2) * 0.75);
         c.globalAlpha = 1 - klemme((t - 0.7) / 0.7);
-        sternpfad(c, x + Math.cos(a) * weit * 1.2, y + Math.sin(a) * weit * 0.75, G.P.R * (0.05 + (i % 3) * 0.015), t * 2 + i);
+        var sx = x + Math.cos(a) * weit * 1.2, sy = y + Math.sin(a) * weit * 0.75, sr = G.P.R * (0.05 + (i % 3) * 0.015), SB = BILD.stern;
+        if (SB.img) {                              // goldener Papierstern
+          var sm = sr * 2.3 / SB.img.width;
+          c.save(); c.translate(sx, sy); c.rotate(t * 2 + i);
+          c.drawImage(SB.img, -SB.mitte[0] * sm, -SB.mitte[1] * sm, SB.img.width * sm, SB.img.height * sm);
+          c.restore();
+          continue;
+        }
+        sternpfad(c, sx, sy, sr, t * 2 + i);
         c.fillStyle = PAPIER.muster(c, i % 2 ? "gelb" : "orange"); c.fill();
       }
       c.restore();
@@ -364,7 +463,10 @@
 
     // ── Ablauf ──
     function phaseSetzen(p) { z.phase = p; z.seit = z.uhr; }
-    function neuerTeig() { phaseSetzen("teig"); z.wurf = null; z.brutzelnAb = z.uhr + 0.5; lobWeg(); }
+    function neuerTeig() {
+      phaseSetzen("teig"); z.wurf = null; z.brutzelnAb = z.uhr + 0.5; lobWeg();
+      if (window.KULISSE && KULISSE.schnipsel) KULISSE.schnipsel("f_ev_teig", 0.4, 0, 1.9);   // Teig läuft in die Pfanne
+    }
 
     function wenden() {
       if (!z) return;
@@ -386,7 +488,7 @@
     function gelandet() {
       KLANG.plopp();
       var w = z.wurf;
-      if (w.stufe === 1) { lobZeigen(B.ersetzen(LOB[z.goldZahl % LOB.length]), "gut"); z.goldZahl++; setTimeout(function () { if (z) KLANG.spieluhr([[72, 0.5], [76, 0.5], [79, 0.5], [84, 1.5]], 0.2); }, 300); }
+      if (w.stufe === 1) { lobZeigen(B.ersetzen(LOB[z.goldZahl % LOB.length]), "gut"); z.goldZahl++; setTimeout(function () { if (z) { if (window.MUSIK) MUSIK.ducken(0.3, 1.6); KLANG.spieluhr([[72, 0.5], [76, 0.5], [79, 0.5], [84, 1.5]], 0.2); } }, 300); }
       else if (w.stufe === 2) lobZeigen("Etwas knusprig – macht nichts!", "knusprig");
       else lobZeigen("Extra knusprig – schmeckt trotzdem!", "knusprig");
     }
@@ -402,6 +504,7 @@
 
     function feiern() {
       KLANG.plopp();
+      if (window.MUSIK) MUSIK.ducken(0.3, 2.6);           // Musik weicht dem Tusch kurz aus
       setTimeout(function () { if (z) KLANG.tusch(); }, 250);
       konfettiLos();
       B.leeren(ende);
@@ -431,7 +534,12 @@
       var t = z.uhr - z.seit, ph = z.phase;
       if (ph === "teig") { if (t >= DAUER.teig) phaseSetzen("backen"); }
       else if (ph === "flug") { if (t >= DAUER.flug) { phaseSetzen("gelandet"); gelandet(); } }
-      else if (ph === "gelandet") { if (t >= DAUER.lob) phaseSetzen("rutschen"); }
+      else if (ph === "gelandet") {
+        if (t >= DAUER.lob) {
+          phaseSetzen("rutschen");
+          setTimeout(function () { if (z && window.KULISSE) KULISSE.spiele("f_ev_teller_gleiten", 0.45); }, 520);   // rutscht auf den Teller
+        }
+      }
       else if (ph === "rutschen") {
         if (t >= DAUER.rutschen) {
           z.stapel.push(z.wurf); KLANG.plopp();
@@ -464,7 +572,7 @@
         zeiger.style.left = (pos / 10) + "%";
         zeiger.style.backgroundColor = farbeBei(braeune(tb));
       }
-      var klasse = "knopf gross spiel-wenden" + (stufe === 1 ? " golden" : "") + (ph === "teig" || ph === "backen" ? "" : " ruht");
+      var klasse = "knopf gross spiel-wenden" + papierKnopf + (stufe === 1 ? " golden" : "") + (ph === "teig" || ph === "backen" ? "" : " ruht");
       if (klasse !== a.knopf) { wendenKnopf.className = klasse; a.knopf = klasse; }
       var an = stufe === 1 ? 1 : 0;
       if (an !== a.gold) { felder[1].className = "spiel-stufe stufe-1" + (an ? " an" : ""); a.gold = an; }
@@ -500,6 +608,12 @@
       tippen: function () { wenden(); return SP.test.zustand(); }
     };
     z.id = B.frame(schritt);
+  };
+
+  SP.dateien = function () {
+    var d = [ORDNER + "pfannkuchen-stufen.png", ORDNER + "papier.jpg", ORDNER + "knopf-rot.png", ORDNER + "knopf-gold.png", KUCHEN.src];
+    for (var k in BILD) d.push(ORDNER + BILD[k].datei);
+    return d;
   };
 
   SP.stoppen = function () {

@@ -43,10 +43,21 @@
     });
   }
 
+  // Ladeanzeige im Stil des Buchs: Codex' Papier-Pfannkuchen fliegt aus der Collage-Pfanne und wird gewendet
+  // (Bilder in lader/ – bewusst unverschlüsselt, weil sie VOR dem Entsperren gebraucht werden; nichts Privates)
   function appLaden() {
-    bildschirm('<div class="tresor-pfanne"></div><p>Die Pfanne wird heiß …</p>');
+    var flammen = "";
+    for (var f = 0; f < 5; f++) flammen += '<img class="lade-flamme lade-flamme-' + f + '" src="lader/flamme.png" alt="">';
+    app.innerHTML = '<div class="tresor tresor-laden"><div class="lade-herd" aria-hidden="true">' + flammen +
+      '<img class="lade-pfanne" src="lader/pfanne.png" alt=""><div class="lade-wurf"><img class="lade-kuchen" src="lader/pfannkuchen.png" alt=""></div></div>' +
+      '<p class="lade-text" role="status">Die Pfanne wird heiß …</p><div class="lade-streifen"><i></i></div></div>';
+    var text = app.querySelector(".lade-text"), balken = app.querySelector(".lade-streifen i");
     var i = 0;
     (function naechstes() {
+      var anteil = i / SKRIPTE.length;
+      balken.style.width = Math.round(8 + 92 * anteil) + "%";
+      var t = anteil < 0.35 ? "Die Pfanne wird heiß …" : (anteil < 0.75 ? "Der Teig kommt hinein …" : "Gleich wird gewendet …");
+      if (text.textContent !== t) text.textContent = t;
       if (i >= SKRIPTE.length) return;
       var s = document.createElement("script");
       s.src = SKRIPTE[i++];

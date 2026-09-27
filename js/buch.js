@@ -780,18 +780,22 @@
     allesEinpassen();
     if (vorwaerts ? !nd.rechts && S.typ === "original" : !nd.links && S.typ === "original") { /* leere Hälfte bleibt leer */ }
 
-    var dauer = 900;
+    // Das Blatt dreht in zwei Hälften: bis zur Senkrechten sieht man die alte Seite, danach die neue.
+    // Die Seiten werden genau in der Senkrechten getauscht – so blitzt nie eine gespiegelte
+    // Rückseite (Text von hinten) auf, auch wenn ein Browser backface-visibility nicht sauber umsetzt.
+    var dauer = 900, halb = dauer / 2, winkel = vorwaerts ? -1 : 1;
+    hinten.style.visibility = "hidden";
     B.transform(blatt, "rotateY(0deg)");
-    // erzwingen, dass der Browser den Startzustand sieht
-    void blatt.offsetWidth;
-    B.transition(blatt, "-webkit-transform " + dauer + "ms cubic-bezier(.45,.05,.3,1), transform " + dauer + "ms cubic-bezier(.45,.05,.3,1)");
-    B.transition(schattenV, "opacity " + dauer + "ms ease-in"); B.transition(schattenH, "opacity " + dauer + "ms ease-out");
+    void blatt.offsetWidth;                                  // Startzustand erzwingen
+    B.transition(blatt, "-webkit-transform " + halb + "ms cubic-bezier(.5,0,.9,.6), transform " + halb + "ms cubic-bezier(.5,0,.9,.6)");
+    B.transition(schattenV, "opacity " + halb + "ms ease-in"); B.transition(schattenH, "opacity " + halb + "ms ease-out");
     schattenV.style.opacity = "0"; schattenH.style.opacity = "0.5";
     B.frame(function () {
-      B.transform(blatt, vorwaerts ? "rotateY(-180deg)" : "rotateY(180deg)");
-      schattenV.style.opacity = "0.45"; schattenH.style.opacity = "0";
+      B.transform(blatt, "rotateY(" + (90 * winkel) + "deg)");
+      schattenV.style.opacity = "0.45";
     });
-    B.nachTransition(blatt, dauer, function () {
+    function fertig() {
+      if (!S || blatt.parentNode !== S.dom.buch) return;     // Buch inzwischen geschlossen
       S.index = neu;
       S.einpassListe = [];
       if (vorwaerts) fuelleSeite(S.dom.links, haelfteInfo(nd, "links"));
@@ -800,7 +804,23 @@
       if (blatt.parentNode) blatt.parentNode.removeChild(blatt);
       S.beschaeftigt = false;
       seiteBetreten();
-    });
+    }
+    setTimeout(function () {                                 // senkrecht: Seiten tauschen, zweite Hälfte
+      if (!blatt.parentNode) return;
+      vorn.style.visibility = "hidden"; hinten.style.visibility = "";
+      B.transition(blatt, "-webkit-transform " + halb + "ms cubic-bezier(.1,.4,.5,1), transform " + halb + "ms cubic-bezier(.1,.4,.5,1)");
+      B.transform(blatt, "rotateY(" + (180 * winkel) + "deg)");
+      schattenH.style.opacity = "0";
+      var erledigt = false;
+      function ende(ev) {                                    // nur das Ende der Blatt-Drehung zählt (nicht die Schatten)
+        if (erledigt || (ev && ev.target !== blatt)) return;
+        erledigt = true;
+        blatt.removeEventListener("transitionend", ende); blatt.removeEventListener("webkitTransitionEnd", ende);
+        fertig();
+      }
+      blatt.addEventListener("transitionend", ende); blatt.addEventListener("webkitTransitionEnd", ende);
+      setTimeout(ende, halb + 150);
+    }, halb + 20);
   }
   BUCH.weiter = function () { if (!abschnittSchritt(1)) umblaettern(1); };
   BUCH.zurueck = function () { if (!abschnittSchritt(-1)) umblaettern(-1); };
@@ -988,8 +1008,9 @@
     window.addEventListener("orientationchange", S.groesse, false);
 
     // Bilder der Fortsetzung vorab prüfen (fehlende → Platzhalter)
-    var offen = 0;
+    var offen = 0, meinBuch = S;
     function losgehen() {
+      if (S !== meinBuch) return;          // Buch schon wieder zu (oder neu geöffnet), bevor die Bilder da waren
       groesseAnpassen(); zeigeDoppelseite();
       // Buchschrift beim ersten Öffnen noch nicht geladen? Dann wurde mit der Ersatzschrift eingepasst –
       // sobald die echte Schrift da ist, einmal neu setzen (sonst falsche Umbrüche/Überlauf)

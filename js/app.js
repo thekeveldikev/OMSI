@@ -43,6 +43,9 @@
     aktuell = name;
     B.merken("bildschirm", name);
     if (window.RUECKWEG) RUECKWEG.zeigen(name);
+    if (window.MUSIK) MUSIK.bereich(name);          // Menümusik / eigene Musik / Stille – weich überblendet
+    if (window.FALZ) FALZ.zeigen(name);            // Schild "Falz an/aus" in Büchern und Making-of
+    if (window.KULISSE && KULISSE.raum && name !== "kueche") KULISSE.raum(name);   // Raumklang (Küche: nach dem Aufbau, s. u.)
     if (name === "start") return zeigeStart();
     if (name === "kueche") return zeigeKueche();
     if (name === "schatten") return SCHATTEN.starten(schattenVerse(), function () { APP.zeige("kueche"); });
@@ -82,7 +85,13 @@
 
   // ───────────────────── Omsis Küche (Menü) ─────────────────────
   function zeigeKueche() {
-    if (window.MENUE_KUECHE && window.MENUE_DATEN) return MENUE_KUECHE.starten(wurzel, { offline: allesVorladen });
+    if (window.MENUE_KUECHE && window.MENUE_DATEN) {
+      var neueKueche = MENUE_KUECHE.starten(wurzel, { offline: allesVorladen });
+      var fussleiste = wurzel.querySelector(".mk-fuss");
+      if (fussleiste && window.MUSIK) MUSIK.schalter(fussleiste);    // "Musik aus/an" neben "Bewegung anhalten"
+      if (window.KULISSE && KULISSE.raum) KULISSE.raum("kueche", wurzel);   // Küchenklang + Vogel/Pfannkuchen im Takt
+      return neueKueche;
+    }
     var k = B.el("div", "kueche mit-willkommen", wurzel);
     PAPIER.hinterlegen(k, "creme", { kachel: 320 });
     // Willkommensbild: Omsi am Frühstückstisch winkt von links; Überschrift und Karten liegen
@@ -356,7 +365,7 @@
     var K = window.KLANGPLAN, klaenge = {};
     if (K) {
       if (K.blaettern) klaenge[K.blaettern] = 1;
-      ["original", "fortsetzung"].forEach(function (typ) {
+      ["original", "fortsetzung", "raeume"].forEach(function (typ) {
         for (var s in K[typ] || {}) {
           var p = K[typ][s];
           (p.hg || []).concat(p.ev || [], p.oft || []).forEach(function (e) { klaenge[e[0]] = 1; });
@@ -367,6 +376,8 @@
     if (window.MAKINGOF && window.MAKING_OF) d = d.concat(MAKINGOF.dateien());
     if (window.MENUE_KUECHE && window.MENUE_DATEN) d = d.concat(MENUE_KUECHE.dateien());
     if (window.SCHATTEN) d = d.concat(SCHATTEN.dateien());
+    if (window.MUSIK) d = d.concat(MUSIK.dateien(), ["js/musik.js", "js/falz.js"]);
+    if (window.SPIEL && SPIEL.dateien) d = d.concat(SPIEL.dateien());
     return d;
   }
   // Lädt alles einmal durch – der Service Worker merkt es sich, danach geht es ohne Internet.

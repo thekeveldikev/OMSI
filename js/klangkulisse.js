@@ -14,6 +14,7 @@
   var klaenge = [];                     // laufende Einzelgeräusche (zum Ausblenden)
   var timer = [], pumpe = null;
   var buchOffen = null, seitenPlan = null, leiser = false;
+  var raumOffen = null, kueche = null;  // Räume außerhalb der Bücher (Startbild, Küche, Rezept …): Plan in KLANGPLAN.raeume
 
   function eingeschaltet() { return !!P && B.E.toene !== false && B.erinnern("kulisse", true) !== false; }
 
@@ -109,7 +110,7 @@
   // ── Einzelgeräusche ──
   function einzel(name, laut, ersatz, direkt) {
     holen(name, function (b) {
-      if (!buchOffen || !eingeschaltet()) return;
+      if (!(buchOffen || raumOffen) || !eingeschaltet()) return;
       var q = ctx.createBufferSource(), g = ctx.createGain();
       q.buffer = b; g.gain.value = laut; q.connect(g); g.connect(direkt ? ctx.destination : summe);
       starte(q, jetzt() + 0.02);
@@ -122,6 +123,43 @@
     klaenge.forEach(function (k) { if (k.ende > jetzt()) { rampe(k.g.gain, 0.0001, dauer); halte(k.q, jetzt() + dauer + 0.05); } });
     klaenge = [];
   }
+  // nur ein Stück einer Aufnahme (z. B. ein einzelnes Zwitschern), weich ein- und ausgeblendet
+  function schnipsel(name, laut, ab, dauer) {
+    if (!(buchOffen || raumOffen) || !eingeschaltet() || !bereit()) return;
+    holen(name, function (b) {
+      if (!(buchOffen || raumOffen) || !eingeschaltet()) return;
+      var q = ctx.createBufferSource(), g = ctx.createGain(), t = jetzt() + 0.02, d = Math.min(dauer, b.duration - ab);
+      q.buffer = b; q.connect(g); g.connect(summe);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(laut, t + 0.02);
+      g.gain.setValueAtTime(laut, t + Math.max(0.03, d - 0.08)); g.gain.linearRampToValueAtTime(0.0001, t + d);
+      if (q.start) q.start(t, ab, d + 0.02); else q.noteGrainOn(t, ab, d + 0.02);
+      klaenge.push({ q: q, g: g, ende: t + d + 0.1 });
+    });
+  }
+  // kleine gebaute Geräusche: Flügelschlag (gefiltertes Rauschen in schnellen Stößen) und leises Aufsetzen
+  var rauschPuffer = null;
+  function rauschen() {
+    if (rauschPuffer) return rauschPuffer;
+    var n = Math.round(ctx.sampleRate * 0.6), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+    for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    return (rauschPuffer = b);
+  }
+  function stoesse(zahl, abstand, dauer, freq, q, laut) {
+    if (!(buchOffen || raumOffen) || !eingeschaltet() || !bereit()) return;
+    var t = jetzt() + 0.02, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    src.buffer = rauschen(); f.type = "bandpass"; f.frequency.value = freq; f.Q.value = q;
+    src.connect(f); f.connect(g); g.connect(summe);
+    g.gain.setValueAtTime(0.0001, t);
+    for (var i = 0; i < zahl; i++) {
+      var a = t + i * abstand * B.zufall(0.9, 1.1), l = laut * (1 - i * 0.12);
+      g.gain.linearRampToValueAtTime(l, a + dauer * 0.3);
+      g.gain.linearRampToValueAtTime(0.0001, a + dauer);
+    }
+    if (src.start) src.start(t, B.zufall(0, 0.2), zahl * abstand + dauer + 0.05); else src.noteOn(t);
+  }
+  function flattern(laut) { stoesse(4, 0.058, 0.045, B.zufall(1500, 2100), 0.9, laut); }
+  function tapsen(laut) { stoesse(1, 0.02, 0.03, B.zufall(2600, 3400), 2.5, laut); }
+
   function spaeter(f, s) { timer.push(setTimeout(f, s * 1000)); }
   function timerWeg() { timer.forEach(clearTimeout); timer = []; }
 
@@ -195,6 +233,7 @@
 
   // Nach dem ersten Tippen (iPad) nachholen, was noch nicht klingen durfte
   KU.wecken = function () {
+    if (raumOffen && !buchOffen && !ctx && eingeschaltet()) { if (bereit()) abspielen(raumPlan(raumOffen)); return; }
     if (!buchOffen || !seitenPlan || ctx || !eingeschaltet()) return;
     if (!bereit()) return;
     if (P.blaettern) holen(P.blaettern);
@@ -205,7 +244,7 @@
   // ersatz: wird aufgerufen, wenn es die Datei nicht gibt (dann klingt z. B. das eingebaute Geräusch)
   // direkt: am Vorlese-Dämpfer vorbei (Geräuschwörter wie PUFF! gehören zur Geschichte und bleiben laut)
   KU.spiele = function (name, laut, ersatz, direkt) {
-    if (!buchOffen || !eingeschaltet() || !bereit()) { if (ersatz) ersatz(); return false; }
+    if (!(buchOffen || raumOffen) || !eingeschaltet() || !bereit()) { if (ersatz) ersatz(); return false; }
     einzel(name, laut == null ? 0.8 : laut, ersatz, direkt);
     return true;
   };
@@ -223,6 +262,86 @@
     B.merken("kulisse", an);
     if (!an) { timerWeg(); einzelAus(0.6); for (var n in schichten) schichtAus(n, 0.8); }
     else if (buchOffen && seitenPlan && bereit()) abspielen(planFuer(seitenPlan.typ, seitenPlan.schluessel));
+    else if (raumOffen && bereit()) abspielen(raumPlan(raumOffen));
     return an;
   };
+
+  // ───────────── Räume außerhalb der Bücher ─────────────
+  // Unter der Musik: leise Raumklänge (Pläne in KLANGPLAN.raeume); in der Küche zusätzlich
+  // Geräusche genau zu den Animationen (Vogel hüpft, Pfannkuchen hüpft in der Pfanne).
+  function raumPlan(name) { return P && P.raeume ? P.raeume[name] || null : null; }
+  KU.raum = function (name, wurzel) {
+    kuecheLos();
+    var plan = raumPlan(name);
+    raumOffen = plan ? name : null;
+    if (!plan) {                                     // Bücher, Torte, Theater, Radio: Raumklang sanft weg
+      if (!buchOffen && ctx) { timerWeg(); einzelAus(1.0); for (var n in schichten) schichtAus(n, 1.8); }
+      return;
+    }
+    if (name === "kueche" && wurzel) kuecheVerbinden(wurzel);
+    if (!eingeschaltet() || !bereit()) return;        // iPad: kommt mit dem ersten Tippen (KU.wecken)
+    abspielen(plan);
+  };
+  KU.schnipsel = function (name, laut, ab, dauer) { if (bereit()) schnipsel(name, laut, ab, dauer); };
+
+  var protokoll = [];                                // für Tests: was in der Küche zuletzt erklang
+  function merke(was) { protokoll.push(Math.round(Date.now() / 100) / 10 + " " + was); if (protokoll.length > 30) protokoll.shift(); }
+  KU.protokoll = function () { return protokoll.slice(); };
+  function kuecheLos() {
+    if (!kueche) return;
+    if (kueche.beob) kueche.beob.disconnect();
+    kueche.weg.forEach(function (f) { f(); });
+    kueche.timer.forEach(clearTimeout);
+    kueche = null;
+  }
+  function kuecheVerbinden(wurzel) {
+    var K = kueche = { timer: [], weg: [], sprung: 0, letztesLied: -99 };
+    var seite = wurzel.querySelector(".mk-seite") || wurzel;
+    function ruhig() { return kueche !== K || document.hidden || /\bmk-ruhig\b/.test(seite.className); }
+    // Der Vogel: Flügelschlag beim Absprung, leises Tapsen beim Landen, manchmal ein Zwitschern
+    var vogel = wurzel.querySelector(".mk-vogel");
+    if (vogel && window.MutationObserver) {
+      var alt = vogel.getAttribute("data-frame") || "0";
+      K.beob = new MutationObserver(function () {
+        var neu = vogel.getAttribute("data-frame");
+        if (neu === alt) return;
+        if (!ruhig()) {
+          if (neu === "2") {
+            K.sprung++;
+            flattern(B.zufall(0.1, 0.14)); merke("Vogel springt");
+            var t = Date.now() / 1000;
+            if (t - K.letztesLied > 7 && Math.random() < 0.4) {       // kurzes "Tschilp" (Rotkehlchen)
+              K.letztesLied = t;
+              merke("Vogel tschilpt");
+              if (Math.random() < 0.5) schnipsel("f_ev_rotkehlchen", 0.32, 0, 0.2); else schnipsel("f_ev_rotkehlchen", 0.3, 0.285, 0.28);
+            }
+          } else if (neu === "0" && alt === "3") { tapsen(0.07); merke("Vogel landet"); }
+        }
+        alt = neu;
+      });
+      K.beob.observe(vogel, { attributes: true, attributeFilter: ["data-frame"] });
+    }
+    // ab und zu singt er richtig (die lange Strophe), wenn er gerade still sitzt
+    (function singen() {
+      K.timer.push(setTimeout(function () {
+        if (kueche !== K) return;
+        if (!ruhig() && vogel && vogel.getAttribute("data-frame") === "0") { schnipsel("f_ev_rotkehlchen", 0.26, 0.634, 1.7); K.letztesLied = Date.now() / 1000; merke("Vogel singt"); }
+        singen();
+      }, B.zufall(18, 32) * 1000));
+    })();
+    // Der Pfannkuchen hüpft alle 9 s (CSS mk-pfanne: 77 % Schwung, 93 % Landung) – Wusch, Plopp, kurz mehr Brutzeln
+    var pf = wurzel.querySelector(".mk-pfannkuchen");
+    if (pf) {
+      var runde = function () {
+        [[6.75, function () { KU.spiele("ev_wenden", 0.26); merke("Pfannkuchen hoch"); }],
+         [8.3, function () { KU.spiele("f_ev_plopp", 0.2); merke("Pfannkuchen landet"); var s = schichten.f_amb_brutzeln;
+                             if (s) { rampe(s.g.gain, s.laut * 2.2, 0.15); K.timer.push(setTimeout(function () { if (schichten.f_amb_brutzeln === s) rampe(s.g.gain, s.laut, 1.8); }, 400)); } }]
+        ].forEach(function (e) { K.timer.push(setTimeout(function () { if (!ruhig()) e[1](); }, e[0] * 1000)); });
+      };
+      ["animationstart", "webkitAnimationStart", "animationiteration", "webkitAnimationIteration"].forEach(function (ev) {
+        pf.addEventListener(ev, runde, false);
+        K.weg.push(function () { pf.removeEventListener(ev, runde, false); });
+      });
+    }
+  }
 })();
