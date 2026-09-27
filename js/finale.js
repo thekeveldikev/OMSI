@@ -30,7 +30,7 @@
     var ende = B.el("div", "finale-ende", wurzel);
 
     var W, H, ctx, kerzen = [], rauch = [], konfetti = [], fertigSeit = 0;
-    var alter = B.E.alter || 79;
+    var alter = B.E.alter || 78;
 
     function aufbauen() {
       W = wurzel.clientWidth; H = wurzel.clientHeight;

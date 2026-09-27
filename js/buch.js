@@ -106,10 +106,10 @@
   }
 
   // ── Feinsatz: keine Einzelwörter in der letzten Zeile, kein Gedankenstrich am Zeilenanfang,
-  //    "79. Geburtstag" und "K-Zimmer" bleiben zusammen ──
+  //    "78. Geburtstag" und "K-Zimmer" bleiben zusammen ──
   function feinsatz(t, absatz) {
     t = t.replace(/ ([\u2013\u2014]) /g, "\u00a0$1 ")            // "dämmrig – und" → Strich bleibt oben
-         .replace(/(\d+\.) (?=\S)/g, "$1\u00a0")                 // "79. Geburtstag"
+         .replace(/(\d+\.) (?=\S)/g, "$1\u00a0")                 // "78. Geburtstag"
          .replace(/(^|[\s„(])([A-ZÄÖÜ0-9]{1,3})-(?=\S)/g, "$1$2-\u2060"); // "K-Zimmer" nicht nach "K-" trennen
     if (absatz) t = t.replace(/ (\S{1,12})$/, "\u00a0$1");       // letztes Wort nie allein
     return t;

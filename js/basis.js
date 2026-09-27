@@ -23,7 +23,7 @@
   // {HELD} {OMA} ... in Texten ersetzen
   B.ersetzen = function (s) {
     if (s === undefined || s === null) return "";
-    var alter = E.alter || 79;
+    var alter = E.alter || 78;
     return String(s)
       .replace(/\{HELD\}/g, E.held || "Kevin")
       .replace(/\{OMA\}/g, E.oma || "Omsi")

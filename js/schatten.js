@@ -47,8 +47,9 @@
   SCH.test = { zeit: function () { return "Erst SCHATTEN.starten(…) aufrufen"; } };
 
   // audioFrei (optional): ein Audio-Element, das schon durch eine Berührung freigeschaltet wurde –
-  // nötig, wenn das Theater ohne Antippen startet (automatisch aus dem Vorlesen)
-  SCH.starten = function (verse, fertig, audioFrei) {
+  // nötig, wenn das Theater ohne Antippen startet (automatisch aus dem Vorlesen).
+  // ohneSchliessen: aus dem Menü gestartet – dort führt das Schild „Zur Küche“ hinaus, kein zweiter Ausgang
+  SCH.starten = function (verse, fertig, audioFrei, ohneSchliessen) {
     if (lauf) return;
     SCH.stoppen();
     cutoutsLaden();
@@ -67,7 +68,8 @@
     var pause = B.knopf(B.el("button", "knopf schatten-pause", bedienung), "pause", "Pause");
     var nochmal = B.knopf(B.el("button", "knopf schatten-nochmal", bedienung), "wieder", "Noch einmal");
     pause.setAttribute("aria-pressed", "false");
-    zu.focus();
+    if (ohneSchliessen) zu.style.display = "none";
+    (ohneSchliessen ? pause : zu).focus();
     var W, H, ctx, skala = QUALI || Math.min(window.devicePixelRatio || 1, 2);
     function groesse() {
       W = window.innerWidth; H = window.innerHeight; SKALA = skala;
@@ -191,8 +193,8 @@
       else if (ev.keyCode === 32 && ev.target.tagName !== "BUTTON") { ev.preventDefault(); pausieren(); }
       else if (ev.keyCode === 39) { ev.preventDefault(); weiter(); }
       else if (ev.keyCode === 9) {
-        var knoepfe = [zu, pause, nochmal], i = knoepfe.indexOf(document.activeElement);
-        ev.preventDefault(); knoepfe[(i + (ev.shiftKey ? 2 : 1)) % 3].focus();
+        var knoepfe = ohneSchliessen ? [pause, nochmal] : [zu, pause, nochmal], i = knoepfe.indexOf(document.activeElement), zahl = knoepfe.length;
+        ev.preventDefault(); knoepfe[(i + (ev.shiftKey ? zahl - 1 : 1)) % zahl].focus();
       }
     }
     document.addEventListener("keydown", tastatur, true);

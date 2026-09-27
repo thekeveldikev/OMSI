@@ -49,7 +49,7 @@
     if (window.KULISSE && KULISSE.raum && name !== "kueche") KULISSE.raum(name);   // Raumklang (Küche: nach dem Aufbau, s. u.)
     if (name === "start") return zeigeStart();
     if (name === "kueche") return zeigeKueche();
-    if (name === "schatten") return SCHATTEN.starten(schattenVerse(), function () { APP.zeige("kueche"); });
+    if (name === "schatten") return SCHATTEN.starten(schattenVerse(), function () { APP.zeige("kueche"); }, null, true);   // hinaus nur über „Zur Küche“
     if (name === "brief") return BRIEF.starten(wurzel, function () { APP.zeige("kueche"); });
     if (name === "radio") return RADIO.starten(wurzel, function () { APP.zeige("kueche"); });
     if (name === "original") return BUCH.oeffnen(wurzel, "original", function () { APP.zeige("kueche"); });
