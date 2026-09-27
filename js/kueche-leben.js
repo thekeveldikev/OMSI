@@ -10,7 +10,7 @@
   var FENSTER = [0, 0, 276, 461];                        // wie .mk-himmel (18 % × 45 % der Bühne 1536×1024)
 
   // ───────── Einstellungen ─────────
-  var STANDARD = { zeit: "aus", jahr: "aus", wetter: "aus", licht: false, kauz: false, schnuppen: false, gluehen: false, antippen: true };
+  var STANDARD = { zeit: "aus", jahr: "aus", wetter: "aus", fest: "aus", licht: false, nachtKueche: true, kauz: false, schnuppen: false, gluehen: false, antippen: true };
   function einst() {
     var e = B.erinnern("kueche.zauber", null) || {}, o = {};
     for (var k in STANDARD) o[k] = Object.prototype.hasOwnProperty.call(e, k) ? e[k] : STANDARD[k];
@@ -55,6 +55,206 @@
     if (w === "regenbogen" && zeit === "nacht") w = "klar";
     return w;
   };
+
+
+  // ───────── Jahreszeiten-Küche & Feste (Bilder von Codex, maßgleich zu kueche.png) ─────────
+  // Welches Küchenbild? Nachts (wenn gewünscht) schläft die Küche · sonst ein Anlass · sonst die Jahreszeit · sonst das Original.
+  // Die Bilder liegen als JPEG + Fenstermaske in bilder/menue-v2/jahreszeiten/ (Werkzeuge/jahreszeiten_bilder.py).
+  function adventsBeginn(jahr) {                         // 1. Advent = 4. Sonntag vor Weihnachten
+    var heiligabend = new Date(jahr, 11, 24), vierter = new Date(jahr, 11, 24 - heiligabend.getDay());
+    return new Date(vierter.getFullYear(), vierter.getMonth(), vierter.getDate() - 21);
+  }
+  function festNachDatum() {
+    var d = new Date(), m = d.getMonth(), t = d.getDate();
+    if ((m === 11 && t === 31) || (m === 0 && t === 1)) return "silvester";
+    var gb = B.E && B.E.geburtstag;                      // optional in daten/einstellungen.js: geburtstag: "MM-TT"
+    if (gb && ("0" + (m + 1)).slice(-2) + "-" + ("0" + t).slice(-2) === gb) return "geburtstag";
+    var heute = new Date(d.getFullYear(), m, t);
+    if (heute >= adventsBeginn(d.getFullYear()) && heute <= new Date(d.getFullYear(), 11, 26)) return "advent";
+    return null;
+  }
+  function adventKerzen() {                              // wie viele Kerzen brennen: im Advent nach Sonntagen, sonst alle vier
+    var d = new Date(), heute = new Date(d.getFullYear(), d.getMonth(), d.getDate()), b = adventsBeginn(d.getFullYear());
+    if (heute >= b && heute < new Date(d.getFullYear(), 11, 25)) return Math.min(4, Math.floor((heute - b) / 864e5 / 7) + 1);
+    return 4;
+  }
+  KL.fest = function () { var p = param("fest"); if (p) return p === "aus" ? null : p; var e = einst().fest; return e === "aus" ? null : e === "kalender" ? festNachDatum() : e; };
+  function kuechenBild(s) {
+    if (s.zeit === "nacht" && s.einst.nachtKueche) return "nacht";
+    return s.fest || s.jahr || null;
+  }
+  function bildQuelle(n) { return MENUE_DATEN.ordner + (n ? "jahreszeiten/kueche-" + n + ".jpg" : "kueche.png"); }
+  function maskeQuelle(n) { return MENUE_DATEN.ordner + "jahreszeiten/maske-" + n + ".png"; }
+  function bildSetzen(el, n) {
+    el.src = bildQuelle(n);
+    var m = n ? "url(" + maskeQuelle(n) + ")" : "none";   // nur die Fensterscheiben durchsichtig (Himmel, Vogel, Kauz dahinter)
+    el.style.webkitMaskImage = m; el.style.maskImage = m;
+    el.style.webkitMaskSize = el.style.maskSize = "100% 100%";
+    el.style.webkitMaskRepeat = el.style.maskRepeat = "no-repeat";
+  }
+  function bildWechseln(s, n, sofort) {
+    if (s.bildAktiv === n || !window.MENUE_DATEN) return;
+    s.bildAktiv = n;
+    var basis = s.dekor.querySelector(".mk-basis"); if (!basis) return;
+    var quellen = [bildQuelle(n)]; if (n) quellen.push(maskeQuelle(n));
+    var offen = quellen.length;
+    function geladen() {
+      if (--offen > 0 || z !== s || s.bildAktiv !== n) return;
+      s.bildSichtbar = n; s.schmuck = null; lichtAnwenden(s);
+      var sc = s.schmuckCv;                                // Kerzen, Glanz & Co. blenden mit dem neuen Bild ein
+      if (sc) { sc.style.webkitTransition = sc.style.transition = "none"; sc.style.opacity = sofort ? "1" : "0"; void sc.offsetWidth;
+                sc.style.webkitTransition = sc.style.transition = "opacity 1.8s ease-in-out"; sc.style.opacity = "1"; }
+      if (sofort) { bildSetzen(basis, n); return; }
+      // Überblenden: das neue Bild legt sich weich darüber, dazu ein Wirbel aus passendem Papier
+      var neu = document.createElement("img"); neu.className = "mk-basis kl-basis-neu"; neu.alt = ""; neu.setAttribute("aria-hidden", "true");
+      bildSetzen(neu, n); basis.parentNode.insertBefore(neu, basis.nextSibling);
+      B.frame(function () { B.frame(function () { neu.className += " da"; }); });
+      wirbel(s, n);
+      setTimeout(function () {
+        if (z === s && s.bildAktiv === n) bildSetzen(basis, n);
+        setTimeout(function () { if (neu.parentNode) neu.parentNode.removeChild(neu); }, 80);
+      }, 1950);
+    }
+    quellen.forEach(function (q) { var i = new Image(); i.onload = i.onerror = geladen; i.src = q; });
+  }
+  var WIRBEL = {
+    fruehling: [["dampf", ["rosa", "weiss", "rosa"]], ["blatt", ["hellgruen", "gruen"]]], sommer: [["blatt", ["gelb", "orange", "gelb"]], ["dampf", ["rot"]]],
+    herbst: [["blatt", ["orange", "rot", "braun", "gelb", "ocker"]]], winter: [["dampf", ["weiss", "creme", "weiss"]], ["stern", ["gelb", "creme"]]],
+    nacht: [["stern", ["gelb", "creme"]], ["dampf", ["tiefblau", "blau"]]], advent: [["stern", ["gold", "rot", "gelb"]], ["blatt", ["gruen"]]],
+    geburtstag: [["dampf", ["rot", "gelb", "blau", "gruen", "rosa", "orange"]]], silvester: [["stern", ["gold", "gelb", "weiss", "blau"]]], standard: [["dampf", ["creme", "weiss", "ocker"]]]
+  };
+  function wirbel(s, n) {
+    var arten = WIRBEL[n || "standard"] || WIRBEL.standard;
+    for (var i = 0; i < 46; i++) {
+      var a = arten[i % arten.length], farben = a[1];
+      s.funken.push({ x: -60 - Math.random() * 120, y: 60 + Math.random() * 900, vx: 760 + Math.random() * 420, vy: (Math.random() - 0.5) * 220,
+                      g: a[0] === "dampf" ? 7 + Math.random() * 9 : 10 + Math.random() * 8, t: -i * 0.028, dauer: 2.1 + Math.random() * 0.5,
+                      art: a[0], farbe: farben[i % farben.length], dreh: Math.random() * 6.3, seed: Math.floor(Math.random() * 99) });
+    }
+    s.funkenLeer = false;
+    if (!s.klangBereit) return;
+    if (KLANG.blaettern) KLANG.blaettern();
+    if (n === "fruehling") klang("ev_voegel", 0.3, 0, 2.2);
+    else if (n === "herbst" && KLANG.rascheln) KLANG.rascheln(0.35);
+    else if (n === "geburtstag" && KLANG.tusch) KLANG.tusch();
+    else if (n === "silvester" && KLANG.feuerwerk) KLANG.feuerwerk(0.35);
+    else if (n) klang("f_ev_glitzer", 0.2);
+  }
+
+  // Was in jedem Bild lebt (Bühnenkoordinaten, vermessen an Codex' Bildern)
+  var SCHMUCK = {
+    fruehling:  { zonen: [["osterkorb", [60, 745, 64, 72]], ["kresse", [152, 850, 55, 45]]], tier: "schmetterling" },
+    sommer:     { zonen: [["erdbeeren", [95, 850, 100, 85]], ["limonade", [1445, 612, 45, 40]]], tier: "biene" },
+    herbst:     { zonen: [["kuerbis", [1345, 35, 52, 36]], ["aepfel", [95, 815, 100, 65]]], tier: "laub" },
+    // Kerzen: Dochtspitzen laut Codex (27.09.), der Kranz steht vorn links neben dem Rezeptheft
+    winter:     { zonen: [["kranz", [110, 850, 112, 72]]], kerzen: [[51, 811], [118, 798], [190, 815], [90, 851]], dampf: [492, 606],
+                  glanz: [[42, 962], [150, 972], [205, 900], [1470, 470], [1500, 540], [60, 330]] },
+    advent:     { zonen: [["kranz", [115, 845, 115, 72]]], kerzen: [[73, 813], [155, 814], [212, 790], [120, 845]],
+                  glanz: [[860, 30], [1040, 20], [1180, 30], [1320, 20], [1480, 40], [1510, 170], [1525, 320], [1515, 470]] },
+    geburtstag: { zonen: [["ballons", [1488, 250, 55, 220]], ["geschenke", [1478, 610, 55, 45]]], torte: true, tier: "konfetti" },
+    silvester:  { zonen: [["knallbonbons", [1460, 955, 80, 45]], ["klee", [55, 905, 50, 65]]], feuerwerk: true,
+                  glanz: [[540, 900], [700, 870], [1020, 860], [1100, 840], [1250, 880]] },
+    nacht:      { zonen: [["omsi", [495, 445, 150, 115]], ["omsi", [470, 590, 180, 70]], ["katze", [790, 590, 95, 60]]], schlaf: true }
+  };
+  var TORTE = [[1277, 393], [1302, 403], [1322, 390], [1346, 380], [1360, 410], [1382, 393]];
+  function flamme(c, x, y, st, gross) {                  // Kerzenflamme aus Papier mit warmem Schein, flackert ruckweise
+    var h = gross * st.h, n = st.n;
+    var g = c.createRadialGradient(x, y - h * 0.5, 1, x, y - h * 0.5, h * 1.9);
+    g.addColorStop(0, "rgba(255,200,110,0.42)"); g.addColorStop(1, "rgba(255,170,70,0)");
+    c.globalAlpha = 1; c.fillStyle = g; c.beginPath(); c.arc(x, y - h * 0.5, h * 1.9, 0, 6.283); c.fill();
+    PAPIER.flammenpfad(c, x, y, gross * 0.42, h, n); c.fillStyle = PAPIER.muster(c, "orange", { akzent: "rot" }); c.fill();
+    PAPIER.flammenpfad(c, x, y, gross * 0.22, h * 0.58, n * 0.5); c.fillStyle = PAPIER.muster(c, "gelb"); c.fill();
+  }
+  function schmuckMalen(s, dt) {
+    var cv = s.schmuckCv, c = s.schmuckC, sm = SCHMUCK[s.bildSichtbar];
+    var st = s.schmuck || (s.schmuck = { flammen: [], tiere: [], glanz: [], takt: 0, zzz: 2, tierPause: 4 });
+    if (!sm) { if (!s.schmuckLeer) { c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height); s.schmuckLeer = true; } return; }
+    var r = cv.getBoundingClientRect(); if (!r.width) return;
+    var dpr = Math.min(2, window.devicePixelRatio || 1), bw = Math.round(r.width * dpr), bh = Math.round(r.height * dpr);
+    if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; c.__muster = null; }
+    c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, bw, bh); s.schmuckLeer = false;
+    var k = bw / 1536; c.setTransform(k, 0, 0, k, 0, 0);
+    st.takt -= dt;
+    var neuTakt = st.takt <= 0; if (neuTakt) st.takt = 0.11 + Math.random() * 0.05;      // Stop-Motion: ~8 Bilder/s
+    function flackern(i) { var f = st.flammen[i] || (st.flammen[i] = { h: 1, n: 0 }); if (neuTakt) { f.h = 0.85 + Math.random() * 0.3; f.n = (Math.random() - 0.5) * 3; } return f; }
+    if (sm.kerzen) { var anz = s.kerzenZahl; for (var i = 0; i < anz; i++) flamme(c, sm.kerzen[i][0], sm.kerzen[i][1] - 1, flackern(i), 24); }
+    if (sm.torte) TORTE.forEach(function (p, i) { flamme(c, p[0], p[1] - 3, flackern(10 + i), 13); });
+    if (sm.dampf && neuTakt && Math.random() < 0.35) dampfWoelkchen(s, sm.dampf);
+    if (sm.glanz) {                                       // Strohsterne, Kugeln, Sterne blitzen kurz auf
+      if (Math.random() < dt * 1.3) { var gp = sm.glanz[Math.floor(Math.random() * sm.glanz.length)]; st.glanz.push({ x: gp[0], y: gp[1], t: 0 }); }
+      st.glanz = st.glanz.filter(function (gl) {
+        gl.t += dt; var a = Math.sin(Math.min(1, gl.t / 0.7) * Math.PI);
+        c.save(); c.translate(gl.x, gl.y); c.rotate(gl.t * 1.5);
+        stern(c, 0, 0, 7 + a * 4, 4); fuellen(c, "weiss", a * 0.95); stern(c, 0, 0, 3 + a * 2, 4); fuellen(c, "gelb", a);
+        c.restore(); return gl.t < 0.7;
+      });
+    }
+    if (sm.schlaf && (st.zzz -= dt) <= 0) {               // die schlafende Omsi (und die Katze) träumen vor sich hin
+      st.zzz = 2.6 + Math.random() * 2.2;
+      if (Math.random() < 0.65) funken(s, 520, 330, "zzz", ["hellblau", "weiss", "hellblau"], 2); else funken(s, 770, 520, "zzz", ["weiss", "hellblau"], 1);
+    }
+    if (sm.tier) tierMalen(s, c, st, sm.tier, dt);
+    c.globalAlpha = 1;
+  }
+  function dampfWoelkchen(s, p) {
+    s.funken.push({ x: p[0] + (Math.random() - 0.5) * 12, y: p[1], vx: (Math.random() - 0.5) * 10, vy: -(22 + Math.random() * 14), g: 6 + Math.random() * 4,
+                    t: 0, dauer: 2.2, art: "dampf", farbe: "weiss", dreh: 0, seed: Math.floor(Math.random() * 99) });
+    s.funkenLeer = false;
+  }
+  function tierMalen(s, c, st, art, dt) {
+    st.tierPause -= dt;
+    if (!st.tiere.length && st.tierPause <= 0) {
+      st.tierPause = art === "konfetti" ? 1.2 : art === "laub" ? 5 + Math.random() * 6 : 22 + Math.random() * 20;
+      if (art === "schmetterling") st.tiere.push({ art: art, x: -30, y: 300 + Math.random() * 200, t: 0, farbe: Math.random() < 0.5 ? "gelb" : "rosa" });
+      else if (art === "biene") st.tiere.push({ art: art, x: 150, y: 330, t: 0 });
+      else if (art === "laub") st.tiere.push({ art: art, x: 700 + Math.random() * 120, y: 120, t: 0, farbe: ["orange", "rot", "gelb", "ocker"][Math.floor(Math.random() * 4)], dreh: 0 });
+      else if (art === "konfetti") for (var i = 0; i < 4; i++) st.tiere.push({ art: art, x: 780 + Math.random() * 640, y: 80, t: -i * 0.3, farbe: ["rot", "gelb", "blau", "gruen", "rosa"][Math.floor(Math.random() * 5)], dreh: Math.random() * 6 });
+    }
+    st.tiere = st.tiere.filter(function (t) {
+      t.t += dt; if (t.t < 0) return true;
+      c.save();
+      if (t.art === "schmetterling") {                     // flattert quer durch die Küche
+        t.x += 70 * dt; var y = t.y + Math.sin(t.t * 1.7) * 60 - Math.sin(t.t * 0.6) * 40, auf = Math.floor(t.t * 8) % 2 ? 1 : 0.3;
+        c.translate(t.x, y); c.rotate(Math.sin(t.t * 3) * 0.25); c.scale(auf * 1.6, 1.6);
+        PAPIER.risspfad(c, -7, -4, 7, 6, 9, 2); fuellen(c, t.farbe, 1); PAPIER.risspfad(c, 7, -4, 7, 6, 9, 3); fuellen(c, t.farbe, 1);
+        PAPIER.risspfad(c, -5, 5, 5, 4, 7, 4); fuellen(c, "orange", 0.9); PAPIER.risspfad(c, 5, 5, 5, 4, 7, 5); fuellen(c, "orange", 0.9);
+        c.restore(); c.fillStyle = "#3a2a1e"; return t.x < 1600;
+      }
+      if (t.art === "biene") {                             // summt in Schleifen um die Blumen am Fenster
+        t.x = 150 + Math.sin(t.t * 0.9) * 95 + Math.sin(t.t * 2.3) * 20; var by = 330 + Math.sin(t.t * 1.4) * 60;
+        var fl = Math.floor(t.t * 12) % 2;
+        c.translate(t.x, by); c.scale(1.5, 1.5);
+        PAPIER.risspfad(c, 0, 0, 7, 5, 8, 11); fuellen(c, "gelb", 1);
+        c.fillStyle = "#2b2118"; c.globalAlpha = 1; c.fillRect(-2.5, -4.5, 1.8, 9); c.fillRect(1.5, -4.5, 1.8, 9);
+        PAPIER.risspfad(c, -1, -6 - fl, 4, 3, 7, 12); fuellen(c, "weiss", 0.85); PAPIER.risspfad(c, 3, -6 + fl, 4, 3, 7, 13); fuellen(c, "weiss", 0.85);
+        t.xs = t.x; t.ys = by; c.restore(); return t.t < 28;
+      }
+      if (t.art === "laub" || t.art === "konfetti") {      // ein Blatt / Konfetti segelt langsam herab
+        t.y += (t.art === "laub" ? 34 : 46) * dt; t.x += Math.sin(t.t * 2 + t.dreh) * 30 * dt; t.dreh += dt * 2;
+        c.translate(t.x, t.y); c.rotate(t.dreh);
+        if (t.art === "laub") { blatt(c, 0, 0, 11); fuellen(c, t.farbe, 1); } else { PAPIER.risspfad(c, 0, 0, 5, 3.5, 6, 7); fuellen(c, t.farbe, 1); }
+        c.restore(); return t.y < 900;
+      }
+      c.restore(); return false;
+    });
+  }
+  // Feuerwerk vor dem Silvesterfenster: Papierfunken, die aufplatzen und sinken
+  function feuerwerkMalen(s, c, f, dt) {
+    f.feuer = f.feuer || [];
+    f.feuerPause = (f.feuerPause || 1) - dt;
+    if (f.feuerPause <= 0) {
+      f.feuerPause = 1.6 + Math.random() * 2.2;
+      var x = 110 + Math.random() * 90, y = 40 + Math.random() * 150, farbe = ["gelb", "rot", "blau", "gruen", "rosa", "gold"][Math.floor(Math.random() * 6)];
+      for (var i = 0; i < 14; i++) { var w = i / 14 * 6.283; f.feuer.push({ x: x, y: y, vx: Math.cos(w) * (40 + Math.random() * 20), vy: Math.sin(w) * (40 + Math.random() * 20), t: 0, farbe: farbe }); }
+      if (s.klangBereit && KLANG.feuerwerk) KLANG.feuerwerk(0.12);
+    }
+    f.feuer = f.feuer.filter(function (p) {
+      p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 30 * dt; p.vx *= 0.97;
+      var a = Math.max(0, 1 - p.t / 1.3);
+      stern(c, p.x, p.y, 3.2 * (0.6 + a * 0.5), 4); fuellen(c, p.farbe, a);
+      return p.t < 1.3;
+    });
+  }
 
   // ───────── Papierformen ─────────
   function herz(c, x, y, g) {
@@ -132,19 +332,22 @@
   function lichtAnwenden(s) {
     var t = s.licht, l = s.lampe; if (!t) return;
     var farbe = "";
-    if (s.einst.licht) {
+    if (s.einst.licht && s.bildSichtbar !== "nacht") {
       farbe = { morgen: "#fff0e2", abend: "#ffe1c2", nacht: "#c9d1ef" }[s.zeit] || "";
       if (s.wetter === "regen" || s.wetter === "nebel") farbe = s.zeit === "nacht" ? "#bcc5e6" : (s.zeit === "morgen" || s.zeit === "abend") ? farbe : "#e9ecf0";
       if (s.wetter === "sturm") farbe = s.zeit === "nacht" ? "#b3bcdf" : "#dde1e9";
     }
     t.style.backgroundColor = farbe || "transparent"; t.style.display = farbe ? "" : "none";
-    var lampe = s.einst.licht && (s.zeit === "nacht" || s.zeit === "abend");
+    var lampe = s.einst.licht && s.bildSichtbar !== "nacht" && (s.zeit === "nacht" || s.zeit === "abend");
     l.style.display = lampe ? "" : "none"; l.style.opacity = s.zeit === "nacht" ? "1" : "0.55";
   }
   function neuAnwenden(s) {
     var f = s.fenster;
     s.einst = einst();
-    s.zeit = KL.tageszeit(); s.jahr = KL.jahreszeit(); s.wetter = KL.wetter(s.zeit, s.jahr);
+    s.zeit = KL.tageszeit(); s.jahr = KL.jahreszeit(); s.wetter = KL.wetter(s.zeit, s.jahr); s.fest = KL.fest();
+    s.kerzenZahl = adventKerzen();
+    bildWechseln(s, kuechenBild(s), s.bildAktiv === undefined);   // beim Betreten sofort, danach mit Überblendung
+    if (!s.zeit && s.fest === "silvester") s.zeit = "nacht";   // Silvester: Nachthimmel mit Feuerwerk im Fenster
     var nacht = s.zeit === "nacht";
     s.kauz = nacht && s.einst.kauz; s.schnuppen = nacht && s.einst.schnuppen;
     s.gluehen = nacht && s.einst.gluehen && s.wetter === "klar" && s.jahr !== "winter";   // nur in milden, klaren Nächten
@@ -196,7 +399,7 @@
     if (KLANG.wind) KLANG.wind(s.wetter === "sturm" ? 0.05 : s.wetter === "nebel" || s.schneeStattRegen ? 0.016 : 0);
     if (s.wetter === "regenbogen" && !s.bogenGeklungen) { s.bogenGeklungen = true; klang("f_ev_glitzer", 0.2); }
   }
-  function aktiv(s) { return !!(s.zeit || s.jahr || s.wetter !== "klar"); }
+  function aktiv(s) { return !!(s.zeit || s.jahr || s.wetter !== "klar" || (s.bildSichtbar && SCHMUCK[s.bildSichtbar])); }
 
   function fensterMalen(s, dt) {
     var f = s.fenster, cv = f.cv, c = f.c;
@@ -262,6 +465,7 @@
       }
     }
     if (s.kauz) kauzMalen(c, f, dt);
+    if (s.bildSichtbar === "silvester") feuerwerkMalen(s, c, f, dt);
     wetterVorn(s, c, f, dt, W, H);
     c.globalAlpha = 1;
   }
@@ -436,6 +640,14 @@
     { name: "fenster", r: FENSTER }
   ];
   function zoneBei(x, y, s) {
+    var sm = SCHMUCK[s.bildSichtbar];
+    if (sm) for (var q = 0; q < sm.zonen.length; q++) {   // was es nur in diesem Bild gibt (bzw. anders liegt)
+      var e = sm.zonen[q][1], ex = (x - e[0]) / e[2], ey = (y - e[1]) / e[3];
+      if (ex * ex + ey * ey <= 1) return sm.zonen[q][0];
+    }
+    if (s.bildSichtbar === "sommer" && s.schmuck && s.schmuck.tiere.length && s.schmuck.tiere[0].xs !== undefined) {
+      var bz = s.schmuck.tiere[0]; if ((x - bz.xs) * (x - bz.xs) + (y - bz.ys) * (y - bz.ys) < 30 * 30) return "biene";
+    }
     if (s.kauz && (x - KAUZ[0]) * (x - KAUZ[0]) + (y - KAUZ[1] + 20) * (y - KAUZ[1] + 20) < 34 * 34) return "kauz";
     var v = !s.vogelWeg && s.dekor.querySelector(".mk-vogel");
     if (v) {
@@ -465,7 +677,36 @@
     s.zuletzt[zone] = jetzt;
     s.zaehler[zone] = (s.zaehler[zone] || 0) + 1;
     var n = s.zaehler[zone], f = s.fenster, nacht = s.zeit === "nacht";
-    if (zone === "katze") {
+    if (zone === "osterkorb") {
+      klang(n % 2 ? "f_ev_ei" : "f_ev_eierkarton", 0.5); funken(s, x, y - 30, "dampf", ["rosa", "gelb", "hellblau", "hellgruen"], 5);
+      if (n % 4 === 0) { funken(s, x, y - 40, "kueken", ["gelb"], 1); if (KLANG.piep) KLANG.piep(); }   // ab und zu schlüpft ein Küken
+    } else if (zone === "kresse") {
+      klang("f_ev_glitzer", 0.3); funken(s, x, y - 30, "blatt", ["hellgruen", "gruen"], 4);
+    } else if (zone === "erdbeeren" || zone === "aepfel" || zone === "plaetzchen") {
+      KLANG.entsperren(); if (KLANG.mampf) KLANG.mampf();
+      funken(s, x, y - 30, zone === "plaetzchen" ? "stern" : "herz", zone === "erdbeeren" ? ["rot", "rosa"] : zone === "aepfel" ? ["rot", "hellgruen", "gelb"] : ["ocker", "braun", "gold"], 4);
+    } else if (zone === "limonade") {
+      klang("ev_glas", 0.4); for (var bl = 0; bl < 6; bl++) funken(s, x + (Math.random() - 0.5) * 30, y + 20, "dampf", ["weiss", "hellblau"], 1);
+    } else if (zone === "biene") {
+      KLANG.entsperren(); if (KLANG.summen) KLANG.summen(); funken(s, x, y - 10, "herz", ["gelb"], 2);
+    } else if (zone === "kuerbis") {
+      KLANG.entsperren(); if (KLANG.puff) KLANG.puff(); funken(s, x, y, "blatt", ["orange", "rot", "gelb"], 5);
+    } else if (zone === "kranz") {
+      klang("f_ev_glitzer", 0.3); funken(s, x, y - 60, "stern", ["gelb", "gold", "rot"], 5);
+      if (s.bildSichtbar === "advent" && (s.zaehler.kranz || 0) % 3 === 0 && KLANG.mampf) KLANG.mampf();   // ein Herzplätzchen stibitzen
+    } else if (zone === "ballons") {
+      KLANG.entsperren(); if (KLANG.plopp) KLANG.plopp(); funken(s, x, y, "dampf", ["rot", "gelb", "blau", "gruen", "rosa"], 10);
+    } else if (zone === "geschenke") {
+      if (KLANG.rascheln) { KLANG.entsperren(); KLANG.rascheln(0.3); } funken(s, x, y - 30, "stern", ["gold", "rot", "blau"], 5);
+    } else if (zone === "knallbonbons") {
+      KLANG.entsperren(); if (KLANG.feuerwerk) KLANG.feuerwerk(0.45); funken(s, x, y - 20, "stern", ["gold", "gelb", "blau", "rot"], 10);
+    } else if (zone === "klee") {
+      klang("f_ev_glitzer", 0.3); funken(s, x, y - 30, "herz", ["gruen", "hellgruen"], 4);
+    } else if (zone === "omsi" && s.bildSichtbar === "nacht") {   // sie schläft: nur leises Atmen und ein paar "Zzz"
+      klang("f_amb_schlafatem", 0.4, 0, 3); funken(s, x + 30, y - 60, "zzz", ["hellblau", "weiss"], 3);
+    } else if (zone === "omsi" && s.bildSichtbar === "geburtstag") {
+      KLANG.entsperren(); if (KLANG.tusch) KLANG.tusch(); funken(s, x, y - 40, "dampf", ["rot", "gelb", "blau", "gruen", "rosa"], 8); funken(s, x, y - 30, "herz", ["rot", "rosa"], 3);
+    } else if (zone === "katze") {
       if (nacht) { klang("f_ev_schnurren", 0.45, 0, 3); funken(s, x + 20, y - 50, "zzz", ["hellblau", "weiss", "hellblau"], 3); }   // müde: "Zzz"
       else { if (n % 3 === 0) klang("f_ev_miau", 0.5); else klang("f_ev_schnurren", 0.5, 0, 2.6); funken(s, x, y - 40, "herz", ["rot", "rosa", "rot"], 3); }
     } else if (zone === "omsi") {
@@ -527,6 +768,12 @@
       var g = p.g * (p.t < 0.15 ? 0.6 + p.t / 0.15 * 0.4 : 1) * (p.art === "dampf" ? 1 + p.t * 0.6 : 1);
       c.save(); c.translate(p.x, p.y); c.rotate(p.dreh + Math.sin(p.t * 3) * 0.15);
       if (p.art === "zzz") { c.font = "bold " + Math.round(g * 1.6) + "px Georgia, serif"; c.globalAlpha = Math.min(1, a); c.fillStyle = PAPIER.muster(c, p.farbe); c.fillText("z", 0, 0); c.restore(); return p.t < p.dauer; }
+      if (p.art === "kueken") {                           // Papierküken: gelber Ball mit Schnabel und Auge
+        PAPIER.risspfad(c, 0, 0, g * 1.3, g * 1.15, 11, 21); fuellen(c, "gelb", Math.min(1, a));
+        c.beginPath(); c.moveTo(g * 1.2, -g * 0.1); c.lineTo(g * 1.8, g * 0.1); c.lineTo(g * 1.2, g * 0.3); c.closePath(); fuellen(c, "orange", Math.min(1, a));
+        c.globalAlpha = Math.min(1, a); c.fillStyle = "#2a1a10"; c.beginPath(); c.arc(g * 0.6, -g * 0.35, g * 0.16, 0, 6.283); c.fill();
+        c.restore(); return p.t < p.dauer;
+      }
       if (p.art === "herz") herz(c, 0, 0, g * 1.4); else if (p.art === "note") note(c, 0, 0, g * 1.3);
       else if (p.art === "stern") stern(c, 0, 0, g * 0.8); else if (p.art === "blatt") blatt(c, 0, 0, g * 0.8);
       else PAPIER.risspfad(c, 0, 0, g, g * 0.75, 9, p.seed);
@@ -616,6 +863,7 @@
       ".kl-einst .kl-chip[aria-checked=true][data-farbe=orange]{background-image:" + u(S.chipO) + "}",
       ".kl-einst .kl-chip[aria-checked=true][data-farbe=gruen]{background-image:" + u(S.chipG) + "}",
       ".kl-einst .kl-chip[aria-checked=true][data-farbe=blau]{background-image:" + u(S.chipB) + "}",
+      ".kl-einst .kl-chip[aria-checked=true][data-farbe=rot]{background-image:" + u(S.chipR) + "}",
       ".kl-einst .kl-chip.kl-fertig{background-image:" + u(S.chipR) + "}"
     ].join("\n");
     papierStil = document.createElement("style"); papierStil.textContent = css;
@@ -643,11 +891,12 @@
   // ───────── Das Blatt "Einstellungen" ─────────
   var GRUPPEN = [
     { titel: "Tageszeit im Fenster", schluessel: "zeit", farbe: "orange", wahl: [["aus", "Wie gemalt"], ["uhr", "Mit der Uhr"], ["morgen", "Morgenrot"], ["tag", "Tag"], ["abend", "Abendrot"], ["nacht", "Nacht"]] },
-    { titel: "Jahreszeit im Fenster", schluessel: "jahr", farbe: "gruen", wahl: [["aus", "Aus"], ["kalender", "Mit dem Kalender"], ["fruehling", "Frühling"], ["sommer", "Sommer"], ["herbst", "Herbst"], ["winter", "Winter"]] },
-    { titel: "Wetter", schluessel: "wetter", farbe: "blau", wahl: [["aus", "Aus"], ["wechselnd", "Wechselnd"], ["regen", "Regen"], ["sturm", "Gewitter"], ["nebel", "Nebel"], ["regenbogen", "Regenbogen"]] }
+    { titel: "Jahreszeit", schluessel: "jahr", farbe: "gruen", wahl: [["aus", "Aus"], ["kalender", "Mit dem Kalender"], ["fruehling", "Frühling"], ["sommer", "Sommer"], ["herbst", "Herbst"], ["winter", "Winter"]] },
+    { titel: "Wetter", schluessel: "wetter", farbe: "blau", wahl: [["aus", "Aus"], ["wechselnd", "Wechselnd"], ["regen", "Regen"], ["sturm", "Gewitter"], ["nebel", "Nebel"], ["regenbogen", "Regenbogen"]] },
+    { titel: "Anlass", schluessel: "fest", farbe: "rot", wahl: [["aus", "Keiner"], ["kalender", "Mit dem Kalender"], ["advent", "Advent"], ["geburtstag", "Geburtstag"], ["silvester", "Silvester"]] }
   ];
   var SCHALTER = [
-    { titel: "Stimmung", teile: [["licht", "Licht in der Küche"]] },
+    { titel: "Stimmung", teile: [["licht", "Licht in der Küche"], ["nachtKueche", "Nachts schläft die Küche"]] },
     { titel: "Nachtgäste", teile: [["kauz", "Waldkauz"], ["schnuppen", "Sternschnuppen"], ["gluehen", "Glühwürmchen"]] },
     { titel: "Kleine Überraschungen", teile: [["antippen", "Dinge antworten beim Antippen"]] }
   ];
@@ -726,7 +975,13 @@
         if (e.wetter === "wechselnd") hw.push("Wechselt alle drei Stunden, passend zur Jahreszeit.");
         hinweise.wetter.textContent = hw.join(" ");
         hinweise.zeit.textContent = e.zeit === "uhr" ? "Morgenrot, Tag, Abendrot und Nacht – wie draußen." : "";
-        hinweise.jahr.textContent = e.jahr === "kalender" ? "Jetzt: " + { fruehling: "Frühling", sommer: "Sommer", herbst: "Herbst", winter: "Winter" }[kalenderJahr()] + "." : "";
+        var fh = [];
+        if (e.fest === "kalender") fh.push("Advent ab dem 1. Advent, Silvester am 31.12. und 1.1." + (B.E && B.E.geburtstag ? " Und an Omsis Geburtstag." : ""));
+        if (e.fest === "advent" || e.fest === "kalender") fh.push("Am Kranz brennt jeden Adventssonntag eine Kerze mehr.");
+        if (e.zeit === "nacht" && e.nachtKueche && (e.fest !== "aus" || e.jahr !== "aus")) fh.push("Nachts schläft die Küche – der Schmuck zeigt sich wieder am Tag.");
+        hinweise.fest.textContent = fh.join(" ");
+        hinweise.jahr.textContent = (e.jahr === "kalender" ? "Jetzt: " + { fruehling: "Frühling", sommer: "Sommer", herbst: "Herbst", winter: "Winter" }[kalenderJahr()] + ". " : "") +
+          (e.jahr !== "aus" ? "Die ganze Küche schmückt sich mit." : "");
         hinweise.nacht.textContent = "Zeigen sich, wenn im Fenster Nacht ist" + (e.gluehen ? " – Glühwürmchen nur in milden, klaren Nächten." : ".");
       }
     };
@@ -744,12 +999,11 @@
     fensterBauen(s);
     s.licht = B.el("div", "kl-licht", dekor); s.lampe = B.el("div", "kl-lampe", dekor);
     s.licht.setAttribute("aria-hidden", "true"); s.lampe.setAttribute("aria-hidden", "true");
+    s.schmuckCv = document.createElement("canvas"); s.schmuckCv.className = "kl-schmuck"; s.schmuckCv.setAttribute("aria-hidden", "true");
+    dekor.appendChild(s.schmuckCv); s.schmuckC = s.schmuckCv.getContext("2d");
     s.funkenCv = document.createElement("canvas"); s.funkenCv.className = "kl-funken"; s.funkenCv.setAttribute("aria-hidden", "true");
     dekor.appendChild(s.funkenCv); s.funkenC = s.funkenCv.getContext("2d");
     neuAnwenden(s);
-    // Jahreszeiten-Küche (Codex liefert messgleiche Bilder, daten/menue.js → jahreszeiten: { herbst: 'kueche-herbst.png', … })
-    var jzBild = s.jahr && window.MENUE_DATEN && MENUE_DATEN.jahreszeiten && MENUE_DATEN.jahreszeiten[s.jahr], grundBild = dekor.querySelector(".mk-basis");
-    if (jzBild && grundBild) { var probe = new Image(); probe.onload = function () { if (z === s) grundBild.src = probe.src; }; probe.src = MENUE_DATEN.ordner + jzBild; }
     fussleiste(s);
     // Keine hellen Streifen neben der Küche: im Querformat die Bühne auf volle Breite ziehen (höchstens so viel, wie der
     // Papierstreifen der Fußleiste unten überdecken darf – dort ist nur Tisch). menue.js rechnet weiter mit seinem Maß.
@@ -790,6 +1044,7 @@
         }
       }
       if (s.fenster) fensterMalen(s, still ? 0 : dt);
+      schmuckMalen(s, still ? 0 : dt);
       funkenMalen(s, still ? 0.05 : dt);
       s.letzt = jetzt;
       if (still || (!aktiv(s) && !s.funken.length)) s.timer = setTimeout(function () { s.letzt = 0; s.schritt(); }, still ? 600 : 250);

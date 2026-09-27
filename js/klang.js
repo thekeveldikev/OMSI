@@ -102,6 +102,28 @@
       huelle(r.g, t + i * 0.09, 0.01, 0.03, 0.12, l * (0.5 + Math.random() * 0.5));
     }
   };
+  // Biene: kurzes, brummiges Summen mit Flügelvibrato
+  K.summen = function () {
+    if (!ctx || !an()) return;
+    var t = t0(), o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain(), v = ctx.createOscillator(), vt = ctx.createGain();
+    o.type = "sawtooth"; o.frequency.value = 205; v.frequency.value = 26; vt.gain.value = 14; v.connect(vt); vt.connect(o.frequency);
+    f.type = "bandpass"; f.frequency.value = 900; f.Q.value = 1.2;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.08); g.gain.setValueAtTime(0.09, t + 0.7); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+    o.connect(f); f.connect(g); g.connect(haupt); start(o, t, t + 1.2); start(v, t, t + 1.2);
+  };
+  // Feuerwerk / Knallbonbon: dumpfer Knall, dann Knistern
+  K.feuerwerk = function (laut) {
+    if (!ctx || !an()) return;
+    var t = t0(), l = laut || 0.3;
+    var r = rausch(t, 0.25, "lowpass", 900, 0.8); huelle(r.g, t, 0.003, 0.02, 0.2, l);
+    for (var i = 0; i < 9; i++) { var z = t + 0.15 + Math.random() * 0.6, k = rausch(z, 0.04, "highpass", 3000 + Math.random() * 3000, 0.8); huelle(k.g, z, 0.001, 0.005, 0.03, l * 0.5 * Math.random()); }
+  };
+  // Küken: zwei helle Pieper
+  K.piep = function () {
+    if (!ctx || !an()) return;
+    var t = t0();
+    [0, 0.22].forEach(function (d) { var a = ton(t + d, 2900, 0.14, "sine"); a.o.frequency.setValueAtTime(3300, t + d); a.o.frequency.exponentialRampToValueAtTime(2500, t + d + 0.12); huelle(a.g, t + d, 0.005, 0.03, 0.08, 0.14); });
+  };
   // Donner: Krachen, dann langes, tiefes Grollen
   K.donner = function (staerke) {
     if (!ctx || !an()) return;

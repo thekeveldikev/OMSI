@@ -430,6 +430,9 @@
     }
     if (window.MAKINGOF && window.MAKING_OF) d = d.concat(MAKINGOF.dateien());
     if (window.MENUE_KUECHE && window.MENUE_DATEN) d = d.concat(MENUE_KUECHE.dateien());
+    if (window.MENUE_DATEN) ["fruehling", "sommer", "herbst", "winter", "nacht", "advent", "geburtstag", "silvester"].forEach(function (n) {   // Jahreszeiten-Küche
+      d.push(MENUE_DATEN.ordner + "jahreszeiten/kueche-" + n + ".jpg", MENUE_DATEN.ordner + "jahreszeiten/maske-" + n + ".png");
+    });
     if (window.SCHATTEN) d = d.concat(SCHATTEN.dateien());
     if (window.MUSIK) d = d.concat(MUSIK.dateien(), ["js/musik.js", "js/falz.js"]);
     if (window.SPIEL && SPIEL.dateien) d = d.concat(SPIEL.dateien());
