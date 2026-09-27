@@ -1,5 +1,5 @@
 /* Startet die veröffentlichte Fassung: Service Worker (entschlüsselt) → Geheimwort
-   (aus dem Einrichtungs-Link #schluessel=… oder einmal eingeben) → App laden.
+   (bei jedem Öffnen der App neu eingeben; gemerkt nur bis zum Schließen) → App laden.
    Braucht iOS 11.3 oder neuer. */
 (function () {
   var INFO = window.TRESOR_INFO;
@@ -258,7 +258,7 @@
       gesendet = true;
       document.getElementById("auf").disabled = true;
       ableiten(feld.value).then(function (roh) {
-        try { localStorage.setItem("omsi.schluessel", roh); } catch (e) {}
+        try { sessionStorage.setItem("omsi.schluessel", roh); } catch (e) {}   // nur bis die App ganz geschlossen wird
         return schluesselAnWorker(roh).then(appLaden);
       })["catch"](function () { sperre(true); });
     }
@@ -280,19 +280,15 @@
     if (!navigator.serviceWorker.controller) {
       if (!sessionStorage.getItem("omsi.neu")) { sessionStorage.setItem("omsi.neu", "1"); location.reload(); return; }
     }
-    var m = /[#&]schluessel=([^&]+)/.exec(location.hash);
-    if (m) {
-      var wort = decodeURIComponent(m[1]);
-      history.replaceState(null, "", location.pathname + location.search);   // Geheimwort nicht in der Adresszeile lassen
-      return ableiten(wort).then(function (roh) {
-        try { localStorage.setItem("omsi.schluessel", roh); } catch (e) {}
-        return schluesselAnWorker(roh).then(appLaden);
-      })["catch"](function () { sperre(true); });
-    }
+    // Kevin: Bei jedem Öffnen der App tippt Omsi das Geheimwort selbst ein. Ein Link mit #schluessel=… öffnet
+    // deshalb nicht mehr von allein (das Wort wird nur aus der Adresszeile entfernt), und der Schlüssel wird nicht
+    // mehr dauerhaft gemerkt – nur für die laufende Sitzung (Neuladen), bis die App ganz geschlossen wird.
+    if (/schluessel=/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
+    try { localStorage.removeItem("omsi.schluessel"); } catch (e) {}            // früher dauerhaft gespeichert
     var gemerkt = null;
-    try { gemerkt = localStorage.getItem("omsi.schluessel"); } catch (e) {}
+    try { gemerkt = sessionStorage.getItem("omsi.schluessel"); } catch (e) {}
     if (gemerkt) return pruefen(gemerkt).then(function () { return schluesselAnWorker(gemerkt).then(appLaden); }, function () {
-      try { localStorage.removeItem("omsi.schluessel"); } catch (e) {}
+      try { sessionStorage.removeItem("omsi.schluessel"); } catch (e) {}
       sperre(false);
     });
     sperre(false);
