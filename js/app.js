@@ -356,6 +356,7 @@
     var fach = taste && taste.parentNode.querySelector(".radio-extrafach");
     if (!seite || !fach) return;
     var offen = taste.getAttribute("aria-expanded") === "true";
+    fahrt.nr++;                                          // eine noch laufende Fahrt endet hier (auch ohne Finger, z. B. Tastatur)
     var sicht = seite.clientHeight, rand = 18, start = seite.scrollTop, ziel;
     var voll = fach.scrollHeight, jetzt = fach.offsetHeight, front = taste.offsetHeight;
     var fachOben = fach.getBoundingClientRect().top - seite.getBoundingClientRect().top + start;

@@ -68,6 +68,40 @@
     regenKnoten.g.gain.cancelScheduledValues(t); regenKnoten.g.gain.setValueAtTime(Math.max(0.0001, regenKnoten.g.gain.value), t);
     regenKnoten.g.gain.linearRampToValueAtTime(laut, t + 1.8);
   };
+  // Wind (Gewitter, Nebel, Schneetreiben): tiefes Rauschen, das in Böen an- und abschwillt (laut 0 = aus)
+  var windKnoten = null;
+  K.wind = function (laut) {
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    if (!laut || !an()) {
+      if (windKnoten) {
+        var w = windKnoten; windKnoten = null;
+        w.g.gain.cancelScheduledValues(t); w.g.gain.setValueAtTime(Math.max(0.0001, w.g.gain.value), t); w.g.gain.linearRampToValueAtTime(0.0001, t + 1.5);
+        setTimeout(function () { try { w.src.stop(); w.lfo.stop(); w.src.disconnect(); w.g.disconnect(); w.lfo.disconnect(); } catch (e) {} }, 1700);
+      }
+      return;
+    }
+    if (!windKnoten) {
+      var src = ctx.createBufferSource(); src.buffer = rauschen; src.loop = true;
+      var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 420; bp.Q.value = 0.7;
+      var g = ctx.createGain(); g.gain.value = 0.0001;
+      var lfo = ctx.createOscillator(); lfo.frequency.value = 0.13;          // Böen
+      var lfoTiefe = ctx.createGain(); lfoTiefe.gain.value = 180; lfo.connect(lfoTiefe); lfoTiefe.connect(bp.frequency);
+      src.connect(bp); bp.connect(g); g.connect(haupt);
+      start(src, t); start(lfo, t); windKnoten = { src: src, g: g, lfo: lfo };
+    }
+    windKnoten.g.gain.cancelScheduledValues(t); windKnoten.g.gain.setValueAtTime(Math.max(0.0001, windKnoten.g.gain.value), t);
+    windKnoten.g.gain.linearRampToValueAtTime(laut, t + 2);
+  };
+  // Laub raschelt (Windstoß im Herbst): ein paar kurze, trockene Knister-Bündel
+  K.rascheln = function (laut) {
+    if (!ctx || !an()) return;
+    var t = t0(), l = laut || 0.3;
+    for (var i = 0; i < 5; i++) {
+      var r = rausch(t + i * 0.09 + Math.random() * 0.05, 0.18, "highpass", 2400 + Math.random() * 1600, 0.7);
+      huelle(r.g, t + i * 0.09, 0.01, 0.03, 0.12, l * (0.5 + Math.random() * 0.5));
+    }
+  };
   // Donner: Krachen, dann langes, tiefes Grollen
   K.donner = function (staerke) {
     if (!ctx || !an()) return;
@@ -89,7 +123,7 @@
     try {
       var p = null;
       if (document.hidden) { if (ctx.state === "running" && ctx.suspend) p = ctx.suspend(); }
-      else if (ctx.state !== "running" && ctx.resume) p = ctx.resume();
+      else if (ctx.resume) p = ctx.resume();            // immer: ein laufendes suspend() meldet noch "running"
       if (p && p["catch"]) p["catch"](function () {});
     } catch (e) {}
   }, false);
@@ -343,6 +377,10 @@
     var kanal = ctx.createGain(); kanal.gain.value = 1; kanal.connect(haupt);
     var hallAnteil = ctx.createGain(); hallAnteil.gain.value = 0.6; kanal.connect(hallAnteil); hallAnteil.connect(hall);
     spieluhrKanaele.push(kanal);
+    setTimeout(function () {                             // nach dem Stück den Kanal wieder abbauen
+      var i = spieluhrKanaele.indexOf(kanal);
+      if (i >= 0) { spieluhrKanaele.splice(i, 1); try { kanal.disconnect(); } catch (e) {} }
+    }, (melodie.reduce(function (a, p) { return a + p[1]; }, 0) * s + 3) * 1000);
     melodie.forEach(function (p) {
       if (p[0] > 0) {
         var f = midi(p[0]);

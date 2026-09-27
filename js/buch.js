@@ -687,12 +687,18 @@
   function neuLayouten() {
     if (!S || !S.w) return;
     if (S.beschaeftigt) { S.layoutNachher = true; return; }
+    var SEL = ".seite-links .satz, .seite-links .text-kasten, .seite-rechts .satz, .seite-rechts .text-kasten";
+    var abschnitte = [].map.call(S.dom.buch.querySelectorAll(SEL), function (k) { return k.__aktuell || 0; });
     groesseAnpassen();
     var ds = S.doppelseiten[S.index];
     S.einpassListe = [];
     fuelleSeite(S.dom.links, haelfteInfo(ds, "links"));
     fuelleSeite(S.dom.rechts, haelfteInfo(ds, "rechts"));
     allesEinpassen();
+    [].forEach.call(S.dom.buch.querySelectorAll(SEL), function (k, i) {   // gleicher Abschnitt wie vor dem Drehen
+      var a = Math.min(abschnitte[i] || 0, (k.__zahl || 1) - 1);
+      if (a > 0) zeigeAbschnitt(k, a, true);
+    });
     if (!(window.FLUG && FLUG.laeuft && FLUG.laeuft())) starteEffekte();
   }
 
@@ -733,7 +739,8 @@
       else vorladen(bildQuelleFortsetzung(n.seite));
     }
     // Spezialseiten
-    if (S.typ === "fortsetzung" && ds.seite.art === "flug") setTimeout(function () { if (S && S.doppelseiten[S.index] === ds) FLUG.starten(); }, 700);
+    clearTimeout(S.flugTimer);
+    if (S.typ === "fortsetzung" && ds.seite.art === "flug") S.flugTimer = setTimeout(function () { if (S && !S.beschaeftigt && S.doppelseiten[S.index] === ds) FLUG.starten(); }, 700);
     if (S.vorlesen) vorlesenStarten();
   }
 
@@ -772,7 +779,7 @@
     if (!S || S.beschaeftigt) return;
     var neu = ziel === undefined ? S.index + richtung : ziel;   // "ziel": in EINER Drehung dorthin (Lesezeichen → Anfang)
     if (neu === S.index) return;
-    lesezeichenWeg();
+    lesezeichenWeg(); clearTimeout(S.flugTimer);
     if (neu < 0 || neu >= S.doppelseiten.length) return;
     S.beschaeftigt = true;
     vorlesenStoppen(true);
@@ -875,7 +882,11 @@
     var dieses = S, ds0 = S.doppelseiten[0], quellen = [];
     if (S.typ === "original") { if (ds0.links) quellen.push(bildQuelleOriginal(ds0.links)); if (ds0.rechts) quellen.push(bildQuelleOriginal(ds0.rechts)); }
     var offen = quellen.length;
-    function los() { if (S === dieses) umblaettern(-1, 0); }    // erst die Anfangsbilder, dann blättern
+    function los(n) {                                   // erst die Anfangsbilder, dann blättern (läuft gerade ein Blatt: kurz warten)
+      if (S !== dieses) return;
+      if (S.beschaeftigt) { if ((n || 0) < 20) setTimeout(function () { los((n || 0) + 1); }, 150); return; }
+      umblaettern(-1, 0);
+    }
     if (!offen) los(); else quellen.forEach(function (q) { vorladen(q, function () { if (--offen === 0) los(); }); });
   }
 
@@ -888,6 +899,7 @@
     vorleseLauf++;
     if (audio) { try { audio.pause(); } catch (e) {} audio.onended = audio.onerror = audio.ontimeupdate = null; }
     KLANG.stumm();
+    if (S) S.nachHintergrund = null;
     if (S && S.weiterTimer) { clearTimeout(S.weiterTimer); S.weiterTimer = null; }
     if (!nurAudio && S) { KULISSE.leiser(false); S.vorlesen = false; S.dom.vorlesen.className = "knopf vorlesen"; B.knopf(S.dom.vorlesen, "abspielen", "Vorlesen"); }
   }
@@ -908,10 +920,12 @@
     function aktuell() { return S && S.vorlesen && S.index === indexBeiStart && dieseRunde === vorleseLauf; }
     function naechstes() {
       if (!aktuell()) return;
+      if (document.hidden) { S.nachHintergrund = naechstes; return; }   // im Hintergrund nichts Neues anfangen
       if (i >= stueck.length) {
         clearTimeout(S.weiterTimer);
-        S.weiterTimer = setTimeout(function () {
+        S.weiterTimer = setTimeout(function weiter() {
           if (!aktuell()) return;
+          if (document.hidden) { S.nachHintergrund = weiter; return; }
           var ds2 = S.doppelseiten[S.index];
           if (S.typ === "fortsetzung" && ds2.seite.art === "schattentheater") { SCHATTEN.starten(ds2.seite.schattenVerse, function () { if (S && S.vorlesen) BUCH.weiter(); }); return; }
           if (S.index < S.doppelseiten.length - 1) BUCH.weiter(); else vorlesenStoppen();
@@ -1082,8 +1096,11 @@
         if (S && S.vorlesen && audio && !audio.paused) { try { audio.pause(); } catch (e) {} }
         return;
       }
-      if (!S || !S.vorlesen || !audio || !audio.paused || audio.ended || !(audio.currentTime > 0) || audio.readyState < 2) return;
-      var p = audio.play();
+      if (!S || !S.vorlesen) return;
+      var warte = S.nachHintergrund; S.nachHintergrund = null;
+      if (warte) { warte(); return; }                      // was im Hintergrund liegen blieb, jetzt nachholen
+      if (!audio || !audio.src || !audio.paused || audio.ended) return;
+      var p = audio.play();                               // auch wenn die Aufnahme gerade erst anfing (currentTime 0)
       if (p && p["catch"]) p["catch"](function () { if (S && S.vorlesen) vorlesenStoppen(); });
     };
     document.addEventListener("visibilitychange", S.sichtbarVorlesen, false);
@@ -1094,7 +1111,8 @@
       if (S !== meinBuch || gestartet) return;   // Buch schon wieder zu (oder neu geöffnet) – oder schon aufgebaut
       gestartet = true;
       groesseAnpassen(); zeigeDoppelseite();
-      setTimeout(function () { if (S === meinBuch) lesezeichenZeigen(); }, 900);
+      var startSeite = S.index;
+      setTimeout(function () { if (S === meinBuch && !S.beschaeftigt && S.index === startSeite) lesezeichenZeigen(); }, 900);
       // Buchschrift beim ersten Öffnen noch nicht geladen? Dann wurde mit der Ersatzschrift eingepasst –
       // sobald die echte Schrift da ist, einmal neu setzen (sonst falsche Umbrüche/Überlauf)
       var diesesBuch = S;
@@ -1236,7 +1254,7 @@
     return {
       laeuft: function () { return !!(z && !z.gelandet); },
       starten: function () {
-        if (!S || (z && !z.gelandet)) return;
+        if (!S || S.beschaeftigt || (z && !z.gelandet)) return;
         EFFEKTE.stoppen();
         gelandetEntfernen();
         var cv = S.dom.effekte, ctx = cv.getContext("2d"), W = S.w, H = S.h;
@@ -1305,8 +1323,7 @@
       },
       stoppen: function () {
         gelandetEntfernen(); if (z) { B.frameStopp(z.id); z = null; }
-        var m = S && S.dom.buch.querySelector(".flug-meldung");   // Meldung nicht auf die nächste Seite mitnehmen
-        if (m && m.parentNode) m.parentNode.removeChild(m);
+        if (S) [].forEach.call(S.dom.buch.querySelectorAll(".flug-meldung"), function (m) { if (m.parentNode) m.parentNode.removeChild(m); });   // nicht auf die nächste Seite mitnehmen
       }
     };
   })();

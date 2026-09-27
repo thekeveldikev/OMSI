@@ -205,7 +205,7 @@
     }
 
     // Mikrofon – nur EINE Anfrage bzw. ein Strom; beim Verlassen immer ganz freigeben
-    var strom = null, anfrage = false;
+    var strom = null, anfrage = false, abbruch = false;
     function mikroAn() {
       if (anfrage || strom) return;                          // schon an (Knopf zeigt "Jetzt kräftig pusten!")
       var AC = window.AudioContext || window.webkitAudioContext;
@@ -214,11 +214,13 @@
       var actx;
       try { actx = new AC(); } catch (e) { APP.meldung("Das Mikrofon geht hier leider nicht – einfach die Kerzen antippen!"); return; }   // in der Berührung anlegen (iOS)
       var meinZ = z;
-      anfrage = true;
+      anfrage = true; abbruch = false;
       KLANG.sitzung("play-and-record");                     // iOS: Aufnahme + Wiedergabe (danach zurück)
       navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
         anfrage = false;
-        if (!z || z !== meinZ) { s.getTracks().forEach(function (tr) { tr.stop(); }); try { actx.close(); } catch (e) {} KLANG.sitzung("playback"); return; }   // inzwischen verlassen
+        if (!z || z !== meinZ || abbruch || fertigSeit) {   // inzwischen verlassen, abgebrochen oder schon gefeiert
+          abbruch = false; s.getTracks().forEach(function (tr) { tr.stop(); }); try { actx.close(); } catch (e) {} KLANG.sitzung("playback"); return;
+        }
         strom = s;
         if (actx.state === "suspended" && actx.resume) actx.resume();
         var quelle = actx.createMediaStreamSource(s), an = actx.createAnalyser();
@@ -241,7 +243,7 @@
     function mikroAus() {
       if (strom) { strom.getTracks().forEach(function (tr) { tr.stop(); }); strom = null; }
       if (z && z.mikroCtx && z.mikroCtx.close) z.mikroCtx.close();
-      if (!anfrage) KLANG.sitzung("playback");
+      if (anfrage) abbruch = true; else KLANG.sitzung("playback");   // läuft die Anfrage noch: beim Eintreffen verwerfen
       if (z) { delete z.mikroPegel; z.mikroCtx = null; }
       B.knopf(mikro, "mikro", "Kerzen auspusten");
     }

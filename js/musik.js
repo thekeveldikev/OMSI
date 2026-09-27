@@ -267,7 +267,7 @@
       versteckt = false;
       if (aktiv && an && wunsch) {
         var ctx = window.KLANG && KLANG.kontext();
-        if (ctx && ctx.state !== "running" && ctx.resume) { try { ctx.resume(); } catch (e) {} }
+        if (ctx && ctx.resume) { try { ctx.resume(); } catch (e) {} }   // immer: ein laufendes suspend() meldet noch "running"
         if (aktiv.wartet) stueckZuEndeFortsetzen(); else spielen(aktiv.sp, aktiv.stueck, aktiv.pos || aktiv.sp.el.currentTime, 1.4);
       } else abstimmen();
     }

@@ -305,7 +305,11 @@
     var K = kueche = { timer: [], weg: [], sprung: 0, letztesLied: -99 };
     var seite = wurzel.querySelector(".mk-seite") || wurzel;
     function ruhig() { return kueche !== K || document.hidden || /\bmk-ruhig\b/.test(seite.className); }
-    function vogelSchlaeft() { return !!(window.KUECHE_LEBEN && KUECHE_LEBEN.tageszeit() === "nacht"); }   // nachts: Kauz statt Rotkehlchen
+    function spaeter(fn, ms) {                      // Timer merken, nach Ablauf wieder aus der Liste nehmen
+      var id = setTimeout(function () { var j = K.timer.indexOf(id); if (j >= 0) K.timer.splice(j, 1); fn(); }, ms);
+      K.timer.push(id);
+    }
+    function vogelSchlaeft() { return !!(window.KUECHE_LEBEN && KUECHE_LEBEN.vogelWeg && KUECHE_LEBEN.vogelWeg()); }   // Nacht/Regen/Gewitter: Rotkehlchen weg
     // Der Vogel: Flügelschlag beim Absprung, leises Tapsen beim Landen, manchmal ein Zwitschern
     var vogel = wurzel.querySelector(".mk-vogel");
     if (vogel && window.MutationObserver) {
@@ -331,11 +335,11 @@
     }
     // ab und zu singt er richtig (die lange Strophe), wenn er gerade still sitzt
     (function singen() {
-      K.timer.push(setTimeout(function () {
+      spaeter(function () {
         if (kueche !== K) return;
         if (!ruhig() && !vogelSchlaeft() && vogel && vogel.getAttribute("data-frame") === "0") { schnipsel("f_ev_rotkehlchen", 0.26, 0.634, 1.7); K.letztesLied = Date.now() / 1000; merke("Vogel singt"); }
         singen();
-      }, B.zufall(18, 32) * 1000));
+      }, B.zufall(18, 32) * 1000);
     })();
     // Der Pfannkuchen hüpft alle 9 s (CSS mk-pfanne: 77 % Schwung, 93 % Landung) – Wusch, Plopp, kurz mehr Brutzeln
     var pf = wurzel.querySelector(".mk-pfannkuchen");
@@ -343,8 +347,8 @@
       var runde = function () {
         [[6.75, function () { KU.spiele("ev_wenden", 0.26); merke("Pfannkuchen hoch"); }],
          [8.3, function () { KU.spiele("f_ev_plopp", 0.2); merke("Pfannkuchen landet"); var s = schichten.f_amb_brutzeln;
-                             if (s) { rampe(s.g.gain, s.laut * 2.2, 0.15); K.timer.push(setTimeout(function () { if (schichten.f_amb_brutzeln === s) rampe(s.g.gain, s.laut, 1.8); }, 400)); } }]
-        ].forEach(function (e) { K.timer.push(setTimeout(function () { if (!ruhig()) e[1](); }, e[0] * 1000)); });
+                             if (s) { rampe(s.g.gain, s.laut * 2.2, 0.15); spaeter(function () { if (schichten.f_amb_brutzeln === s) rampe(s.g.gain, s.laut, 1.8); }, 400); } }]
+        ].forEach(function (e) { spaeter(function () { if (!ruhig()) e[1](); }, e[0] * 1000); });
       };
       ["animationstart", "webkitAnimationStart", "animationiteration", "webkitAnimationIteration"].forEach(function (ev) {
         pf.addEventListener(ev, runde, false);
