@@ -313,7 +313,7 @@ body.ohne-falz .buch > .seite-rechts { -webkit-clip-path: inset(-60px -60px -60p
 @keyframes kf-einblenden { from { opacity: 0; } to { opacity: 1; } }
 
 /* ─────────────── Geheimakte & Rezept ─────────────── */
-.akte-bildschirm, .rezept-bildschirm { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: auto; display: -webkit-flex; display: flex;
+.akte-bildschirm, .rezept-bildschirm { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: auto; -webkit-overflow-scrolling: touch; display: -webkit-flex; display: flex;
   -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; }
 .akte-zurueck { position: absolute; top: 14px; left: 14px; z-index: 5; }
 .akte { position: relative; width: min(88vw, 118vh); width: 88vw; max-width: 118vh; padding: 5vh 3vw 3vh; border-radius: 10px; box-shadow: 0 18px 50px rgba(0,0,0,.45);
@@ -343,7 +343,7 @@ body.ohne-falz .buch > .seite-rechts { -webkit-clip-path: inset(-60px -60px -60p
 .rezept-zeile, .rezept-fuss { -webkit-animation: kf-einblenden .6s both; animation: kf-einblenden .6s both; }
 .rezept-luecke { height: 2.4vh; }
 .rezept-fuss { margin-top: 2vh; text-align: right; font-size: 3.4vh; }
-.rezept-drucken { position: absolute; top: 14px; right: 14px; }
+.rezept-drucken { position: absolute; top: 14px; right: 14px; z-index: 6; }   /* über der Rezeptkarte (1024×768: sonst verdeckt) */
 .rezept-hinweis { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; font-family: var(--rund); color: #fff; font-size: 14px; opacity: .85; }
 @media print { .knopf, .rezept-hinweis { display: none !important; } .rezeptkarte { box-shadow: none; -webkit-transform: none; transform: none; } }
 .mini-seite { position: absolute; top: 0; left: 50%; height: 100%; background-size: 100% 100%; box-shadow: 0 2px 10px rgba(0,0,0,.2); }

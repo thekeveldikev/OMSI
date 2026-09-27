@@ -85,6 +85,16 @@
     // Kevins Aufnahme der Strophe (Aufnahmestudio: audio/fortsetzung/schatten-1 … -5).
     // Ist sie länger als die geplante Dauer, läuft das Schattenspiel entsprechend langsamer mit.
     var stimme = null;
+    // EIN Audio-Element für alle Strophen, gleich hier im Antippen freigeschaltet: iOS erlaubt play() ohne
+    // Berührung nur Elementen, die schon einmal durch eine Berührung gestartet wurden
+    var STIMME_PFAD = ((window.FORTSETZUNG && window.FORTSETZUNG.audioPfad) || "audio/fortsetzung/") + "schatten-";
+    var stimmeEl = new Audio();
+    try {
+      stimmeEl.muted = true; stimmeEl.src = STIMME_PFAD + "1.m4a";
+      var frei = stimmeEl.play();
+      if (frei && frei.then) frei.then(function () { if (stimme !== stimmeEl) stimmeEl.pause(); stimmeEl.muted = false; }, function () { stimmeEl.muted = false; });
+      else stimmeEl.muted = false;
+    } catch (e) { stimmeEl.muted = false; }
     function stimmeStopp() {
       if (!stimme) return;
       try { stimme.pause(); } catch (e) {}
@@ -93,8 +103,9 @@
     function stimmeLaeuft() { return !!(stimme && stimme.src && !stimme.ended && !stimme.paused); }
     function stimmeStarten(k) {
       stimmeStopp();
-      var pfad = ((window.FORTSETZUNG && window.FORTSETZUNG.audioPfad) || "audio/fortsetzung/") + "schatten-" + (k + 1);
-      var endungen = [".m4a", ".mp3", ".wav"], v = 0, a = stimme = new Audio();
+      var pfad = STIMME_PFAD + (k + 1);
+      var endungen = [".m4a", ".mp3", ".wav"], v = 0, a = stimme = stimmeEl;
+      a.muted = false;
       function probiere() {
         if (a !== stimme) return;
         if (v >= endungen.length) { stimme = null; return; }

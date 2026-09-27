@@ -213,7 +213,13 @@
     };
   };
 
+  var appGeladen = false;
   function appLaden() {
+    if (appGeladen) return;
+    appGeladen = true;
+    // Offline-Speicher als "dauerhaft" erbitten: iOS gewährt das Home-Bildschirm-Apps und löscht die
+    // gespeicherten Buchseiten, Aufnahmen und Bilder dann nicht mehr bei Platzmangel/Nichtbenutzung
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist()["catch"](function () {}); } catch (e) {}
     var fortschritt = LADE.zeigen(app);
     var i = 0;
     (function naechstes() {
@@ -234,7 +240,10 @@
       '<p>Bitte das Geheimwort eingeben:</p><input id="wort" type="password" autocomplete="off" autocapitalize="off">' +
       '<button id="auf">Öffnen</button>' + (fehler ? '<p class="tresor-fehler">Das war nicht das Geheimwort.</p>' : ""));
     var feld = document.getElementById("wort");
+    var gesendet = false;                                   // Enter doppelt gedrückt → trotzdem nur EIN Ladevorgang
     function los() {
+      if (gesendet) return;
+      gesendet = true;
       document.getElementById("auf").disabled = true;
       ableiten(feld.value.trim()).then(function (roh) {
         try { localStorage.setItem("omsi.schluessel", roh); } catch (e) {}
@@ -249,7 +258,12 @@
   // Einrichtungs-Link geöffnet, während die Seite schon offen ist → neu starten
   window.addEventListener("hashchange", function () { if (/schluessel=/.test(location.hash)) location.reload(); });
 
-  navigator.serviceWorker.register("sw.js").then(function () { return navigator.serviceWorker.ready; }).then(function () {
+  // Ohne Internet schlägt das (Neu-)Registrieren fehl, weil sw.js nicht geladen werden kann – der schon
+  // installierte Worker hat aber alles gespeichert und übernimmt einfach weiter (sonst ginge offline nichts)
+  navigator.serviceWorker.register("sw.js")["catch"](function (fehler) {
+    if (navigator.serviceWorker.controller) return null;
+    throw fehler;
+  }).then(function () { return navigator.serviceWorker.ready; }).then(function () {
     // Beim allerersten Besuch steuert der Worker die Seite noch nicht → einmal neu laden
     if (!navigator.serviceWorker.controller) {
       if (!sessionStorage.getItem("omsi.neu")) { sessionStorage.setItem("omsi.neu", "1"); location.reload(); return; }

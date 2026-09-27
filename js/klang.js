@@ -277,21 +277,34 @@
     orgelton(z + 0.1, n - 12, 0.9, 0.06);
   };
 
-  // Spieluhr
+  // Spieluhr – über einen eigenen Kanal, damit sie beim Verlassen/Neustarten verstummen kann (K.spieluhrStille)
+  var spieluhrKanaele = [];
   K.spieluhr = function (melodie, tempo) {
     if (!ctx || !an()) return 0;
     var t = t0(), s = tempo || 0.42;
     var z = t;
+    var kanal = ctx.createGain(); kanal.gain.value = 1; kanal.connect(haupt);
+    var hallAnteil = ctx.createGain(); hallAnteil.gain.value = 0.6; kanal.connect(hallAnteil); hallAnteil.connect(hall);
+    spieluhrKanaele.push(kanal);
     melodie.forEach(function (p) {
       if (p[0] > 0) {
         var f = midi(p[0]);
-        var a = ton(z, f, 1.6, "sine", 0, true); huelle(a.g, z, 0.004, 0.02, 1.4, 0.22);
-        var b = ton(z, f * 4.02, 0.4, "sine"); huelle(b.g, z, 0.002, 0.01, 0.35, 0.05);
-        var c2 = ton(z, f * 2, 0.8, "triangle"); huelle(c2.g, z, 0.003, 0.01, 0.7, 0.05);
+        var a = ton(z, f, 1.6, "sine", 0, false, kanal); huelle(a.g, z, 0.004, 0.02, 1.4, 0.22);
+        var b = ton(z, f * 4.02, 0.4, "sine", 0, false, kanal); huelle(b.g, z, 0.002, 0.01, 0.35, 0.05);
+        var c2 = ton(z, f * 2, 0.8, "triangle", 0, false, kanal); huelle(c2.g, z, 0.003, 0.01, 0.7, 0.05);
       }
       z += p[1] * s;
     });
     return (z - t) * 1000;
+  };
+  K.spieluhrStille = function (dauer) {
+    if (!ctx) return;
+    var t = ctx.currentTime, d = dauer || 0.3;
+    spieluhrKanaele.forEach(function (k) {
+      k.gain.cancelScheduledValues(t); k.gain.setValueAtTime(k.gain.value, t); k.gain.linearRampToValueAtTime(0.0001, t + d);
+      setTimeout(function () { try { k.disconnect(); } catch (e) {} }, d * 1000 + 100);
+    });
+    spieluhrKanaele = [];
   };
   // "Zum Geburtstag viel Glück" (Melodie gemeinfrei), [Midi-Note, Schläge]
   K.GEBURTSTAG = [[67, 0.75], [67, 0.25], [69, 1], [67, 1], [72, 1], [71, 2],

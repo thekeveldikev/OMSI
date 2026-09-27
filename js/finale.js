@@ -175,8 +175,10 @@
       mikroAus();
       var farben = ["rot", "blau", "gelb", "gruen", "orange", "rosa", "lila", "hellblau"];
       for (var i = 0; i < 180; i++) konfetti.push({ x: W / 2 + B.zufall(-60, 60), y: H * 0.45, vx: B.zufall(-420, 420), vy: B.zufall(-720, -220), rot: B.zufall(0, 6), vr: B.zufall(-8, 8), g: B.zufall(8, 18), f: farben[i % farben.length], seed: i + 1 });
+      if (KLANG.spieluhrStille) KLANG.spieluhrStille(0.1);        // nie zwei Melodien übereinander
       KLANG.tusch();
-      setTimeout(function () { KLANG.spieluhr(KLANG.GEBURTSTAG, 0.45); }, 900);
+      var meinZ = z;
+      z.spieluhrTimer = setTimeout(function () { if (z === meinZ && fertigSeit) KLANG.spieluhr(KLANG.GEBURTSTAG, 0.45); }, 900);
       B.leeren(ende);
       ende.className = "finale-ende sichtbar";
       var bild = B.el("div", "finale-bild", ende);
@@ -185,7 +187,10 @@
       PAPIER.schriftFuellen(gruss, "blau", { akzent: "tiefblau" });
       B.el("div", "finale-absender", ende, B.ersetzen("{ABSENDER}"));
       var nochmal = B.knopf(B.el("button", "knopf", ende), "kerze", "Nochmal anzünden");
-      B.tippen(nochmal, function (ev) { ev.stopPropagation(); kerzen.forEach(function (k) { k.an = true; }); fertigSeit = 0; konfetti = []; ende.className = "finale-ende"; });
+      B.tippen(nochmal, function (ev) {
+        ev.stopPropagation(); kerzen.forEach(function (k) { k.an = true; }); fertigSeit = 0; konfetti = []; ende.className = "finale-ende";
+        clearTimeout(z.spieluhrTimer); if (KLANG.spieluhrStille) KLANG.spieluhrStille(0.6);
+      });
     }
 
     function konfettiZeichnen() {
@@ -199,15 +204,23 @@
       });
     }
 
-    // Mikrofon
-    var strom = null;
+    // Mikrofon – nur EINE Anfrage bzw. ein Strom; beim Verlassen immer ganz freigeben
+    var strom = null, anfrage = false;
     function mikroAn() {
+      if (anfrage || strom) return;                          // schon an (Knopf zeigt "Jetzt kräftig pusten!")
       var AC = window.AudioContext || window.webkitAudioContext;
       var gum = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
       if (!gum || !AC) { APP.meldung("Das Mikrofon geht hier leider nicht – einfach die Kerzen antippen!"); return; }
+      var actx;
+      try { actx = new AC(); } catch (e) { APP.meldung("Das Mikrofon geht hier leider nicht – einfach die Kerzen antippen!"); return; }   // in der Berührung anlegen (iOS)
+      var meinZ = z;
+      anfrage = true;
       navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
+        anfrage = false;
+        if (!z || z !== meinZ) { s.getTracks().forEach(function (tr) { tr.stop(); }); try { actx.close(); } catch (e) {} return; }   // inzwischen verlassen
         strom = s;
-        var actx = new AC(), quelle = actx.createMediaStreamSource(s), an = actx.createAnalyser();
+        if (actx.state === "suspended" && actx.resume) actx.resume();
+        var quelle = actx.createMediaStreamSource(s), an = actx.createAnalyser();
         an.fftSize = 1024; quelle.connect(an);
         var puffer = new Uint8Array(an.fftSize);
         z.mikroPegel = function () {
@@ -218,7 +231,10 @@
         };
         z.mikroCtx = actx;
         B.knopf(mikro, "wind", "Jetzt kräftig pusten!");
-      })["catch"](function () { APP.meldung("Kein Mikrofon erlaubt – einfach die Kerzen antippen!"); });
+      })["catch"](function () {
+        anfrage = false; try { actx.close(); } catch (e) {}
+        if (z && z === meinZ) APP.meldung("Kein Mikrofon erlaubt – einfach die Kerzen antippen!");
+      });
     }
     function mikroAus() {
       if (strom) { strom.getTracks().forEach(function (tr) { tr.stop(); }); strom = null; }
@@ -247,6 +263,8 @@
   FIN.stoppen = function () {
     if (!z) return;
     B.frameStopp(z.id);
+    clearTimeout(z.spieluhrTimer);
+    if (KLANG.spieluhrStille) KLANG.spieluhrStille(0.4);
     if (z.mikroAus) z.mikroAus();
     window.removeEventListener("resize", z.groesse, false);
     z = null;

@@ -73,13 +73,16 @@
     var tor = B.el("div", "start-tor", s);
     B.el("div", "start-tor-ring", tor);
     var hinweis = B.el("div", "start-hinweis", s, "Tippe auf das Gartentor");
+    var geoeffnet = false;
     B.tippen(s, function () {
+      if (geoeffnet) return;                               // mehrfach angetippt → trotzdem nur einmal in die Küche
+      geoeffnet = true;
       KLANG.entsperren();
       KLANG.knarzen();
       setTimeout(KLANG.vogel, 500);
       hinweis.style.opacity = "0";
       s.className = "start rein";
-      setTimeout(function () { APP.zeige("kueche"); }, 1300);
+      setTimeout(function () { if (aktuell === "start") APP.zeige("kueche"); }, 1300);
     });
   }
 
@@ -252,7 +255,7 @@
     var stempel = B.el("div", "akte-stempel", dossier, B.ersetzen(A.stempel));
     // Schrift so groß wie möglich, ohne übers Blatt zu laufen (mit dem vollen Text gemessen)
     function einpassen() {
-      if (aktuell !== "akte" || !dossier.parentNode) { window.removeEventListener("resize", einpassen, false); return; }
+      if (aktuell !== "akte" || !document.body.contains(dossier)) { window.removeEventListener("resize", einpassen, false); return; }
       var vorher = zeilen.map(function (z) { return z.el.textContent; });
       zeilen.forEach(function (z) { z.el.textContent = z.text; });
       var bildH = dossier.clientWidth * 0.75, quer = window.innerWidth > window.innerHeight * 1.25;   // wie die CSS-Regel
@@ -312,7 +315,7 @@
     fuss.style.webkitAnimationDelay = fuss.style.animationDelay = (0.5 + nr * 0.18) + "s";
     // Schrift so groß wie möglich, ohne dass etwas in die gemalten Zutaten läuft
     function einpassen() {
-      if (aktuell !== "rezept" || !karte.parentNode) { window.removeEventListener("resize", einpassen, false); return; }
+      if (aktuell !== "rezept" || !document.body.contains(karte)) { window.removeEventListener("resize", einpassen, false); return; }
       var f = karte.clientHeight / 27;
       function passt() {
         for (var s = 0; s < spalten.length; s++) if (spalten[s].scrollHeight > spalten[s].clientHeight + 1) return false;
@@ -380,6 +383,16 @@
     if (window.SPIEL && SPIEL.dateien) d = d.concat(SPIEL.dateien());
     return d;
   }
+  // Zählt, welche Dateien NICHT im Offline-Speicher gelandet sind (verschlüsselte liegen dort als .enc)
+  function speicherPruefen(liste, fertig) {
+    if (!window.caches || !window.TRESOR_INFO || !window.Promise) { fertig(0); return; }
+    var geschuetzt = /^(daten|bilder|audio)\//, oeffentlich = /^bilder\/extras\/icon-[^\/]+\.png$/;   // wie sw-tresor.js
+    Promise.all(liste.map(function (d) {
+      var url = new URL(d + (geschuetzt.test(d) && !oeffentlich.test(d) ? ".enc" : ""), location.href).href;
+      return caches.match(url).then(function (r) { return r ? 0 : 1; }, function () { return 1; });
+    })).then(function (n) { fertig(n.reduce(function (a, b) { return a + b; }, 0)); }, function () { fertig(0); });
+  }
+
   // Lädt alles einmal durch – der Service Worker merkt es sich, danach geht es ohne Internet.
   // Immer nur 4 Dateien gleichzeitig, damit das iPad nebenher flüssig bleibt.
   function allesVorladen(knopf, fertigMeldung) {
@@ -394,8 +407,12 @@
         if (x.status !== 200 && x.status !== 206) fehler++;
         if (knopf) B.knopf(knopf, "laden", Math.round(100 * fertig / liste.length) + " %");
         if (fertig === liste.length) {
-          if (knopf) B.knopf(knopf, "haken", "Alles gespeichert – geht jetzt auch ohne Internet");
-          if (fertigMeldung) fertigMeldung(fehler);
+          speicherPruefen(liste, function (fehlend) {                // wirklich im Offline-Speicher? (voller Speicher meldet sonst nichts)
+            var alles = !fehler && !fehlend;
+            if (knopf) B.knopf(knopf, alles ? "haken" : "laden", alles ? "Alles gespeichert – geht jetzt auch ohne Internet"
+                                                                    : "Noch nicht alles gespeichert – bitte später mit WLAN nochmal");
+            if (fertigMeldung) fertigMeldung(fehler + fehlend);
+          });
         } else eine();
       };
       x.send();
@@ -412,8 +429,8 @@
     var lokal = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
     if (navigator.serviceWorker) {
       try {
-        if (window.location.protocol === "https:" && !lokal) navigator.serviceWorker.register("sw.js");
-        else if (navigator.serviceWorker.getRegistrations) navigator.serviceWorker.getRegistrations().then(function (liste) {
+        if (window.location.protocol === "https:" && !lokal) navigator.serviceWorker.register("sw.js")["catch"](function () {});   // offline: der vorhandene Worker bleibt
+        else if (!window.TRESOR_INFO && navigator.serviceWorker.getRegistrations) navigator.serviceWorker.getRegistrations().then(function (liste) {   // (verschlüsselte Fassung braucht ihren Worker immer)
           liste.forEach(function (r) { r.unregister(); });
           if (window.caches) caches.keys().then(function (k) { k.forEach(function (n) { caches["delete"](n); }); });
         });

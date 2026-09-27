@@ -108,6 +108,7 @@
     var weiter = sp.el.play();
     if (weiter && weiter["catch"]) weiter["catch"](function () { sp.blockiert = true; });
     function los() {
+      if (!aktiv || aktiv.sp !== sp || aktiv.stueck !== stueck) return;   // inzwischen etwas anderes gewünscht
       if (!klingtNoch && Math.abs((sp.el.currentTime || 0) - (ab || 0)) > 0.4) { try { sp.el.currentTime = ab || 0; } catch (e) {} }
       pegel(sp, S.laut, einblenden);
     }
@@ -304,9 +305,9 @@
   var messer = null, messDaten = null;
   M.messen = function () {
     if (!bus) return null;
-    if (!messer) { messer = KLANG.kontext().createAnalyser(); messer.fftSize = 2048; bus.connect(messer); messDaten = new Float32Array(messer.fftSize); }
-    messer.getFloatTimeDomainData(messDaten);
-    var q = 0; for (var i = 0; i < messDaten.length; i++) q += messDaten[i] * messDaten[i];
+    if (!messer) { messer = KLANG.kontext().createAnalyser(); messer.fftSize = 2048; bus.connect(messer); messDaten = new Uint8Array(messer.fftSize); }
+    messer.getByteTimeDomainData(messDaten);                  // (die Float-Variante gibt es erst ab iOS 14.1)
+    var q = 0; for (var i = 0; i < messDaten.length; i++) { var v = (messDaten[i] - 128) / 128; q += v * v; }
     return Math.round(Math.sqrt(q / messDaten.length) * 1000) / 1000;
   };
   M.zustand = function () {

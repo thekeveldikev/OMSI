@@ -194,7 +194,8 @@
   KU.seite = function (typ, schluessel, nachbarn) {
     var plan = planFuer(typ, schluessel);
     seitenPlan = { typ: typ, schluessel: schluessel, nachbarn: nachbarn || [] };
-    if (!eingeschaltet() || !bereit()) return false;
+    if (P && !eingeschaltet()) return true;             // "Geräusche aus": auch die eingebauten Töne schweigen
+    if (!bereit()) return false;
     abspielen(plan);
     // Hintergründe der Nachbarseiten schon mal laden, Rest freigeben
     var behalten = {};
@@ -224,7 +225,8 @@
 
   // Echtes Umblättern; false → buch.js nimmt das eingebaute
   KU.blaettern = function () {
-    if (!eingeschaltet() || !ctx || !P.blaettern || !puffer[P.blaettern]) return false;
+    if (P && !eingeschaltet()) return true;             // Geräusche aus → auch kein eingebautes Blättern
+    if (!ctx || !P.blaettern || !puffer[P.blaettern]) return false;
     var q = ctx.createBufferSource(), g = ctx.createGain();
     q.buffer = puffer[P.blaettern]; g.gain.value = 0.75; q.connect(g); g.connect(ctx.destination);
     starte(q, jetzt() + 0.01);
@@ -244,7 +246,8 @@
   // ersatz: wird aufgerufen, wenn es die Datei nicht gibt (dann klingt z. B. das eingebaute Geräusch)
   // direkt: am Vorlese-Dämpfer vorbei (Geräuschwörter wie PUFF! gehören zur Geschichte und bleiben laut)
   KU.spiele = function (name, laut, ersatz, direkt) {
-    if (!(buchOffen || raumOffen) || !eingeschaltet() || !bereit()) { if (ersatz) ersatz(); return false; }
+    if (P && !eingeschaltet()) return true;             // Geräusche aus: still – nicht den Ersatzklang nehmen
+    if (!(buchOffen || raumOffen) || !bereit()) { if (ersatz) ersatz(); return false; }
     einzel(name, laut == null ? 0.8 : laut, ersatz, direkt);
     return true;
   };

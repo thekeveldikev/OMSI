@@ -4,7 +4,7 @@
    und reicht sie an die App weiter – als wäre nichts gewesen. Alles, was einmal
    geladen wurde, bleibt im Speicher (offline lesbar).
    Wird von Werkzeuge/veroeffentlichen.py als sw.js ins Veröffentlichungs-Verzeichnis kopiert. */
-var VERSION = "omsi-20260927-024858-musik-spiel";
+var VERSION = "omsi-20260927-100100";
 var GESCHUETZT = /\/(daten|bilder|audio)\//;
 var OEFFENTLICH = /\/bilder\/extras\/icon-[^/]+\.png$/;
 var schluesselPromise = null;
@@ -97,9 +97,15 @@ self.addEventListener("fetch", function (e) {
     e.respondWith(entschluesselt(e.request));
     return;
   }
-  // Programm-Dateien: Netz zuerst (damit Änderungen ankommen), sonst Speicher
-  e.respondWith(fetch(e.request).then(function (antwort) {
-    if (antwort && antwort.ok) { var kopie = antwort.clone(); caches.open(VERSION).then(function (c) { c.put(e.request, kopie); }); }
-    return antwort;
-  })["catch"](function () { return caches.match(e.request); }));
+  // Programm-Dateien: Netz zuerst (damit Änderungen ankommen), sonst Speicher. Gibt es schon eine gespeicherte
+  // Fassung, wird bei schwachem WLAN höchstens 4 s aufs Netz gewartet (sonst hinge der Start).
+  e.respondWith(caches.match(e.request).then(function (gespeichert) {
+    var netz = fetch(e.request).then(function (antwort) {
+      if (antwort && antwort.ok) { var kopie = antwort.clone(); caches.open(VERSION).then(function (c) { c.put(e.request, kopie); }); }
+      return antwort;
+    });
+    if (!gespeichert) return netz["catch"](function () { return caches.match(e.request); });
+    return Promise.race([netz.then(function (a) { return a && a.ok ? a : gespeichert; }, function () { return gespeichert; }),
+                         new Promise(function (ok) { setTimeout(function () { ok(gespeichert); }, 4000); })]);
+  }));
 });

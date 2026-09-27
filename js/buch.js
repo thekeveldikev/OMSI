@@ -14,7 +14,11 @@
   }
 
   function vorladen(src, fertig) {
-    if (bildCache[src]) { if (fertig) fertig(bildCache[src]); return; }
+    var da = bildCache[src];
+    if (da) {                                           // lädt noch → warten, sonst sofort
+      if (fertig) { if (da.ok === null) da.warten.push(fertig); else fertig(da); }
+      return;
+    }
     var eintrag = { ok: null, img: null, warten: [] };
     bildCache[src] = eintrag;
     if (fertig) eintrag.warten.push(fertig);
@@ -657,7 +661,8 @@
           }
           if (tk.ton) KULISSE.spiele(tk.ton, tk.laut);
           if (tk.effekt) EFFEKTE.ausloesen(tk.effekt);
-          S.taktTimer.push(setTimeout(feuern, B.zufall(tk.alle[0], tk.alle[1]) * 1000));
+          var alle = tk.alle || [10, 15];
+          S.taktTimer.push(setTimeout(feuern, B.zufall(alle[0], alle[1]) * 1000));
         }
         S.taktTimer.push(setTimeout(feuern, (tk.erstes || 1) * 1000));
       });
@@ -675,6 +680,20 @@
     buch.style.width = S.w + "px"; buch.style.height = S.h + "px";
     buch.style.fontSize = (S.h * 0.028) + "px";
     B.canvasGroesse(S.dom.effekte, S.w, S.h);
+  }
+
+  // Neues Layout nach Größenänderung: Buchmaß, beide Seiten neu setzen, Effekte neu (Leinwand hat neue Maße).
+  // Läuft gerade das Umblättern, wird es danach nachgeholt.
+  function neuLayouten() {
+    if (!S || !S.w) return;
+    if (S.beschaeftigt) { S.layoutNachher = true; return; }
+    groesseAnpassen();
+    var ds = S.doppelseiten[S.index];
+    S.einpassListe = [];
+    fuelleSeite(S.dom.links, haelfteInfo(ds, "links"));
+    fuelleSeite(S.dom.rechts, haelfteInfo(ds, "rechts"));
+    allesEinpassen();
+    if (!(window.FLUG && FLUG.laeuft && FLUG.laeuft())) starteEffekte();
   }
 
   // ───────────────────── Anzeigen einer Doppelseite ─────────────────────
@@ -804,6 +823,7 @@
       if (blatt.parentNode) blatt.parentNode.removeChild(blatt);
       S.beschaeftigt = false;
       seiteBetreten();
+      if (S.layoutNachher) { S.layoutNachher = false; neuLayouten(); }   // während des Blätterns gedreht
     }
     setTimeout(function () {                                 // senkrecht: Seiten tauschen, zweite Hälfte
       if (!blatt.parentNode) return;
@@ -829,7 +849,7 @@
   var audio = null, vorleseLauf = 0;                     // jede Vorlese-Runde hat ihre eigene Nummer
   function vorlesenStoppen(nurAudio) {
     vorleseLauf++;
-    if (audio) { try { audio.pause(); } catch (e) {} audio.onended = audio.onerror = null; }
+    if (audio) { try { audio.pause(); } catch (e) {} audio.onended = audio.onerror = audio.ontimeupdate = null; }
     KLANG.stumm();
     if (S && S.weiterTimer) { clearTimeout(S.weiterTimer); S.weiterTimer = null; }
     if (!nurAudio && S) { KULISSE.leiser(false); S.vorlesen = false; S.dom.vorlesen.className = "knopf vorlesen"; B.knopf(S.dom.vorlesen, "abspielen", "Vorlesen"); }
@@ -847,12 +867,14 @@
       stueck.push({ audio: S.daten.audioPfad + ds.seite.id, text: textAlsSprache(ds.seite.text), seiteEl: S.dom.buch,
                     ereignisse: zeiten && zeiten.ereignisse ? zeiten.ereignisse.slice() : [] });
     }
-    var i = 0, indexBeiStart = S.index;
+    var i = 0, indexBeiStart = S.index, dieseRunde = vorleseLauf;
+    function aktuell() { return S && S.vorlesen && S.index === indexBeiStart && dieseRunde === vorleseLauf; }
     function naechstes() {
-      if (!S || !S.vorlesen || S.index !== indexBeiStart) return;
+      if (!aktuell()) return;
       if (i >= stueck.length) {
+        clearTimeout(S.weiterTimer);
         S.weiterTimer = setTimeout(function () {
-          if (!S || !S.vorlesen || S.index !== indexBeiStart) return;
+          if (!aktuell()) return;
           var ds2 = S.doppelseiten[S.index];
           if (S.typ === "fortsetzung" && ds2.seite.art === "schattentheater") { SCHATTEN.starten(ds2.seite.schattenVerse, function () { if (S && S.vorlesen) BUCH.weiter(); }); return; }
           if (S.index < S.doppelseiten.length - 1) BUCH.weiter(); else vorlesenStoppen();
@@ -969,7 +991,10 @@
       KLANG.entsperren(); KULISSE.leiser(true);
       vorlesenStarten();
     });
-    B.tippen(geraeusche, function (ev) { ev.stopPropagation(); KLANG.entsperren(); KULISSE.umschalten(); geraeuscheZeigen(); });
+    B.tippen(geraeusche, function (ev) {
+      ev.stopPropagation(); KLANG.entsperren(); KULISSE.umschalten(); geraeuscheZeigen();
+      if (!KULISSE.istAn() && S) { (S.tonTimer || []).forEach(clearTimeout); S.tonTimer = []; KLANG.stumm(); if (KLANG.orgelStille) KLANG.orgelStille(0.3); }
+    });
     B.tippen(pfeilL, function (ev) { ev.stopPropagation(); BUCH.zurueck(); });
     B.tippen(pfeilR, function (ev) { ev.stopPropagation(); BUCH.weiter(); });
 
@@ -1003,28 +1028,43 @@
       else if (ev.keyCode === 27) { BUCH.schliessen(); zurKueche(); }
     };
     document.addEventListener("keydown", S.tasten, false);
-    S.groesse = function () { if (!S) return; groesseAnpassen(); zeigeDoppelseite(); hochkantPruefen(); };
+    // Größe/Drehung: nur neu layouten (entprellt) – NICHT die Seite neu betreten, sonst begänne das
+    // Vorlesen von vorn und Geräusche/Takte liefen doppelt
+    var groesseTimer = 0;
+    S.groesse = function () {
+      if (!S) return;
+      hochkantPruefen();
+      clearTimeout(groesseTimer);
+      groesseTimer = setTimeout(neuLayouten, 160);
+    };
     window.addEventListener("resize", S.groesse, false);
     window.addEventListener("orientationchange", S.groesse, false);
+    // Nach Sperrbildschirm/Hintergrund: Vorlesen weiterlaufen lassen – klappt das nicht, den Knopf ehrlich zurücksetzen
+    S.sichtbarVorlesen = function () {
+      if (document.hidden || !S || !S.vorlesen || !audio || !audio.paused || audio.ended || !(audio.currentTime > 0) || audio.readyState < 2) return;
+      var p = audio.play();
+      if (p && p["catch"]) p["catch"](function () { if (S && S.vorlesen) vorlesenStoppen(); });
+    };
+    document.addEventListener("visibilitychange", S.sichtbarVorlesen, false);
 
     // Bilder der Fortsetzung vorab prüfen (fehlende → Platzhalter)
-    var offen = 0, meinBuch = S;
+    var offen = 0, meinBuch = S, gestartet = false;
     function losgehen() {
-      if (S !== meinBuch) return;          // Buch schon wieder zu (oder neu geöffnet), bevor die Bilder da waren
+      if (S !== meinBuch || gestartet) return;   // Buch schon wieder zu (oder neu geöffnet) – oder schon aufgebaut
+      gestartet = true;
       groesseAnpassen(); zeigeDoppelseite();
       // Buchschrift beim ersten Öffnen noch nicht geladen? Dann wurde mit der Ersatzschrift eingepasst –
       // sobald die echte Schrift da ist, einmal neu setzen (sonst falsche Umbrüche/Überlauf)
       var diesesBuch = S;
       if (document.fonts && document.fonts.status === "loading" && document.fonts.ready) document.fonts.ready.then(function () {
-        if (S === diesesBuch && S.groesse && !S.beschaeftigt) S.groesse();
+        if (S === diesesBuch) neuLayouten();
       });
     }
-    if (typ === "fortsetzung") {
-      daten.seiten.forEach(function (s) { offen++; vorladen(bildQuelleFortsetzung(s), function () { offen--; if (offen === 0) losgehen(); }); });
-    } else {
-      var ds0 = S.doppelseiten[S.index];
-      [ds0.links, ds0.rechts].forEach(function (nr) { if (nr) { offen++; vorladen(bildQuelleOriginal(nr), function () { offen--; if (offen === 0) losgehen(); }); } });
-    }
+    var quellen = [];
+    if (typ === "fortsetzung") daten.seiten.forEach(function (s) { quellen.push(bildQuelleFortsetzung(s)); });
+    else { var ds0 = S.doppelseiten[S.index]; [ds0.links, ds0.rechts].forEach(function (nr) { if (nr) quellen.push(bildQuelleOriginal(nr)); }); }
+    offen = quellen.length;                              // erst zählen, dann laden – sonst startet es mehrfach
+    quellen.forEach(function (q) { vorladen(q, function () { offen--; if (offen === 0) losgehen(); }); });
     if (offen === 0) losgehen();
   };
 
@@ -1039,6 +1079,7 @@
     document.removeEventListener("keydown", S.tasten, false);
     window.removeEventListener("resize", S.groesse, false);
     window.removeEventListener("orientationchange", S.groesse, false);
+    document.removeEventListener("visibilitychange", S.sichtbarVorlesen, false);
     hochkantAus();
     S = null;
   };
